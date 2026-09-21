@@ -1,0 +1,10 @@
+
+config
+
+model.safetensors -> harusnya ada ini tetapi mb nya besar tidak aku cantumkan, ini merupakan model indobert nlp nya
+
+tokenizer
+
+tokenizer_config
+
+training_args.bin

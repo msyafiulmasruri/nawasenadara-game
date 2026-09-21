@@ -1,0 +1,25 @@
+{
+  "name": "Nawasena Dara",
+  "short_name": "Nawasena Dara",
+  "description": "Narrative-Driven Learning Game untuk edukasi dan pendampingan pencegahan kekerasan pada remaja putri.",
+  "start_url": "/game",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

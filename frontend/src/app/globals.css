@@ -1,0 +1,469 @@
+@import 'tailwindcss';
+
+:root {
+  --font-title: 'Jersey 15', monospace;
+  --font-pixel-ui: 'Pixelify Sans', monospace;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* PENTING: 100vh dulu sebagai fallback untuk browser lama yang belum
+     kenal `dvh`, BARU 100dvh menimpanya di browser yang support.
+     Kalau urutannya dibalik (seperti sebelumnya), deklarasi 100vh yang
+     terakhir akan SELALU menimpa 100dvh walau browser sudah mendukungnya
+     — ini penyebab layout "meloncat"/tidak konsisten di Safari iOS saat
+     address bar muncul/hilang atau saat orientasi berganti. */
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Container canvas Phaser: selalu menutupi seluruh viewport.
+   Background hitam mengisi area yang mungkin terlihat sesaat
+   sebelum Phaser canvas selesai di-render. overflow:hidden
+   menyembunyikan bagian canvas yang melampaui viewport
+   (diperlukan oleh mode ENVELOP). */
+#game-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  background: #000;
+  overflow: hidden;
+  /* Cegah gesture zoom/scroll bawaan Safari/Chrome mobile yang bisa
+     bikin canvas ikut ter-zoom/geser di luar kendali Phaser. */
+  touch-action: none;
+}
+
+#game-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+/* Jaga ketajaman pixel art saat canvas Phaser di-scale */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ==========================================================================
+   Halaman Auth (Login / Register / Forgot / Reset Password)
+   ==========================================================================
+   Palet & tipografi sengaja disamakan dengan gaya visual game yang SUDAH
+   diimplementasikan di Phaser (TitleScene.js, MenuScene.js) — latar hitam
+   keunguan bertabur bintang, aksen emas #ffdd57, font "Jersey 15" untuk
+   judul dan "Pixelify Sans" untuk teks UI/form — bukan mengikuti draf
+   "visual novel pastel" di proposal, karena itu bukan arah visual yang
+   jadi dipakai di kode game-nya.
+   ========================================================================== */
+
+/* `html, body` di atas sengaja `overflow: hidden` + tinggi FIXED
+   100dvh — itu buat canvas game (Phaser ENVELOP mode) supaya tidak ada
+   scroll bar/bounce yang mengganggu. Tapi kalau .auth-page cuma pakai
+   `min-height`, dia jadi child block biasa di dalam body yang overflow
+   hidden itu — begitu formnya lebih tinggi dari layar (HP kecil, mode
+   landscape pendek, atau keyboard virtual muncul), bagian bawahnya
+   KEPOTONG karena body-nya sendiri tidak bisa discroll dan .auth-page
+   tidak py aturan tinggi sendiri.
+   Fix: `position: fixed; inset: 0;` melepaskan .auth-page dari alur
+   box body sepenuhnya dan menjadikannya viewport-nya sendiri, lalu
+   `overflow-y: auto` di elemen INI (bukan bergantung ke body) yang
+   menangani scroll internalnya. */
+.auth-page {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  background: radial-gradient(ellipse at 50% 0%, #14142b 0%, #05050f 65%);
+  display: flex;
+  justify-content: center;
+  color: #ffffff;
+  font-family: var(--font-pixel-ui);
+  /* Safe-area utk notch/home-indicator saat auth page diakses dari PWA
+     standalone yang dipakai game (lihat viewportFit:'cover' di layout.js). */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==========================================================================
+   Dashboard Guru BK (list & detail siswa)
+   ==========================================================================
+   Sama persis alasannya dengan .auth-page di atas: `html, body` sengaja
+   `overflow: hidden` + tinggi FIXED 100dvh demi canvas game (Phaser
+   ENVELOP mode), tapi dashboard guru BK ini halaman Next.js BIASA yang
+   kontennya (tabel progres siswa, riwayat notifikasi, dst) sering lebih
+   tinggi dari layar — terutama di halaman detail siswa. Tanpa kelas ini,
+   `page` cuma pakai `minHeight: '100dvh'` biasa, jadi bagian yang
+   melampaui viewport KEPOTONG karena body-nya sendiri tidak bisa
+   discroll. `position: fixed; inset: 0; overflow-y: auto` di SINI
+   (bukan bergantung ke body) yang menangani scroll-nya sendiri. */
+.dashboard-page {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.auth-starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.auth-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffffff;
+  animation-name: auth-star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes auth-star-twinkle {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+.auth-viewport {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: clamp(12px, 4vh, 28px) clamp(12px, 4vw, 20px) clamp(16px, 4vh, 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.auth-logo {
+  font-family: var(--font-title);
+  font-size: clamp(18px, 5vw, 22px);
+  letter-spacing: 1px;
+  color: #ffdd57;
+  text-decoration: none;
+  margin-bottom: clamp(10px, 3vh, 16px);
+  text-shadow: 0 0 12px rgba(255, 221, 87, 0.35);
+  text-align: center;
+}
+
+.auth-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(15, 15, 34, 0.82);
+  border: 2px solid rgba(255, 221, 87, 0.28);
+  border-radius: 14px;
+  padding: clamp(14px, 4vw, 20px) clamp(12px, 4vw, 18px);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 24px 60px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.auth-card__header {
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.auth-card__title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: 0.5px;
+}
+
+.auth-card__subtitle {
+  font-size: 13px;
+  color: #b7b7c9;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.auth-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e3e3f0;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.auth-field__input {
+  font-family: var(--font-pixel-ui);
+  font-size: 16px; /* >=16px wajib supaya Safari iOS tidak auto-zoom saat fokus */
+  color: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 9px 12px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.auth-field__input::placeholder {
+  color: #7a7a90;
+}
+
+.auth-field__input:focus {
+  border-color: #ffdd57;
+  background: rgba(255, 221, 87, 0.06);
+}
+
+.auth-field__hint {
+  font-size: 11px;
+  color: #8d8da3;
+  margin: 0;
+}
+
+.auth-field__error {
+  font-size: 12px;
+  color: #ff8a8a;
+  margin: 0;
+}
+
+.auth-role-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 420px) {
+  .auth-role-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .auth-role-option {
+    text-align: center;
+    align-items: center;
+  }
+}
+
+.auth-role-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  font-family: var(--font-pixel-ui);
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e3e3f0;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.auth-role-option__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-role-option__hint {
+  font-size: 11px;
+  color: #9a9ab0;
+}
+
+.auth-role-option--active {
+  border-color: #ffdd57;
+  background: rgba(255, 221, 87, 0.1);
+}
+
+.auth-role-option--active .auth-role-option__label {
+  color: #ffdd57;
+}
+
+.auth-button {
+  font-family: var(--font-pixel-ui);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    filter 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-button--primary {
+  background: #ffdd57;
+  color: #1a1a2e;
+}
+
+.auth-button--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.auth-button--ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.auth-button--ghost:hover:not(:disabled) {
+  border-color: #ffdd57;
+  color: #ffdd57;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #7a7a90;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 4px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.auth-google-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-google-disabled {
+  font-size: 11px;
+  color: #7a7a90;
+  text-align: center;
+}
+
+.auth-message {
+  font-size: 13px;
+  line-height: 1.6;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.auth-message--error {
+  background: rgba(255, 90, 90, 0.12);
+  border: 1px solid rgba(255, 90, 90, 0.35);
+  color: #ffb4b4;
+}
+
+.auth-message--success {
+  background: rgba(120, 219, 143, 0.12);
+  border: 1px solid rgba(120, 219, 143, 0.35);
+  color: #b4f0c2;
+}
+
+.auth-links-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.auth-link {
+  color: #ffdd57;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-footer {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #8d8da3;
+  text-align: center;
+}
+
+.auth-footer .auth-link {
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .auth-viewport {
+    max-width: 420px;
+  }
+}
+
+/* Layar sangat pendek (HP landscape, atau browser window dipendekkan) —
+   kecilkan jarak vertikal supaya form tetap muat tanpa harus scroll
+   berlebihan, tapi tetap bisa scroll kalau memang kurang. */
+@media (max-height: 560px) {
+  .auth-viewport {
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+
+  .auth-logo {
+    margin-bottom: 12px;
+    font-size: 20px;
+  }
+
+  .auth-card__header {
+    margin-bottom: 12px;
+  }
+
+  .auth-form {
+    gap: 12px;
+  }
+}
