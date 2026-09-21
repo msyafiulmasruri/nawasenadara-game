@@ -436,14 +436,27 @@ export default class DialogueBox {
     // SPEAKER NAME
     // ============================================================
 
-    this._nameTag.setText(
-      node.speaker === 'player' ? this._playerName : this._npcName,
-    );
+    const isNarration = node.speaker === 'narration';
 
-    this._nameTagBg.setSize(
-      this._nameTag.width + 24,
-      this._nameTag.height + 14,
-    );
+    if (isNarration) {
+      // Node narasi tidak punya pembicara fisik. Sembunyikan tab nama
+      // supaya teks seperti deskripsi kamar / isi grup chat tidak
+      // salah terlihat seolah-olah diucapkan oleh Rafi.
+      this._nameTag.setVisible(false);
+      this._nameTagBg.setVisible(false);
+    } else {
+      this._nameTag.setVisible(true);
+      this._nameTagBg.setVisible(true);
+
+      this._nameTag.setText(
+        node.speaker === 'player' ? this._playerName : this._npcName,
+      );
+
+      this._nameTagBg.setSize(
+        this._nameTag.width + 24,
+        this._nameTag.height + 14,
+      );
+    }
 
     // ============================================================
     // DYNAMIC NPC NODE

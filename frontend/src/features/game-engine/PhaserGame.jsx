@@ -9,6 +9,7 @@ import EpisodeSelectScene from './scenes/EpisodeSelectScene';
 import EpisodeIntroScene from './scenes/EpisodeIntroScene';
 import EpisodeEndingScene from './scenes/EpisodeEndingScene';
 import Episode1Scene from './scenes/Episode1Scene';
+import Episode2Scene from './scenes/Episode2Scene';
 import PlaceholderEpisodeScene from './scenes/PlaceholderEpisodeScene';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/gameConfig';
 import { tryLockCurrentOrientation } from './utils/fullscreen';
@@ -92,6 +93,7 @@ export default function PhaserGame() {
           EpisodeIntroScene,
           EpisodeEndingScene,
           Episode1Scene,
+          Episode2Scene,
           PlaceholderEpisodeScene,
         ],
         physics: {

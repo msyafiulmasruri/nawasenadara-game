@@ -1,8 +1,8 @@
 // Data semua episode Nawasena Dara. `sceneKey` menunjuk ke Phaser Scene
-// yang menjalankan episode itu. Episode 1 sudah punya scene sendiri
-// (Episode1Scene, dulu bernama ClassroomScene). Episode 2-9 untuk
-// sementara semuanya memakai PlaceholderEpisodeScene (background warna
-// polos + label) sambil menunggu aset latar belakang final.
+// yang menjalankan episode itu. Episode 1 dan Episode 2 sudah punya
+// scene khusus (Episode1Scene dan Episode2Scene). Episode 3-9 untuk
+// sementara memakai PlaceholderEpisodeScene sambil menunggu aset dan
+// mekanik khusus masing-masing episode.
 //
 // CARA PASANG ASET BACKGROUND EPISODE 2-9 NANTI (tanpa ubah kode sama
 // sekali di luar file ini + BootScene):
@@ -50,13 +50,32 @@ export const EPISODES = [
   },
   {
     id: 2,
+
     title: 'Rahasia di Grup Kelas',
-    sceneKey: 'PlaceholderEpisodeScene',
+
+    sceneKey: 'Episode2Scene',
+
     placeholderColor: 0x243b55,
+
     bgKey: 'episode2-bg',
+
     bgImagePath: '/scenes/episode-2-bg.png',
+
     description:
-      'Saat istirahat, kamu menemukan salah satu teman sedang di-bully di grup chat kelas. Diam, membantu, atau justru ikut menyebarkan — pilihanmu akan membuka jalan cerita yang berbeda.',
+      'Sepulang sekolah, kamu kembali ke kamar dan mencoba beristirahat. ' +
+      'Namun ponsel di atas meja terus menerima notifikasi dari grup kelas. ' +
+      'Saat dibuka, kamu menemukan beberapa teman sedang menjadikan Kirana ' +
+      'bahan ejekan. Rafi kemudian menghubungimu secara pribadi dan menanyakan ' +
+      'pendapatmu. Pilihanmu akan menentukan apakah kamu memilih membantu, ' +
+      'diam karena takut, ikut terbawa suasana, atau membiarkan semuanya terjadi.',
+
+    objective:
+      'Episode ini mengangkat tema cyberbullying, empati, dan etika digital. ' +
+      'Dekati meja dan periksa ponselmu. Perhatikan bagaimana percakapan grup ' +
+      'dapat berdampak kepada seseorang meskipun hanya dianggap sebagai candaan. ' +
+      'Saat diberi pilihan, pertimbangkan tindakan yang dapat menghentikan ' +
+      'perundungan tanpa ikut menyebarkan konten yang merugikan korban. ' +
+      'Keputusanmu akan menentukan ending Episode 2.',
   },
   {
     id: 3,
