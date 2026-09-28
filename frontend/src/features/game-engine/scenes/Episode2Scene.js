@@ -60,8 +60,8 @@ const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.4;
 // POSISI HP PADA ARTWORK ASLI 2048 x 1143
 // ================================================================
 
-const PHONE_REF_X = 1180;
-const PHONE_REF_Y = 665;
+const PHONE_REF_X = 1620;
+const PHONE_REF_Y = 900;
 
 // Jarak horizontal agar prompt HP muncul.
 const PHONE_INTERACTION_RADIUS = 115;
