@@ -53,9 +53,9 @@ export default class Episode3Scene extends BasePlayerScene {
   create(data) {
     super.create(data);
 
-    // Patch ukuran karakter: proporsional dengan pintu & rak buku kamar
+    // Patch ukuran karakter: 1.5x lebih besar, pijakan kaki tetap sama
     const newGroundY = 720 - 60;
-    const newDisplayHeight = 350;
+    const newDisplayHeight = 485; // 525 - 20%
     const newScale = newDisplayHeight / 400;
 
     this.groundY = newGroundY;
