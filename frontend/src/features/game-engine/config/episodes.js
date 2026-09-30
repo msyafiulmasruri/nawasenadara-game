@@ -80,12 +80,18 @@ export const EPISODES = [
   {
     id: 3,
     title: 'Pesan dari Orang Asing',
-    sceneKey: 'PlaceholderEpisodeScene',
+    sceneKey: 'Episode3Scene',
     placeholderColor: 0x1f2937,
     bgKey: 'episode3-bg',
-    bgImagePath: '/scenes/episode-3-bg.png',
+    bgImagePath: '/scenes/episode-3-bg.jpg',
+    // Gambar layar HP (overlay saat pemain membuka DM) — key terpisah
+    // dari bgKey utama, di-load manual di BootScene.
+    hpOverlayKey: 'episode3-hp',
+    hpOverlayPath: '/scenes/episode-3-hp.jpg',
     description:
       'Malam itu, sebuah pesan dari akun tak dikenal masuk ke ponselmu. Awalnya terasa ramah, lalu perlahan berubah tidak nyaman. Kamu harus memutuskan cara meresponsnya sebelum semua terlambat.',
+    objective:
+      'Episode ini mengangkat tema stranger danger dan online grooming. Kamu mendapat DM dari akun Instagram anonim yang perlahan berubah mencurigakan. Gunakan naluri dan pengetahuanmu: kapan harus memblokir, kapan harus lapor ke orang tua, dan jangan pernah memberi data pribadi (nomor, foto) kepada orang asing — sekali pun ia mengancam atau punya "bukti". Setiap responsmu akan dinilai dan menentukan ending episode ini.',
   },
   {
     id: 4,

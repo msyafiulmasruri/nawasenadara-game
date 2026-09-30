@@ -38,6 +38,26 @@ export const NPCS = {
     contentHeight: 812, // 872 - 60 (tinggi karakter sungguhan dalam px)
     bottomPadding: 128, // 1000 - 872 (ruang kosong di bawah kaki dalam px)
   },
+  3: {
+    // Episode 3 — "akun anonim" tidak punya portrait gambar karakter
+    // seperti NPC biasa. NPC ini direpresentasikan sebagai objek ponsel
+    // interaktif di meja belajar Dara. portraitKey sengaja dibiarkan
+    // null (tidak di-load di BootScene) karena DialogueBox Episode3Scene
+    // mengganti label speaker dengan string literal '@bayang_kelabu91'
+    // tanpa gambar portrait konvensional.
+    id: 'bayang_kelabu',
+    name: '@bayang_kelabu91',
+    episodeId: 3,
+    portraitKey: null,  // tidak ada gambar portrait — dialog berbasis teks
+    portraitPath: null,
+    // Posisi objek ponsel: di atas meja belajar di samping kanan laptop
+    // (xRatio 0.58) yang terlihat di gambar latar eps3.jpg.
+    xRatio: 0.58,
+    // Radius interaksi agar pemain nyaman mendekati meja belajar.
+    interactionRadius: 120,
+    contentHeight: null,
+    bottomPadding: null,
+  },
 };
 
 export function getNpcByEpisode(episodeId) {
