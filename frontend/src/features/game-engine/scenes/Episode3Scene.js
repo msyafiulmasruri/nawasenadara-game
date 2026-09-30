@@ -43,6 +43,13 @@ export default class Episode3Scene extends BasePlayerScene {
     super('Episode3Scene');
   }
 
+  // Override: mainkan tema suspense mencekam, BUKAN lo-fi chill default.
+  // Dipanggil oleh BasePlayerScene.create() — sehingga lo-fi chill TIDAK
+  // PERNAH dimulai dan tidak ada tabrakan audio.
+  _startSceneBGM() {
+    this.audioManager.startSuspenseBGM();
+  }
+
   create(data) {
     super.create(data);
 
@@ -74,27 +81,16 @@ export default class Episode3Scene extends BasePlayerScene {
         'Perhatikan ponsel Dara yang bergetar di atas meja. Klik ponsel untuk membaca pesannya dan buat keputusan yang tepat.',
       onContinue: () => {
         this.uiInputLocked = false;
-        // Resume AudioContext & mulai BGM suspense saat interaksi pertama pemain
+        // Resume AudioContext saat interaksi pertama pemain (autoplay policy)
         if (this.audioManager) {
           this.audioManager.resume();
-          this.audioManager.startSuspenseBGM();
+          // Jika BGM belum jalan (AudioContext masih suspended saat _startSceneBGM),
+          // mulai ulang sekarang
+          if (!this.audioManager.bgmPlaying) {
+            this.audioManager.startSuspenseBGM();
+          }
         }
       },
-    });
-
-    // Mulai BGM atmosferik mencekam & tegang untuk Episode 3 (psychological suspense)
-    if (this.audioManager) {
-      this.audioManager.startSuspenseBGM();
-    }
-
-    // Pastikan AudioContext resume pada klik/sentuhan pertama di layar
-    this.input.once('pointerdown', () => {
-      if (this.audioManager) {
-        this.audioManager.resume();
-        if (!this.audioManager.bgmPlaying) {
-          this.audioManager.startSuspenseBGM();
-        }
-      }
     });
   }
 
@@ -788,7 +784,9 @@ export default class Episode3Scene extends BasePlayerScene {
     this._stopHeartbeat();
 
     // Kembalikan ke BGM eksplorasi yang hangat & tenang
+    // (hentikan tema suspense dulu agar tidak bertabrakan)
     if (this.audioManager) {
+      this.audioManager.stopBGM();
       this.audioManager.startBGM();
     }
 

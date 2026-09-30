@@ -540,6 +540,13 @@ export default class AudioManager {
     this.resume();
     this.bgmPlaying = true;
 
+    // Restore bgmGain yang mungkin di-nol-kan oleh stopBGM()
+    if (this.bgmGain && this.ctx) {
+      const t = this._now();
+      this.bgmGain.gain.cancelScheduledValues(t);
+      this.bgmGain.gain.setValueAtTime(this._bgmVolume ?? 0.25, t);
+    }
+
     this._scheduleBGMLoop();
   }
 
@@ -1160,7 +1167,8 @@ export default class AudioManager {
   }
 
   setBGMVolume(v) {
-    if (this.bgmGain) this.bgmGain.gain.value = Math.max(0, Math.min(1, v));
+    this._bgmVolume = Math.max(0, Math.min(1, v));
+    if (this.bgmGain) this.bgmGain.gain.value = this._bgmVolume;
   }
 
   destroy() {

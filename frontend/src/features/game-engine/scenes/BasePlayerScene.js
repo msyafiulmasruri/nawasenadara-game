@@ -244,7 +244,10 @@ export default class BasePlayerScene extends Phaser.Scene {
     this.audioManager.setSFXVolume(savedSettings.sfxVolume);
     this.audioManager.setBGMVolume(savedSettings.bgmVolume);
 
-    this.audioManager.startBGM();
+    // Mulai BGM scene — subclass bisa meng-override _startSceneBGM()
+    // untuk memainkan tema berbeda (misalnya Episode3Scene menggunakan
+    // tema suspense, bukan lo-fi chill default).
+    this._startSceneBGM();
     this.isMuted = data?.preserveMuted ?? savedSettings.muted;
     if (this.isMuted) {
       this.audioManager.setMasterVolume(0);
@@ -457,6 +460,13 @@ export default class BasePlayerScene extends Phaser.Scene {
     };
     this._repositionUI();
     this.scale.on('resize', this._onResize);
+  }
+
+  // BGM default yang dimainkan saat scene dimulai.
+  // Subclass bisa meng-override method ini untuk memainkan tema berbeda
+  // (misal Episode3Scene memainkan tema suspense mencekam, bukan lo-fi chill).
+  _startSceneBGM() {
+    this.audioManager.startBGM();
   }
 
   // Ditimpa oleh scene turunan.
