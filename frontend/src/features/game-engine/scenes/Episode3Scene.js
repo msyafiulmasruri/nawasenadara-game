@@ -19,7 +19,7 @@ import { getEpisodeById } from '../config/episodes';
 //
 // Konsep Visual Sinematik & Kreatif:
 // 1. Background kamar tidur Dara tetap konsisten menggunakan artwork asli
-//    (public/scenes/episode-3-bg.jpg) tanpa diganti-ganti.
+//    (public/scenes/episode-3-bg.png) tanpa diganti-ganti.
 // 2. Saat Dara berinteraksi dengan ponsel di meja belajar, muncul
 //    first-person POV: kedua tangan Dara memegang smartphone di depan
 //    pemain (public/scenes/ep3-phone-pov.png) di atas latar kamar yang ada.
@@ -747,7 +747,7 @@ export default class Episode3Scene extends BasePlayerScene {
       ease: 'Sine.easeOut',
     });
 
-    // Efek audio-visual khusus per Cutscene:
+    // Efek audio-visual khusus Cutscene Jendela Mengintip:
     if (textureKey === 'ep3-window-cg') {
       if (!this._cgFlickerTimer) {
         this._cgFlickerTimer = this.time.addEvent({
@@ -762,12 +762,6 @@ export default class Episode3Scene extends BasePlayerScene {
       this.cameras.main.flash(260, 160, 200, 255, 0.25);
       this.cameras.main.shake(200, 0.007);
       this.audioManager?.playWindowSpookStinger();
-    } else if (textureKey === 'ep3-parents-cg') {
-      this.cameras.main.flash(400, 255, 235, 190, 0.22);
-      this.audioManager?.playWarmChime?.();
-    } else if (textureKey === 'ep3-evidence-cg') {
-      this.cameras.main.flash(250, 70, 170, 255, 0.25);
-      this.audioManager?.playEvidenceShutter?.();
     }
   }
 
@@ -965,22 +959,7 @@ export default class Episode3Scene extends BasePlayerScene {
       id === 'n_end_scared2' ||
       id === 'n_end_window2'
     ) {
-      if (id === 'n_cb3_report' || id === 'n_cb3_report2') {
-        // Tampilkan Cutscene CG Bukti Screenshot & Laporan Resmi Kejahatan Siber
-        this._showCutsceneCg('ep3-evidence-cg');
-      } else if (
-        id === 'n_cb2_tell_parents' ||
-        id === 'n_safe_outro2' ||
-        id === 'n_end_safe' ||
-        id === 'n_end_safe2' ||
-        id === 'n_end_scared2' ||
-        id === 'n_end_window2'
-      ) {
-        // Tampilkan Cutscene CG Pelukan Hangat Orang Tua & Dukungan Keluarga
-        this._showCutsceneCg('ep3-parents-cg');
-      } else {
-        this._hideCutsceneCg();
-      }
+      this._hideCutsceneCg();
 
       if (id !== 'n_end_scared2' && id !== 'n_end_window2') {
         this._triggerBlockStamp();
