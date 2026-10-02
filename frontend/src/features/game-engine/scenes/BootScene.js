@@ -109,10 +109,11 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
-    // Sprite prop interaktif & Cutscene CG (mis. ponsel Dara ep3 & jendela mengintip)
     this.load.image('phone-ep3', '/sprites/phone-ep3.png');
     this.load.image('phone-ep3-pov', '/scenes/ep3-phone-pov.png');
     this.load.image('ep3-window-cg', '/scenes/ep3-window-cg.jpg');
+    this.load.image('ep3-parents-cg', '/scenes/ep3-parents-cg.jpg');
+    this.load.image('ep3-evidence-cg', '/scenes/ep3-evidence-cg.jpg');
 
     // --- Potret NPC pendukung cerita, satu per episode (config/npcs.js) ---
     // Sama seperti background episode: kalau suatu episode belum punya

@@ -39,6 +39,8 @@ const CHOICE_SITUATION_TEXT = {
     'orang asing itu menunjukkan ia tahu persis apa yang aku pakai hari ini — artinya ia benar-benar mengamatiku',
   n_cb3:
     'orang asing itu mengklaim punya "bukti chat" tentangku dan meminta nomor atau foto sebagai syarat memberikannya',
+  n_cb3_choice:
+    'orang asing itu mengklaim punya "bukti chat" tentangku dan meminta nomor atau foto sebagai syarat memberikannya',
   n_cb4:
     'orang asing itu mengirim pesan terakhir bahwa ia bisa melihatku dari luar jendela kamarku, dan ada panggilan masuk',
 };

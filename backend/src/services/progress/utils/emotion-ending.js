@@ -68,11 +68,37 @@ function classifyEndingKey(avgScore, totalResponses) {
 // dibangun), jadi untuk sementara semua episode berbagi label generik
 // ini — begitu episode baru dibangun dengan ENDING_DEFINITIONS sendiri
 // di frontend, tambahkan juga variannya di sini kalau judulnya beda.
+export const ENDING_LABELS_PER_EPISODE = {
+  1: {
+    true: 'Ending Sejati — "Suara yang Didengar"',
+    good: 'Ending Baik — "Belajar Bersikap"',
+    bad: 'Ending Buruk — "Terjebak Pola Lama"',
+  },
+  2: {
+    true: 'Ending Sejati — "Tidak Sendirian"',
+    good: 'Ending Baik — "Mulai Peduli"',
+    bad: 'Ending Buruk — "Ikut Diam, Ikut Bersalah"',
+  },
+  3: {
+    true: 'Ending Sejati — "Batas yang Tegas"',
+    good: 'Ending Baik — "Pelajaran Berharga"',
+    bad: 'Ending Buruk — "Terjerat Jebakan Manipulasi"',
+  },
+};
+
 export const ENDING_LABELS = {
   true: 'Ending Sejati — "Suara yang Didengar"',
   good: 'Ending Baik — "Belajar Bersikap"',
   bad: 'Ending Buruk — "Terjebak Pola Lama"',
 };
+
+export function getEndingLabel(episodeId, endingKey) {
+  return (
+    ENDING_LABELS_PER_EPISODE[episodeId]?.[endingKey] ||
+    ENDING_LABELS[endingKey] ||
+    'Ending Baik'
+  );
+}
 
 /**
  * @param {number} episodeId

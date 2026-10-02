@@ -119,6 +119,32 @@ const ENDING_DEFINITIONS = {
         'Memilih diam/menghindar atau bahkan ikut mengomentari negatif sama-sama membuat bully-an ke Kirana terus dianggap wajar — padahal dia butuh dibantu, bukan ditonton atau ditambah beban.',
     },
   },
+  3: {
+    true: {
+      key: 'true',
+      title: 'Ending Sejati — "Batas yang Tegas"',
+      plusText:
+        'Kamu membuat keputusan terbaik dengan memblokir akun mencurigakan, mengamankan bukti tangkapan layar, dan langsung terbuka menceritakan kejadian ini kepada orang tua.',
+      minusText:
+        'Kewaspadaan digital tetap harus dijaga — pelaku kejahatan siber dapat berganti akun, namun ketegasanmu menetapkan batasan adalah perlindungan terbaik.',
+    },
+    good: {
+      key: 'good',
+      title: 'Ending Baik — "Pelajaran Berharga"',
+      plusText:
+        'Kamu sempat ragu atau mencoba merespons orang asing tersebut, namun pada akhirnya kamu menyadari bahaya manipulasi dan berhasil mengambil langkah aman.',
+      minusText:
+        'Menjawab atau menantang akun anonim yang mencurigakan dapat memberi mereka celah — ke depannya, jangan ragu untuk langsung memutus komunikasi sejak tanda bahaya pertama.',
+    },
+    bad: {
+      key: 'bad',
+      title: 'Ending Buruk — "Terjerat Jebakan Manipulasi"',
+      plusText:
+        'Ketakutan dan kepanikan yang kamu rasakan sangat wajar ketika dihadapkan pada ancaman siber dan situasi yang mencekam.',
+      minusText:
+        'Rasa panik membuatmu terpancing merespons atau menghadapi bahaya sendirian. Ingat, jangan pernah mengorbankan privasi demi ancaman pelaku, dan selalu libatkan orang tua sedini mungkin.',
+    },
+  },
 };
 
 const DEFAULT_ENDING = {

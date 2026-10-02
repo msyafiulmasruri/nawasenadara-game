@@ -370,17 +370,19 @@ export default class BasePlayerScene extends Phaser.Scene {
     this.createPauseMenu();
 
     // Update ikon tombol fullscreen setiap kali status fullscreen browser
-    // berubah — baik lewat tombol ini, tombol Esc browser, atau gesture
-    // lain (mis. swipe-down di sebagian browser mobile).
+    // berubah — baik lewat tombol ini, tombol Esc browser, atau gesture lain.
     this._onFullscreenChange = () => {
       this._updateFullscreenIcon();
-      // Fullscreen change kadang tidak memicu event resize di semua
-      // browser. Refresh scale agar Phaser menghitung ulang transformasi
-      // canvas dan layout UI berdasarkan ukuran viewport fullscreen.
-      this.scale.refresh();
-      this._repositionUI();
-      this._lastAspect =
-        this.scale.parentSize.width / this.scale.parentSize.height;
+      // Tunggu jeda singkat agar browser selesai reflow viewport fullscreen
+      setTimeout(() => {
+        if (!this.scene?.isActive()) return;
+        this.scale.refresh();
+        this._repositionUI();
+        if (this.scale.parentSize?.height > 0) {
+          this._lastAspect =
+            this.scale.parentSize.width / this.scale.parentSize.height;
+        }
+      }, 100);
     };
     document.addEventListener('fullscreenchange', this._onFullscreenChange);
     document.addEventListener(
@@ -389,17 +391,6 @@ export default class BasePlayerScene extends Phaser.Scene {
     );
 
     // Posisikan elemen UI ke area yang benar-benar terlihat di layar
-    // (perlu karena mode ENVELOP bisa memotong tepi dunia game jika
-    // rasio aspek viewport tidak cocok 16:9). Dipanggil sekali saat
-    // create, lalu otomatis setiap viewport berubah ukuran.
-    //
-    // DEBOUNCE: saat device diputar (rotasi), browser mobile sering
-    // menembakkan beberapa event resize beruntun dengan ukuran
-    // SEMENTARA/transisi sebelum akhirnya settle ke ukuran final. Kalau
-    // kita langsung bereaksi ke tiap event itu, tombol sempat dihitung
-    // ulang pakai ukuran transisi yang salah -> tombol jadi tidak
-    // konsisten ukurannya / kelihatan "nyendat". Solusinya: tunggu jeda
-    // singkat (150ms) tanpa event baru sebelum benar-benar bereaksi.
     this._resizeDebounceTimer = null;
     this._onResize = () => {
       if (this._resizeDebounceTimer) {
@@ -407,55 +398,31 @@ export default class BasePlayerScene extends Phaser.Scene {
       }
       this._resizeDebounceTimer = setTimeout(() => {
         this._resizeDebounceTimer = null;
-        // Kalau kategori orientasi (portrait <-> landscape) berubah —
-        // mis. HP diputar — seluruh setup (bounds, background, kamera)
-        // perlu dibangun ulang dari nol. Restart scene ini adalah cara
-        // paling aman: lebih sederhana & minim bug dibanding mencoba
-        // menghitung ulang semuanya secara live sambil tetap berjalan.
         const nowPortrait = isPortrait(this);
         const nowAspect =
-          this.scale.parentSize.width / this.scale.parentSize.height;
-        // Kategori berubah (portrait <-> landscape, mis. device diputar)
-        // ATAU rasio aspeknya bergeser cukup jauh dari yang dipakai
-        // untuk membangun dunia game saat ini (mis. masuk/keluar
-        // fullscreen menghilangkan/memunculkan address bar browser,
-        // mengubah tinggi viewport tanpa mengubah kategori orientasi).
-        //
-        // PENTING: cek ini berlaku di KEDUA orientasi, bukan cuma
-        // landscape. Sejak syncGameSizeToOrientation() dibuat dinamis
-        // untuk portrait juga (lebar dunia portrait sekarang ikut
-        // rasio layar, bukan cuma baku 1280x720 lagi), toggle
-        // fullscreen sambil main di portrait JUGA mengubah rasio yang
-        // seharusnya dipakai dunia game — kalau tidak di-restart,
-        // levelWidth/background/kamera portrait jadi memakai rasio
-        // BASI dari sebelum fullscreen di-toggle (gejala: teks/UI
-        // sempat mereposisi lewat _repositionUI(), tapi background &
-        // batas level tetap dari perhitungan lama).
-        //
-        // Threshold 1.5% dipakai supaya goyangan sangat kecil (rounding,
-        // scrollbar muncul-hilang sesaat) tidak memicu restart terus-
-        // menerus — hanya perubahan yang benar-benar berarti secara
-        // visual yang direspons.
-        const aspectShifted =
-          Math.abs(nowAspect - this._lastAspect) / this._lastAspect > 0.015;
-        if (nowPortrait !== this._isPortraitMode || aspectShifted) {
-          // Simpan posisi & arah hadap karakter dulu sebelum restart,
-          // supaya begitu scene dibangun ulang, karakter muncul lagi
-          // persis di posisi terakhirnya (bukan balik ke titik spawn
-          // awal). episodeId juga ikut dibawa supaya episode 2-9 tidak
-          // ke-reset ke episode 2 setiap kali device diputar/masuk-keluar
-          // fullscreen.
+          this.scale.parentSize?.height > 0
+            ? this.scale.parentSize.width / this.scale.parentSize.height
+            : this._lastAspect;
+
+        // Hanya restart scene jika TERJADI ROTASI FISIK (portrait <-> landscape)
+        // dan pemain TIDAK sedang di tengah percakapan dialog/cutscene.
+        if (nowPortrait !== this._isPortraitMode && !this.npcInDialogue) {
           this.scene.restart({
             episodeId: this.episodeId,
             preserveMuted: this.isMuted,
             preservePlayer: {
-              x: this.player.x,
-              facingLeft: this.player.flipX,
+              x: this.player?.x,
+              facingLeft: this.player?.flipX,
             },
           });
           return;
         }
+
+        // Untuk perubahan aspect ratio (masuk/keluar fullscreen atau address bar toggle):
+        // Cukup refresh transformasi skala & reposisi elemen UI secara aman tanpa restart game!
+        this.scale.refresh();
         this._repositionUI();
+        this._lastAspect = nowAspect;
       }, 150);
     };
     this._repositionUI();
@@ -1253,11 +1220,13 @@ export default class BasePlayerScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(21);
+      .setDepth(21)
+      .setInteractive({ useHandCursor: true });
 
     this._fsBtn.on('pointerdown', () => this.toggleFullscreen());
+    this._fsBtnText.on('pointerdown', () => this.toggleFullscreen());
     this._updateFullscreenIcon();
-    this.registerLockable(this._fsBtn);
+    // Jangan lock tombol fullscreen agar tetap bisa diperlebar kapan saja
   }
 
   toggleFullscreen() {
@@ -1273,9 +1242,13 @@ export default class BasePlayerScene extends Phaser.Scene {
       req
         ?.call(el)
         .then(() => {
-          // Sama seperti overlay awal: sekalian coba kunci ke orientasi
-          // saat ini supaya tidak berubah tengah permainan. Gagal diam-
-          // diam di platform yang tidak mendukung (termasuk iOS Safari).
+          this._updateFullscreenIcon();
+          setTimeout(() => {
+            if (this.scale) {
+              this.scale.refresh();
+              this._repositionUI();
+            }
+          }, 100);
           try {
             const orientation = window.screen?.orientation;
             const type = orientation?.type?.startsWith('portrait')
@@ -1286,16 +1259,24 @@ export default class BasePlayerScene extends Phaser.Scene {
             // abaikan
           }
         })
-        .catch(() => {
-          // Browser menolak/tidak didukung (mis. Safari iOS) — abaikan,
-          // tombol tetap ada tapi tidak berefek di browser tersebut.
-        });
+        .catch(() => {});
     } else {
       const exit =
         document.exitFullscreen ??
         document.webkitExitFullscreen ??
         document.msExitFullscreen;
-      exit?.call(document).catch(() => {});
+      exit
+        ?.call(document)
+        .then(() => {
+          this._updateFullscreenIcon();
+          setTimeout(() => {
+            if (this.scale) {
+              this.scale.refresh();
+              this._repositionUI();
+            }
+          }, 100);
+        })
+        .catch(() => {});
       try {
         window.screen?.orientation?.unlock?.();
       } catch {

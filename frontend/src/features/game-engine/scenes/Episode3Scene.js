@@ -65,6 +65,8 @@ export default class Episode3Scene extends BasePlayerScene {
     if (this.player) {
       this.player.setScale(newScale);
       this.player.setY(newGroundY);
+      // Karakter utama berada di depan meja & HP (depth 5) agar objek HP tidak melayang di depan karakter
+      this.player.setDepth(5);
       this.physics.world.setBounds(0, 0, this.levelWidth, 720);
     }
 
@@ -230,7 +232,7 @@ export default class Episode3Scene extends BasePlayerScene {
         padding: { x: 10, y: 5 },
       })
       .setOrigin(0.5)
-      .setDepth(4)
+      .setDepth(6)
       .setVisible(false)
       .setInteractive({ useHandCursor: true });
 
@@ -682,100 +684,122 @@ export default class Episode3Scene extends BasePlayerScene {
     });
   }
 
-  // --- Cutscene CG: Mengintip Lewat Celah Tirai Jendela (Episode 3 Climax) ---
-  _showWindowPeekingCg() {
+  // --- Sistem Cutscene CG Sinematik (Jendela, Pelukan Orang Tua, Bukti Laporan Siber) ---
+  _showCutsceneCg(textureKey) {
     const { width, height } = this.scale;
 
-    // Turunkan container HP agar pandangan beralih sepenuhnya ke jendela
+    // Turunkan container HP ke bawah agar cutscene CG terlihat luas dan sinematik
     if (this._povContainer) {
       this.tweens.add({
         targets: this._povContainer,
         y: height + 500,
-        duration: 450,
+        duration: 400,
         ease: 'Quad.easeIn',
       });
     }
 
-    if (!this._windowCg) {
-      this._windowCg = this.add
-        .image(width / 2, height / 2, 'ep3-window-cg')
+    if (!this._cutsceneCgImages) {
+      this._cutsceneCgImages = {};
+    }
+
+    // Sembunyikan cutscene lain yang sedang aktif secara halus
+    Object.keys(this._cutsceneCgImages).forEach((k) => {
+      const otherCg = this._cutsceneCgImages[k];
+      if (k !== textureKey && otherCg && otherCg.visible) {
+        this.tweens.add({
+          targets: otherCg,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => {
+            otherCg.setVisible(false);
+          },
+        });
+      }
+    });
+
+    let cg = this._cutsceneCgImages[textureKey];
+    if (!cg) {
+      cg = this.add
+        .image(width / 2, height / 2, textureKey)
         .setOrigin(0.5)
-        .setDepth(16) // Di atas kamar, tepat di bawah DialogueBox (depth 20)
+        .setDepth(16) // Di atas kamar tidur, tepat di bawah DialogueBox UI (depth 20)
         .setScrollFactor(0)
         .setAlpha(0);
+      this._cutsceneCgImages[textureKey] = cg;
     }
 
-    // Hitung skala agar pas menutup seluruh viewport
-    const baseScale = Math.max(width / this._windowCg.width, height / this._windowCg.height);
-    this._windowCg.setPosition(width / 2, height / 2).setScale(baseScale);
-    this._windowCgBaseScale = baseScale;
+    const baseScale = Math.max(width / cg.width, height / cg.height);
+    cg.setPosition(width / 2, height / 2).setScale(baseScale).setVisible(true);
 
-    this._windowCg.setVisible(true);
-    this.tweens.killTweensOf(this._windowCg);
-
-    // Fade in dramatis dengan slow creep zoom untuk kesan mencekam
+    this.tweens.killTweensOf(cg);
     this.tweens.add({
-      targets: this._windowCg,
+      targets: cg,
       alpha: 1,
-      duration: 700,
+      duration: 650,
       ease: 'Sine.easeOut',
     });
 
     this.tweens.add({
-      targets: this._windowCg,
-      scaleX: baseScale * 1.05,
-      scaleY: baseScale * 1.05,
-      duration: 7000,
+      targets: cg,
+      scaleX: baseScale * 1.04,
+      scaleY: baseScale * 1.04,
+      duration: 7500,
       ease: 'Sine.easeOut',
     });
 
-    // Efek lampu jalan di luar berkedip redup (flicker)
-    if (!this._cgFlickerTimer) {
-      this._cgFlickerTimer = this.time.addEvent({
-        delay: 200,
-        loop: true,
-        callback: () => {
-          if (!this._windowCg || !this._windowCg.visible) return;
-          const randomAlpha = 0.93 + Math.random() * 0.07;
-          this._windowCg.setAlpha(randomAlpha);
-        },
-      });
+    // Efek audio-visual khusus per Cutscene:
+    if (textureKey === 'ep3-window-cg') {
+      if (!this._cgFlickerTimer) {
+        this._cgFlickerTimer = this.time.addEvent({
+          delay: 200,
+          loop: true,
+          callback: () => {
+            if (!cg || !cg.visible) return;
+            cg.setAlpha(0.92 + Math.random() * 0.08);
+          },
+        });
+      }
+      this.cameras.main.flash(260, 160, 200, 255, 0.25);
+      this.cameras.main.shake(200, 0.007);
+      this.audioManager?.playWindowSpookStinger();
+    } else if (textureKey === 'ep3-parents-cg') {
+      this.cameras.main.flash(400, 255, 235, 190, 0.22);
+      this.audioManager?.playWarmChime?.();
+    } else if (textureKey === 'ep3-evidence-cg') {
+      this.cameras.main.flash(250, 70, 170, 255, 0.25);
+      this.audioManager?.playEvidenceShutter?.();
     }
-
-    // Flash dingin dan guncangan audio-visual saat melihat siluet
-    this.cameras.main.flash(260, 160, 200, 255, 0.25);
-    this.cameras.main.shake(200, 0.007);
-    this.audioManager?.playWindowSpookStinger();
   }
 
-  _hideWindowPeekingCg(onComplete) {
+  _hideCutsceneCg(onComplete) {
     if (this._cgFlickerTimer) {
       this._cgFlickerTimer.remove();
       this._cgFlickerTimer = null;
     }
 
-    if (!this._windowCg || !this._windowCg.visible) {
+    const activeCgs = Object.values(this._cutsceneCgImages || {}).filter(
+      (img) => img && img.visible,
+    );
+
+    if (activeCgs.length === 0) {
       onComplete?.();
       return;
     }
 
-    // Kilasan cepat (gorden ditarik rapat menutup)
-    this.cameras.main.flash(150, 0, 0, 0, 0.5);
+    activeCgs.forEach((img) => {
+      this.tweens.add({
+        targets: img,
+        alpha: 0,
+        duration: 350,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          img.setVisible(false);
+        },
+      });
+    });
 
-    this.tweens.add({
-      targets: this._windowCg,
-      alpha: 0,
-      duration: 350,
-      ease: 'Quad.easeOut',
-      onComplete: () => {
-        if (this._windowCg) {
-          this._windowCg.setVisible(false);
-          if (this._windowCgBaseScale) {
-            this._windowCg.setScale(this._windowCgBaseScale);
-          }
-        }
-        onComplete?.();
-      },
+    this.time.delayedCall(360, () => {
+      onComplete?.();
     });
   }
 
@@ -922,7 +946,7 @@ export default class Episode3Scene extends BasePlayerScene {
 
       // Cutscene CG: Dara mengintip lewat celah tirai & melihat siluet di luar jendela!
       if (id === 'n_cb4' || id === 'n_end_scared' || id === 'n_end_window') {
-        this._showWindowPeekingCg();
+        this._showCutsceneCg('ep3-window-cg');
       }
     }
 
@@ -941,7 +965,23 @@ export default class Episode3Scene extends BasePlayerScene {
       id === 'n_end_scared2' ||
       id === 'n_end_window2'
     ) {
-      this._hideWindowPeekingCg();
+      if (id === 'n_cb3_report' || id === 'n_cb3_report2') {
+        // Tampilkan Cutscene CG Bukti Screenshot & Laporan Resmi Kejahatan Siber
+        this._showCutsceneCg('ep3-evidence-cg');
+      } else if (
+        id === 'n_cb2_tell_parents' ||
+        id === 'n_safe_outro2' ||
+        id === 'n_end_safe' ||
+        id === 'n_end_safe2' ||
+        id === 'n_end_scared2' ||
+        id === 'n_end_window2'
+      ) {
+        // Tampilkan Cutscene CG Pelukan Hangat Orang Tua & Dukungan Keluarga
+        this._showCutsceneCg('ep3-parents-cg');
+      } else {
+        this._hideCutsceneCg();
+      }
+
       if (id !== 'n_end_scared2' && id !== 'n_end_window2') {
         this._triggerBlockStamp();
       }
@@ -980,7 +1020,7 @@ export default class Episode3Scene extends BasePlayerScene {
         }
       },
       onClose: async (collectedChoices) => {
-        this._hideWindowPeekingCg();
+        this._hideCutsceneCg();
         this.phoneTalked = true;
         this.npcChoices = collectedChoices;
 

@@ -83,11 +83,7 @@ export const EPISODES = [
     sceneKey: 'Episode3Scene',
     placeholderColor: 0x1f2937,
     bgKey: 'episode3-bg',
-    bgImagePath: '/scenes/episode-3-bg.jpg',
-    // Gambar layar HP (overlay saat pemain membuka DM) — key terpisah
-    // dari bgKey utama, di-load manual di BootScene.
-    hpOverlayKey: 'episode3-hp',
-    hpOverlayPath: '/scenes/episode-3-hp.jpg',
+    bgImagePath: '/scenes/episode-3-bg.png',
     description:
       'Malam itu, sebuah pesan dari akun tak dikenal masuk ke ponselmu. Awalnya terasa ramah, lalu perlahan berubah tidak nyaman. Kamu harus memutuskan cara meresponsnya sebelum semua terlambat.',
     objective:
