@@ -533,21 +533,24 @@ export default class AudioManager {
   }
 
 
+  _restoreBGMGain(defaultVol = 0.25) {
+    if (this.bgmGain && this.ctx) {
+      const t = this._now();
+      this.bgmGain.gain.cancelScheduledValues(t);
+      this.bgmGain.gain.setValueAtTime(this._bgmVolume ?? defaultVol, t);
+    }
+  }
+
   // ─── BGM: Chill Lo-fi Loop ─────────────────────────────────────────
   // Background music yang chill dan relaxing, di-generate secara
   // real-time menggunakan oscillator + scheduled notes.
   startBGM() {
-    if (!this._initialized || this.bgmPlaying) return;
+    if (!this._initialized) return;
+    this.stopBGM();
     this.resume();
     this.bgmPlaying = true;
 
-    // Restore bgmGain yang mungkin di-nol-kan oleh stopBGM()
-    if (this.bgmGain && this.ctx) {
-      const t = this._now();
-      this.bgmGain.gain.cancelScheduledValues(t);
-      this.bgmGain.gain.setValueAtTime(this._bgmVolume ?? 0.25, t);
-    }
-
+    this._restoreBGMGain(0.25);
     this._scheduleBGMLoop();
   }
 
@@ -743,9 +746,11 @@ export default class AudioManager {
   // dan "ethereal" — supaya terasa seperti tema pembuka/menu, bukan
   // musik latar saat bermain.
   startMenuBGM() {
-    if (!this._initialized || this.bgmPlaying) return;
+    if (!this._initialized) return;
+    this.stopBGM();
     this.resume();
     this.bgmPlaying = true;
+    this._restoreBGMGain(0.25);
 
     this._scheduleMenuBGMLoop();
   }
@@ -871,9 +876,11 @@ export default class AudioManager {
   // sedang, drone bass menahan), beda juga dari tema gameplay yang lebih
   // ringan/riang.
   startIntroBGM() {
-    if (!this._initialized || this.bgmPlaying) return;
+    if (!this._initialized) return;
+    this.stopBGM();
     this.resume();
     this.bgmPlaying = true;
+    this._restoreBGMGain(0.25);
     this._scheduleIntroBGMLoop();
   }
 
@@ -954,13 +961,7 @@ export default class AudioManager {
     this.stopBGM();
     this.resume();
     this.bgmPlaying = true;
-
-    if (this.bgmGain && this.ctx) {
-      const t = this._now();
-      this.bgmGain.gain.cancelScheduledValues(t);
-      this.bgmGain.gain.setValueAtTime(this._bgmVolume ?? 0.28, t);
-    }
-
+    this._restoreBGMGain(0.28);
     this._scheduleSuspenseBGMLoop();
   }
 

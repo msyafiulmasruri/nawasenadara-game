@@ -659,7 +659,9 @@ export default class Episode3Scene extends BasePlayerScene {
 
   // Tampilkan stempel "AKUN TELAH DIBLOKIR"
   _triggerBlockStamp() {
-    if (!this._stampContainer) return;
+    if (!this._stampContainer || this._stampTriggered) return;
+    this._stampTriggered = true;
+
     this._stampContainer.setVisible(true).setScale(2.2).setAlpha(0);
 
     this.tweens.add({
@@ -799,12 +801,14 @@ export default class Episode3Scene extends BasePlayerScene {
 
   // Kembalikan kehangatan kamar setelah situasi teratasi
   _restoreRoomWarmth() {
+    if (this._roomWarmthRestored) return;
+    this._roomWarmthRestored = true;
+
     this._stopHeartbeat();
 
     // Kembalikan ke BGM eksplorasi yang hangat & tenang
     // (hentikan tema suspense dulu agar tidak bertabrakan)
     if (this.audioManager) {
-      this.audioManager.stopBGM();
       this.audioManager.startBGM();
     }
 
@@ -899,7 +903,15 @@ export default class Episode3Scene extends BasePlayerScene {
     ) {
       this.cameras.main.flash(180, 100, 0, 0, 0.2); // Flash merah kilas
       this.cameras.main.zoomTo(1.06, 600, 'Sine.easeInOut');
-      this.audioManager?.playThreatStinger();
+
+      // Mainkan stinger hanya pada simpul ancaman utama agar tidak tabrakan/menumpuk
+      if (id === 'n_cb2_warn' || id === 'n_cb3') {
+        const now = this.time.now;
+        if (!this._lastStingerTime || now - this._lastStingerTime > 1500) {
+          this._lastStingerTime = now;
+          this.audioManager?.playThreatStinger();
+        }
+      }
 
       this.tweens.add({
         targets: this._ambientDarkness,
@@ -924,7 +936,6 @@ export default class Episode3Scene extends BasePlayerScene {
     ) {
       this.cameras.main.flash(250, 180, 0, 0, 0.35); // Flash bahaya
       this.cameras.main.zoomTo(1.08, 400, 'Sine.easeInOut');
-      this.audioManager?.playThreatStinger();
 
       this.tweens.add({
         targets: this._ambientDarkness,
@@ -939,8 +950,16 @@ export default class Episode3Scene extends BasePlayerScene {
       }
 
       // Cutscene CG: Dara mengintip lewat celah tirai & melihat siluet di luar jendela!
+      // Catatan: _showCutsceneCg sudah memainkan playWindowSpookStinger, jadi
+      // jangan putar playThreatStinger sekaligus di simpul yang sama agar tidak tabrakan suara.
       if (id === 'n_cb4' || id === 'n_end_scared' || id === 'n_end_window') {
         this._showCutsceneCg('ep3-window-cg');
+      } else {
+        const now = this.time.now;
+        if (!this._lastStingerTime || now - this._lastStingerTime > 1500) {
+          this._lastStingerTime = now;
+          this.audioManager?.playThreatStinger();
+        }
       }
     }
 
@@ -976,6 +995,10 @@ export default class Episode3Scene extends BasePlayerScene {
     this.uiInputLocked = true;
     this.player?.setVelocityX(0);
     this.player?.anims.stop();
+
+    this._stampTriggered = false;
+    this._roomWarmthRestored = false;
+    this._lastStingerTime = 0;
 
     // Munculkan POV kedua tangan Dara memegang smartphone
     this._setupPovPhone();
