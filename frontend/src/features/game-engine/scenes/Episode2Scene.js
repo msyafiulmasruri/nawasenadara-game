@@ -532,8 +532,6 @@ export default class Episode2Scene extends BasePlayerScene {
         this.phoneInDialogue = false;
 
         this._phoneInteractCooldownUntil = this.time.now + 400;
-
-        this._finishEpisode2();
       },
     });
   }

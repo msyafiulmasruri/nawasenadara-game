@@ -83,7 +83,11 @@ export default class DialogueBox {
     this._dynamicRequestSeq = 0;
   }
 
-  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onChoiceSelected }) {
+  // ==============================================================
+  // OPEN
+  // ==============================================================
+
+  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose }) {
     if (this.isOpen) return;
 
     this.isOpen = true;
@@ -93,8 +97,6 @@ export default class DialogueBox {
     this._npcName = npcName;
     this._playerName = playerName || 'Kamu';
     this._onClose = onClose;
-    this._onNodeChange = onNodeChange;
-    this._onChoiceSelected = onChoiceSelected;
 
     this._collectedChoices = [];
     this._lastChoiceLabel = null;
@@ -416,7 +418,6 @@ export default class DialogueBox {
     const requestSeq = ++this._dynamicRequestSeq;
 
     this._currentNode = node;
-    this._onNodeChange?.(node);
 
     // Hentikan loading node sebelumnya.
     this._stopLoadingDots();
@@ -440,7 +441,7 @@ export default class DialogueBox {
     if (isNarration) {
       // Node narasi tidak punya pembicara fisik. Sembunyikan tab nama
       // supaya teks seperti deskripsi kamar / isi grup chat tidak
-      // salah terlihat seolah-olah diucapkan oleh NPC.
+      // salah terlihat seolah-olah diucapkan oleh Rafi.
       this._nameTag.setVisible(false);
       this._nameTagBg.setVisible(false);
     } else {
@@ -448,9 +449,7 @@ export default class DialogueBox {
       this._nameTagBg.setVisible(true);
 
       this._nameTag.setText(
-        node.speaker === 'player' || node.speaker === 'dara'
-          ? this._playerName
-          : this._npcName,
+        node.speaker === 'player' ? this._playerName : this._npcName,
       );
 
       this._nameTagBg.setSize(
@@ -791,8 +790,6 @@ export default class DialogueBox {
       emotion: choice.emotion,
     });
 
-    this._onChoiceSelected?.(choice);
-
     // ============================================================
     // LAST PLAYER CHOICE
     // ============================================================
@@ -804,7 +801,7 @@ export default class DialogueBox {
     // Ini membantu GenAI membuat parafrase yang lebih natural
     // tanpa mengubah plot.
     //
-    this._lastChoiceLabel = this._substitute(choice.chatReply || choice.label);
+    this._lastChoiceLabel = this._substitute(choice.label);
 
     // ============================================================
     // MOOD HUD

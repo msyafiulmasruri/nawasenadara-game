@@ -700,7 +700,12 @@ export default function GameUIBridge() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !chatSending) sendChatMessage();
+                  e.stopPropagation();
+
+                  if (e.key === 'Enter' && !chatSending) {
+                    e.preventDefault();
+                    sendChatMessage();
+                  }
                 }}
                 placeholder="Ketik pesan…"
                 disabled={chatSending}
