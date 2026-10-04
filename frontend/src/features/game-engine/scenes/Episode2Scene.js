@@ -614,40 +614,32 @@ export default class Episode2Scene extends BasePlayerScene {
   // UPDATE
   // ==============================================================
 
-  onSceneUpdate() {
-    if (!this.player || this.finished) {
-      return;
-    }
+onSceneUpdate() {
+  if (!this.player || this.finished) {
+    return;
+  }
 
-    // ============================================================
-    // WALK AREA
-    // ============================================================
+  // ============================================================
+  // WALK AREA
+  // ============================================================
 
-    this.player.x = Phaser.Math.Clamp(
-      this.player.x,
+  this.player.x = Phaser.Math.Clamp(
+    this.player.x,
+    this.walkMinX,
+    this.walkMaxX,
+  );
 
-      this.walkMinX,
+  const endZoneX = this.levelWidth - LEVEL_EDGE_MARGIN;
 
-      this.walkMaxX,
-    );
+  // ============================================================
+  // BELUM SELESAI QUEST
+  // ============================================================
 
-    // ============================================================
-    // DIALOGUE / QUEST FINISHED
-    // ============================================================
+  if (!this.phoneQuestComplete) {
+    this.phonePrompt?.setVisible(false);
 
-    if (this.phoneInDialogue || this.phoneQuestComplete) {
-      this.phonePrompt?.setVisible(false);
-
-      return;
-    }
-
-    // ============================================================
-    // PHONE PROXIMITY
-    // ============================================================
-
-    const distance = Math.abs(this.player.x - this.phoneX);
-
-    const inRange = distance <= PHONE_INTERACTION_RADIUS;
+      const distance = Math.abs(this.player.x - this.phoneX);
+      const inRange = distance <= PHONE_INTERACTION_RADIUS;
 
     this.phonePrompt?.setVisible(inRange);
 
@@ -655,8 +647,25 @@ export default class Episode2Scene extends BasePlayerScene {
     // KEY E
     // ============================================================
 
-    if (inRange && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (
+      inRange &&
+      Phaser.Input.Keyboard.JustDown(this.interactKey)
+    ) {
       this._tryOpenPhone();
     }
+
+    return;
   }
-}
+
+  // ============================================================
+  // QUEST SUDAH SELESAI
+  // Sudah dialog + konsultasi Kak Dara
+  // ============================================================
+
+  this.phonePrompt?.setVisible(false);
+
+  // Jalan ke kanan sampai ujung = selesai episode
+  if (this.player.x >= endZoneX) {
+    this._finishEpisode2();
+  }
+}}
