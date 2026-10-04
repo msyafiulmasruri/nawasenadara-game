@@ -103,10 +103,6 @@ export default class BootScene extends Phaser.Scene {
       if (ep.bgKey && ep.bgImagePath) {
         this.load.image(ep.bgKey, ep.bgImagePath);
       }
-      // Aset opsional tambahan per episode (mis. overlay layar HP ep3)
-      if (ep.hpOverlayKey && ep.hpOverlayPath) {
-        this.load.image(ep.hpOverlayKey, ep.hpOverlayPath);
-      }
     });
 
     // Sprite prop interaktif & Cutscene CG (mis. ponsel Dara ep3 & jendela mengintip)

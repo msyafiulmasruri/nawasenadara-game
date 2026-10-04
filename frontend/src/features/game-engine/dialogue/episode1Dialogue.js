@@ -212,21 +212,15 @@ export const EPISODE1_DIALOGUE = {
         },
         {
           id: 'b',
-          label: '"Terserah kalian mau bilang apa."',
+          label: '"Terserah kalian mau bilang apa, aku gak mau ambil pusing."',
           emotion: 'netral',
           next: 'n6b',
         },
         {
           id: 'c',
-          label: '"Udah, diemin aja, males ribut." (diucapkan pelan, menahan diri)',
+          label: '"Udah, diemin aja, males ribut..." (diucapkan pelan, menahan diri)',
           emotion: 'sedih',
           next: 'n6c',
-        },
-        {
-          id: 'd',
-          label: '"Kalian tuh yang harusnya introspeksi, bukan aku!"',
-          emotion: 'marah',
-          next: 'n6d',
         },
       ],
     },
@@ -250,13 +244,6 @@ export const EPISODE1_DIALOGUE = {
       text: '{PLAYER_NAME} memilih diam, walau dadanya terasa sesak. Rafi tidak menyadarinya. "Btw, selamat datang ya. Semoga betah di sini."',
       dynamic: true,
       situationHint: 'Aku memilih diam menahan perasaan tidak nyaman, dan Rafi tidak menyadarinya sama sekali, tetap menyapa ramah seolah semua baik-baik saja.',
-    },
-    n6d: {
-      id: 'n6d',
-      speaker: 'rafi',
-      text: 'Kelas mendadak hening, beberapa teman menoleh. "Woy santai woy, iya iya, maaf," kata Rafi buru-buru. Suasana terasa canggung sisa hari itu.',
-      dynamic: true,
-      situationHint: 'Aku membalas dengan tegas/marah, membuat Rafi kaget dan buru-buru minta maaf di depan teman-teman sekelas yang menoleh.',
     },
     // Semua node n6* adalah node terakhir (tanpa `next`) — DialogueBox
     // menutup diri & menandai quest selesai setelah salah satunya
