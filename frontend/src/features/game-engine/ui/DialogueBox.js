@@ -81,13 +81,14 @@ export default class DialogueBox {
     // Response node A tidak boleh mengganti teks node B.
     //
     this._dynamicRequestSeq = 0;
+    this._onDynamicLine = null;
   }
 
   // ==============================================================
   // OPEN
   // ==============================================================
 
-  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose }) {
+  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onDynamicLine }) {
     if (this.isOpen) return;
 
     this.isOpen = true;
@@ -97,6 +98,8 @@ export default class DialogueBox {
     this._npcName = npcName;
     this._playerName = playerName || 'Kamu';
     this._onClose = onClose;
+    this._onNodeChange = onNodeChange;
+    this._onDynamicLine = onDynamicLine;
 
     this._collectedChoices = [];
     this._lastChoiceLabel = null;
@@ -407,6 +410,9 @@ export default class DialogueBox {
       return;
     }
 
+    // Beri tahu scene bahwa dialogue berpindah ke node ini
+    this._onNodeChange?.(node);
+
     // ============================================================
     // REQUEST SEQUENCE
     // ============================================================
@@ -598,10 +604,19 @@ export default class DialogueBox {
       // maupun langsung string "..."
       //
       const generatedLine =
-        typeof result === 'string' ? result.trim() : result?.line?.trim();
+          typeof result === 'string'
+              ? result.trim()
+              : result?.line?.trim();
 
-      // Kalau response AI kosong, gunakan dialog asli.
-      this._dialogueText.setText(generatedLine || fallbackLine);
+      const finalLine = generatedLine || fallbackLine;
+
+      this._dialogueText.setText(finalLine);
+
+      // Kirim hasil dialog ke scene
+      this._onDynamicLine?.({
+          node,
+          text: finalLine,
+      });
 
       // Baru sekarang pemain boleh:
       //

@@ -93,6 +93,16 @@ export default class Episode2Scene extends BasePlayerScene {
     this.phoneChoices = [];
 
     this._phoneInteractCooldownUntil = 0;
+
+    this._povContainer = null;
+
+    this._phonePovSprite = null;
+
+    this._chatStreamContainer = null;
+
+    this._povUserTitle = null;
+
+    this._povShown = false;
   }
 
   // ==============================================================
@@ -460,6 +470,510 @@ export default class Episode2Scene extends BasePlayerScene {
   }
 
   // ==============================================================
+  // SET POV PHONE
+  // ==============================================================
+
+  _setupPovPhone() {
+      if (this._povShown) return;
+
+      this._povShown = true;
+
+      const width = this.scale.width;
+      const height = this.scale.height;
+
+      this._povContainer = this.add.container(
+          width / 2,
+          height / 2 + height
+      );
+
+      this._phonePovSprite = this.add.image(
+          0,
+          0,
+          'ep2-phone-pov'
+      );
+
+      // Sesuaikan ukuran POV dengan layar
+      const maxHeight = height * 0.75;
+      const povScale = maxHeight / this._phonePovSprite.height;
+
+      this._phonePovSprite
+          .setScale(povScale)
+          .setOrigin(0.5);
+
+      this._povContainer.add(this._phonePovSprite);
+      this._povContainer.setDepth(5);
+
+      // Tambahkan nama chat
+      this._povUserTitle = this.add.text(
+          -55,
+          -210,
+          'Grup Kelas',
+          {
+              fontFamily: 'Arial',
+              fontSize: '9px',
+              color: '#ffffff',
+              fontStyle: 'bold',
+              stroke: '#000000',
+              strokeThickness: 2,
+          }
+      );
+
+      this._povUserTitle.setOrigin(0.5);
+      this._povContainer.add(this._povUserTitle);
+      this._povUserTitleDefaultX = this._povUserTitle.x;
+
+      // Container untuk chat bubble
+      this._chatStreamContainer = this.add.container(0, 0);
+
+      this._povContainer.add(this._chatStreamContainer);
+
+      // Munculkan POV dari bawah
+      this.tweens.add({
+          targets: this._povContainer,
+          y: height / 2 + 135,
+          duration: 500,
+          ease: 'Cubic.easeOut'
+      });
+  }
+
+  // ==============================================================
+  // SHOW GROUP CHAT
+  // ==============================================================
+
+  _showGroupChat() {
+    if (!this._chatStreamContainer) return;
+
+    this._chatStreamContainer.removeAll(true);
+
+    const messages = [
+        {
+            text: 'Tadi Kirana kenapa sih diem terus?',
+            align: 'left'
+        },
+        {
+            text: 'Sok misterius banget wkwk',
+            align: 'left'
+        },
+        {
+            text: 'Jangan ajak dia dulu deh, bikin suasana aneh.',
+            align: 'left'
+        }
+    ];
+
+    // Posisi relatif terhadap titik tengah POV
+    const startY = -160;
+    const gapY = 56;
+
+    messages.forEach((message, index) => {
+        const isLeft = message.align === 'left';
+
+        const x = isLeft ? -120 : 35;
+
+        const bubble = this.add.text(
+            x,
+            startY + index * gapY,
+            message.text,
+            {
+                fontFamily: 'Arial',
+                fontSize: '11px',
+                color: '#111111',
+
+                backgroundColor: isLeft
+                    ? '#ffffff'
+                    : '#d8f8d8',
+
+                padding: {
+                    left: 10,
+                    right: 10,
+                    top: 7,
+                    bottom: 7,
+                },
+
+                wordWrap: {
+                    width: 117,
+                },
+
+                lineSpacing: 1,
+            },
+        );
+
+        bubble.setOrigin(
+            isLeft ? 0 : 1,
+            0.5,
+        );
+
+        this._chatStreamContainer.add(bubble);
+
+        bubble.setAlpha(0);
+        bubble.setScale(0.92);
+
+        const targetY = bubble.y;
+
+        // Bubble mulai sedikit di bawah posisi akhirnya
+        bubble.setY(targetY + 18);
+
+        this.tweens.add({
+            targets: bubble,
+            alpha: 1,
+            y: targetY,
+            duration: 240,
+            delay: index * 180,
+            ease: 'Cubic.easeOut',
+        });
+
+        // Pop-in kecil
+        this.tweens.add({
+            targets: bubble,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 240,
+            delay: index * 180,
+            ease: 'Back.easeOut',
+        });
+    });
+  }
+
+// ==============================================================
+// NOTIF CHAT RAFI
+// ==============================================================
+
+_showRafiNotification() {
+    if (!this._povContainer) return;
+
+    // Hapus notification lama kalau ada
+    if (this._rafiNotificationContainer) {
+        this._rafiNotificationContainer.destroy();
+        this._rafiNotificationContainer = null;
+    }
+
+    const container = this.add.container(-145, -100);
+
+    // ==========================================================
+    // BOX NOTIF
+    // ==========================================================
+
+    const box = this.add.rectangle(
+        0,
+        0,
+        235,
+        48,
+        0x111a2e,
+        0.96
+    );
+
+    box.setOrigin(0, 0.5);
+
+    // Border
+    box.setStrokeStyle(1, 0x35415f, 1);
+
+    // ==========================================================
+    // DOT HIJAU
+    // ==========================================================
+
+    const dot = this.add.circle(
+        14,
+        0,
+        4,
+        0x45d483
+    );
+
+    // ==========================================================
+    // TEKS
+    // ==========================================================
+
+    const text = this.add.text(
+        28,
+        0,
+        'Rafi\n1 new message',
+        {
+            fontFamily: 'Arial',
+            fontSize: '9px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            lineSpacing: 2,
+        }
+    );
+
+    text.setOrigin(0, 0.5);
+
+    // Masukkan semua ke container
+    container.add([
+        box,
+        dot,
+        text,
+    ]);
+
+    // Posisi layer
+    this._povContainer.add(container);
+
+    this._rafiNotificationContainer = container;
+
+    // ==========================================================
+    // ANIMASI MASUK
+    // ==========================================================
+
+    container.setAlpha(0);
+    container.setY(-65);
+
+    this.tweens.add({
+        targets: container,
+        alpha: 1,
+        y: -75,
+        duration: 220,
+        ease: 'Cubic.easeOut',
+    });
+}
+
+
+// ==============================================================
+// HIDE RAFI NOTIFICATION
+// ==============================================================
+
+_hideRafiNotification() {
+    if (!this._rafiNotificationContainer) return;
+
+    this.tweens.killTweensOf(this._rafiNotificationContainer);
+
+    this.tweens.add({
+        targets: this._rafiNotificationContainer,
+        alpha: 0,
+        y: -85,
+        duration: 220,
+        ease: 'Cubic.easeIn',
+        onComplete: () => {
+            if (this._rafiNotificationContainer) {
+                this._rafiNotificationContainer.destroy();
+                this._rafiNotificationContainer = null;
+            }
+        },
+    });
+}
+
+  // ==============================================================
+  // SHOW RAFI CHAT
+  // ==============================================================
+
+  _showRafiChat(text) {
+    if (!this._chatStreamContainer) return;
+
+    // Hapus chat grup
+    this._chatStreamContainer.removeAll(true);
+
+    // Ganti nama kontak
+    if (this._povUserTitle) {
+        this._povUserTitle.setText('Rafi');
+        this._povUserTitle.x = this._povUserTitleDefaultX - 15;
+    }
+
+    // Bubble chat Rafi
+    const bubble = this.add.text(
+        -120,
+        -50,
+        text,
+        {
+            fontFamily: 'Arial',
+            fontSize: '11px',
+            color: '#111111',
+
+            backgroundColor: '#ffffff',
+
+            padding: {
+                left: 10,
+                right: 10,
+                top: 7,
+                bottom: 7,
+            },
+
+            wordWrap: {
+                width: 117,
+            },
+
+            lineSpacing: 1,
+        },
+    );
+
+    bubble.setOrigin(0, 0.5);
+
+    // =========================
+    // ANIMASI CHAT MASUK
+    // =========================
+
+    const targetY = bubble.y;
+
+    // Mulai sedikit dari bawah
+    bubble.setY(targetY + 18);
+
+    // Mulai transparan + sedikit mengecil
+    bubble.setAlpha(0);
+    bubble.setScale(0.92);
+
+    this._chatStreamContainer.add(bubble);
+
+    // Gerakan naik + fade in
+    this.tweens.add({
+        targets: bubble,
+        y: targetY,
+        alpha: 1,
+        duration: 240,
+        ease: 'Cubic.easeOut',
+    });
+
+    // Efek pop kecil
+    this.tweens.add({
+        targets: bubble,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 240,
+        ease: 'Back.easeOut',
+    });
+}
+  
+  // ==========================================================
+  // GETARAN SAAT NOTIF RAFI MASUK
+  // ==========================================================
+
+  _startPhoneShake() {
+    if (!this._phonePovSprite) return;
+
+    // Hentikan tween shake sebelumnya kalau ada
+    this.tweens.killTweensOf(this._phonePovSprite);
+
+    const originalX = this._phonePovSprite.x;
+    const originalAngle = this._phonePovSprite.angle;
+
+    // Getaran horizontal + sedikit rotasi
+    this.tweens.add({
+        targets: this._phonePovSprite,
+        x: originalX - 4,
+        angle: originalAngle - 1.5,
+        duration: 45,
+        yoyo: true,
+        repeat: 5,
+        ease: 'Sine.easeInOut',
+
+        onComplete: () => {
+            this._phonePovSprite.x = originalX;
+            this._phonePovSprite.angle = originalAngle;
+        },
+    });
+  }
+
+// ==============================================================
+// POV BLUR SAAT PILIHAN JAWABAN
+// ==============================================================
+
+_setPovBlur(blurred) {
+    if (!this._povContainer) return;
+
+    this._povBlurred = blurred;
+
+    // ==========================================================
+    // BLUR BACKGROUND, PLAYER, HP DI MEJA
+    // ==========================================================
+
+    const backgroundObjects = [
+        this.bg,
+        this.player,
+        this.phoneBody,
+        this.phoneScreen,
+    ];
+
+    backgroundObjects.forEach((obj) => {
+        if (!obj?.postFX) return;
+
+        obj.postFX.clear();
+
+        if (blurred) {
+            obj.postFX.addBlur(
+                2.2,
+                2.2,
+                1
+            );
+        }
+    });
+
+    // ==========================================================
+    // OVERLAY TIPIS
+    // ==========================================================
+
+    if (!this._choiceFocusOverlay) {
+        this._choiceFocusOverlay = this.add
+            .rectangle(
+                this.scale.width / 2,
+                this.scale.height / 2,
+                this.scale.width,
+                this.scale.height,
+                0x10131a,
+                0.10
+            )
+            .setScrollFactor(0)
+            .setDepth(14.5)
+            .setVisible(false);
+    }
+
+    this._choiceFocusOverlay.setVisible(blurred);
+}
+
+  // ==========================================================
+  // HUBUNGKAN POV DENGAN DIALOG NODE
+  // ==========================================================
+
+_handlePhoneVisuals(node) {
+    if (!node) return;
+
+    // POV HP muncul
+    if (node.id === 'n1c') {
+        this._setupPovPhone();
+        this._setPovBlur(false);
+        return;
+    }
+
+    // Chat grup kelas
+    if (node.id === 'n2') {
+        this._showGroupChat();
+        this._setPovBlur(false);
+        return;
+    }
+
+    // Notifikasi pribadi dari Rafi masuk
+    if (node.id === 'n2c') {
+        // Hapus 3 bubble chat grup
+        if (this._chatStreamContainer) {
+            this._chatStreamContainer.removeAll(true);
+        }
+        
+        // Muncul notif Rafi
+        this._showRafiNotification();
+
+        // Shake HP + tangan
+        this._startPhoneShake();
+        return;
+    }
+
+    // Chat pribadi Rafi
+    if (node.id === 'n3') {
+        // Tutup notif Rafi
+        this._hideRafiNotification();
+
+        // Ganti ke chat pribadi Rafi
+        this._showRafiChat(node.text);
+    }
+    
+    // ==========================================================
+    // OPSI JAWABAN
+    // ==========================================================
+
+    if (
+        Array.isArray(node.choices) &&
+        node.choices.length > 0
+    ) {
+        this._setPovBlur(true);
+    } else {
+        this._setPovBlur(false);
+    }
+  }
+
+  // ==============================================================
   // START DIALOGUE
   // ==============================================================
 
@@ -494,6 +1008,26 @@ export default class Episode2Scene extends BasePlayerScene {
       npcName: 'Rafi',
 
       playerName: getCharacterName(),
+
+      onNodeChange: (node) => {
+          this._handlePhoneVisuals(node);
+      },
+
+      onDynamicLine: ({ node, text }) => {
+          if (node?.speaker === 'rafi') {
+              this._showRafiChat(text);
+          }
+
+          // Update blur berdasarkan apakah node ini punya pilihan
+          if (
+              Array.isArray(node?.choices) &&
+              node.choices.length > 0
+          ) {
+              this._setPovBlur(true);
+          } else {
+              this._setPovBlur(false);
+          }
+      },
 
       // ==========================================================
       // DIALOGUE FINISHED

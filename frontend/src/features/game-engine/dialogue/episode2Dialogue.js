@@ -162,8 +162,8 @@ export const EPISODE2_DIALOGUE = {
       speaker: 'narration',
 
       text:
-        'Sore itu kamar terasa tenang setelah hari yang cukup panjang di sekolah. ' +
-        'Saat kamu baru saja meletakkan tas, ponsel di atas meja tiba-tiba bergetar berkali-kali.',
+        'Petang itu kamar terasa tenang setelah hari yang cukup panjang di sekolah. ' +
+        'Saat kamu baru saja meletakkan tas, ponsel masih tergeletak di atas meja.',
 
       next: 'n1b',
     },

@@ -109,6 +109,8 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
+    this.load.image('ep2-phone-pov', 'scenes/ep2-phone-pov.png');
+
     this.load.image('phone-ep3', '/sprites/phone-ep3.png');
     this.load.image('phone-ep3-pov', '/scenes/ep3-phone-pov.png');
     this.load.image('ep3-window-cg', '/scenes/ep3-window-cg.jpg');
