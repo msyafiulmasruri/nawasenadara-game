@@ -66,7 +66,7 @@ export default function GameNlpBridge() {
             // "session_id opsional" yang sesungguhnya.
             ...(sessionId ? { session_id: sessionId } : {}),
             trigger_source: triggerSource || 'manual',
-            episode_id: episodeId,
+            ...(episodeId ? { episode_id: Number(episodeId) } : {}),
           },
           { getAccessToken },
         ),

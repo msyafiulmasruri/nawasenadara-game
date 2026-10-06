@@ -40,7 +40,7 @@ export const counselingChatPayloadSchema = Joi.object({
   trigger_source: Joi.string()
     .valid('manual', 'reflection_flag', 'episode7_phone', 'episode_summary')
     .default('manual'),
-  episode_id: Joi.number().integer().min(1).max(9).optional(),
+  episode_id: Joi.number().integer().min(1).max(9).allow(null).optional(),
 });
 
 // Dipakai endpoint POST /api/nlp/npc-dialogue — menulis ulang
