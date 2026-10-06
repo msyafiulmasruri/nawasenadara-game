@@ -915,6 +915,47 @@ _setPovBlur(blurred) {
 }
 
   // ==========================================================
+  // TUTUP POV HP
+  // ==========================================================
+
+  _closePovPhone() {
+    // Hapus blur
+    this._setPovBlur(false);
+
+    // Hapus overlay pilihan
+    if (this._choiceFocusOverlay) {
+        this._choiceFocusOverlay.setVisible(false);
+    }
+
+    // Hentikan shake POV kalau masih aktif
+    if (this._phonePovSprite) {
+        this.tweens.killTweensOf(this._phonePovSprite);
+    }
+
+    // Animasi tutup POV 
+    if (this._povContainer) {
+        this.tweens.add({
+            targets: this._povContainer,
+            alpha: 0,
+            y: this._povContainer.y + 150,
+            duration: 650,
+            ease: 'Cubic.easeOut',
+            onComplete: () => {
+                if (this._povContainer) {
+                    this._povContainer.destroy();
+                    this._povContainer = null;
+                }
+
+                this._phonePovSprite = null;
+                this._chatStreamContainer = null;
+                this._povUserTitle = null;
+                this._rafiNotificationContainer = null;
+            },
+        });
+    }
+  }
+
+  // ==========================================================
   // HUBUNGKAN POV DENGAN DIALOG NODE
   // ==========================================================
 
@@ -1042,6 +1083,9 @@ _handlePhoneVisuals(node) {
 
         // Kak Dara sekarang boleh digunakan.
         this.setChatButtonVisible(true);
+        
+        // Tutup POV HP
+        this._closePovPhone();
 
         // ======================================================
         // COUNSELING
