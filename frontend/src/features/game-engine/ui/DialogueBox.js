@@ -88,11 +88,7 @@ export default class DialogueBox {
   // OPEN
   // ==============================================================
 
-<<<<<<< HEAD
-  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onDynamicLine }) {
-=======
-  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onChoiceSelected }) {
->>>>>>> 50b42fef077e91fbf084cfcb9c78f2257530c741
+  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onDynamicLine, onChoiceSelected }) {
     if (this.isOpen) return;
 
     this.isOpen = true;
@@ -103,11 +99,8 @@ export default class DialogueBox {
     this._playerName = playerName || 'Kamu';
     this._onClose = onClose;
     this._onNodeChange = onNodeChange;
-<<<<<<< HEAD
     this._onDynamicLine = onDynamicLine;
-=======
     this._onChoiceSelected = onChoiceSelected;
->>>>>>> 50b42fef077e91fbf084cfcb9c78f2257530c741
 
     this._collectedChoices = [];
     this._lastChoiceLabel = null;
