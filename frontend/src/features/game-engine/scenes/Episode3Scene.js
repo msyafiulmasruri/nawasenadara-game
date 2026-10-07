@@ -55,7 +55,7 @@ export default class Episode3Scene extends BasePlayerScene {
 
     // Patch ukuran karakter: 1.5x lebih besar, pijakan kaki tetap sama
     const newGroundY = 720 - 60;
-    const newDisplayHeight = 485; // 525 - 20%
+    const newDisplayHeight = 400; // 525 - 20%
     const newScale = newDisplayHeight / 400;
 
     this.groundY = newGroundY;

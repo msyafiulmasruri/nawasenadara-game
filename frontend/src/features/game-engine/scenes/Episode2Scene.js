@@ -54,7 +54,7 @@ import { pxToWorld } from '../utils/visibleBounds';
 // Kalau terlalu besar:
 //     1.25
 //
-const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.4;
+const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.55;
 
 // ================================================================
 // POSISI HP PADA ARTWORK ASLI 2048 x 1143
