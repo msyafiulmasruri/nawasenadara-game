@@ -179,7 +179,7 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     this.player = this.physics.add.sprite(spawnX, this.groundY, 'player-idle');
     this.player.setOrigin(0.5, 1);
-    this.player.setDepth(1);
+    this.player.setDepth(5);
     this.player.setCollideWorldBounds(true);
     if (preserved?.facingLeft) {
       this.player.setFlipX(true);
@@ -925,10 +925,10 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     this._drawProfileFace(cx, cy, r);
 
-    // --- Nama tokoh, di sebelah kanan avatar (baris atas) ---
-    const nameFont = pxToWorld(this, 17);
+    // --- Nama tokoh, di sebelah kanan avatar (tengah vertikal) ---
+    const nameFont = pxToWorld(this, 19);
     this._profileNameText = this.add
-      .text(cx + r + pxToWorld(this, 10), cy - r * 0.55, getCharacterName(), {
+      .text(cx + r + pxToWorld(this, 10), cy, getCharacterName(), {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${nameFont}px`,
         color: '#ffffff',
@@ -936,66 +936,6 @@ export default class BasePlayerScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(31);
-
-    // --- Mood (hasil deteksi AI): label singkat + emotikon, baris
-    // tengah ---
-    const moodFont = pxToWorld(this, 13);
-    const initialMood = getMood();
-    this._profileMoodText = this.add
-      .text(cx + r + pxToWorld(this, 10), cy, `${initialMood.emoji} ${initialMood.label}`, {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${moodFont}px`,
-        color: '#ffdd57',
-      })
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(31);
-
-    // --- Progress bar mood, baris bawah — panjang batang = intensitas
-    // (confidence) hasil deteksi AI, warnanya berubah sesuai kategori
-    // mood. Ini yang menggantikan "cuma emotikon" sebelumnya.
-    const barWidthPx = 110;
-    const barHeightPx = 7;
-    this._moodBarMaxWidth = pxToWorld(this, barWidthPx);
-    this._moodBarHeight = pxToWorld(this, barHeightPx);
-    const barX = cx + r + pxToWorld(this, 10);
-    const barY = cy + r * 0.62;
-
-    this._moodBarBg = this.add
-      .rectangle(barX, barY, this._moodBarMaxWidth, this._moodBarHeight, 0x0f0f22, 0.9)
-      .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0xffffff, 0.25)
-      .setScrollFactor(0)
-      .setDepth(31);
-
-    this._moodBarFill = this.add
-      .rectangle(
-        barX,
-        barY,
-        Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(initialMood.value, 0, 1)),
-        this._moodBarHeight,
-        initialMood.color,
-        0.95,
-      )
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(32);
-
-    // Perbarui teks + bar mood otomatis setiap kali moodStore berubah
-    // (dipicu GameUIBridge.jsx setelah hasil analisis NLP baru masuk).
-    // Listener ini WAJIB dilepas saat scene dihancurkan supaya tidak
-    // menumpuk / mencoba menulis ke game object yang sudah destroy.
-    this._unsubscribeMood = onMoodChange((mood) => {
-      this._profileMoodText?.setText(`${mood.emoji} ${mood.label}`);
-      if (this._moodBarFill) {
-        const w = Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(mood.value, 0, 1));
-        this._moodBarFill.setSize(w, this._moodBarHeight);
-        this._moodBarFill.setFillStyle(mood.color, 0.95);
-      }
-    });
-    this.events.once('shutdown', () => {
-      this._unsubscribeMood?.();
-    });
 
     // --- Quest guide (dipakai episode dengan NPC quest, lihat
     // setQuestGuide()/clearQuestGuide()) — ditaruh TEPAT di bawah blok
@@ -1078,34 +1018,11 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     this._drawProfileFace(cx, cy, r);
 
-    const nameFont = pxToWorld(this, 17);
-    const moodFont = pxToWorld(this, 13);
+    const nameFont = pxToWorld(this, 19);
     const textX = cx + r + pxToWorld(this, 10);
     if (this._profileNameText) {
-      this._profileNameText.setPosition(textX, cy - r * 0.55);
+      this._profileNameText.setPosition(textX, cy);
       this._profileNameText.setFontSize(nameFont);
-    }
-    if (this._profileMoodText) {
-      this._profileMoodText.setPosition(textX, cy);
-      this._profileMoodText.setFontSize(moodFont);
-    }
-
-    const barWidthPx = 110;
-    const barHeightPx = 7;
-    this._moodBarMaxWidth = pxToWorld(this, barWidthPx);
-    this._moodBarHeight = pxToWorld(this, barHeightPx);
-    const barY = cy + r * 0.62;
-    const currentMood = getMood();
-    if (this._moodBarBg) {
-      this._moodBarBg.setPosition(textX, barY);
-      this._moodBarBg.setSize(this._moodBarMaxWidth, this._moodBarHeight);
-    }
-    if (this._moodBarFill) {
-      this._moodBarFill.setPosition(textX, barY);
-      this._moodBarFill.setSize(
-        Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(currentMood.value, 0, 1)),
-        this._moodBarHeight,
-      );
     }
 
     // Quest guide: tepat di bawah blok profil (avatar + teks), rata
@@ -1772,6 +1689,15 @@ export default class BasePlayerScene extends Phaser.Scene {
     if (!this.player) return;
 
     const visBounds = getVisibleBounds(this);
+
+    // Jika level muat penuh di dalam area terlihat (visBounds.width >= this.levelWidth),
+    // pusatkan level secara simetris di tengah viewport kamera (mis. layar lebar / keluar fullscreen)
+    if (visBounds.width >= this.levelWidth) {
+      const centerScroll = -visBounds.left - (visBounds.width - this.levelWidth) / 2;
+      const cam = this.cameras.main;
+      cam.scrollX = Phaser.Math.Linear(cam.scrollX, centerScroll, 0.15);
+      return;
+    }
 
     // Batas scroll minimum & maksimum supaya jendela yang BENAR-BENAR
     // terlihat (bukan lebar dunia game penuh) tidak pernah menampilkan

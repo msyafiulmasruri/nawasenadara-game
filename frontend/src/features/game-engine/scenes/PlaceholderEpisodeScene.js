@@ -118,28 +118,21 @@ export default class PlaceholderEpisodeScene extends BasePlayerScene {
     const scale = height / source.height;
     const naturalWidth = Math.round(source.width * scale);
 
-    // Pola sama persis dengan Episode1Scene.createBackground() — lihat
-    // komentar lengkap di sana. Satu jalur kode untuk semua orientasi:
-    // gambar asli apa adanya, sisa celah kanan (kalau ada) diisi tile
-    // kecil dari gambar yang sama, bukan diregangkan.
-    this.levelWidth = Math.max(naturalWidth, width);
+    this.levelWidth = naturalWidth;
+
+    this.add
+      .rectangle(
+        naturalWidth / 2,
+        height / 2,
+        Math.max(naturalWidth * 2, width * 2),
+        height * 2,
+        0x05050f,
+      )
+      .setDepth(-1);
 
     this.bg = this.add.image(naturalWidth / 2, height / 2, key);
     this.bg.setDisplaySize(naturalWidth, height);
     this.bg.setDepth(0);
-
-    const extraWidth = this.levelWidth - naturalWidth;
-    if (extraWidth > 0) {
-      const tile = this.add.tileSprite(
-        naturalWidth + extraWidth / 2,
-        height / 2,
-        extraWidth,
-        height,
-        key,
-      );
-      tile.setTileScale(scale, scale);
-      tile.setDepth(0);
-    }
   }
 
   _createPlaceholderColorBackground(width, height) {

@@ -40,12 +40,12 @@ export default class ObjectiveBriefing {
     const cardWidth = Math.min(bounds.width * 0.9, 640);
     const cardX = bounds.centerX;
 
-    const labelFont = pxToWorld(scene, 21);
-    const bodyFont = pxToWorld(scene, 18);
-    const promptFont = pxToWorld(scene, 17);
+    const labelFont = pxToWorld(scene, 26);
+    const bodyFont = pxToWorld(scene, 22);
+    const promptFont = pxToWorld(scene, 20);
 
     const label = scene.add
-      .text(cardX, bounds.top + bounds.height * 0.22, title, {
+      .text(cardX, bounds.top + bounds.height * 0.20, title, {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${labelFont}px`,
         color: '#ffdd57',
@@ -55,13 +55,13 @@ export default class ObjectiveBriefing {
     this._container.add(label);
 
     const body = scene.add
-      .text(cardX, label.y + label.height + 22, objectiveText, {
+      .text(cardX, label.y + label.height + 24, objectiveText, {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${bodyFont}px`,
         color: '#ffffff',
         align: 'center',
         wordWrap: { width: cardWidth },
-        lineSpacing: 6,
+        lineSpacing: 8,
       })
       .setOrigin(0.5, 0);
     this._container.add(body);

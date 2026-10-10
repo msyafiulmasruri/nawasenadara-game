@@ -74,32 +74,23 @@ export default class Episode1Scene extends BasePlayerScene {
     const scale = height / source.height;
     const naturalWidth = Math.round(source.width * scale);
 
-    // Level minimal selebar layar saat ini, supaya karakter selalu
-    // punya ruang jalan yang penuh terlihat di layar manapun.
-    this.levelWidth = Math.max(naturalWidth, width);
+    this.levelWidth = naturalWidth;
 
-    // Gambar asli, mulai persis dari x=0 (tepi kiri) — TIDAK
-    // diregangkan, TIDAK di-tile untuk bagian ini.
+    // Backdrop gelap elegan untuk layar lebar / split screen
+    this.add
+      .rectangle(
+        naturalWidth / 2,
+        height / 2,
+        Math.max(naturalWidth * 2, width * 2),
+        height * 2,
+        0x05050f,
+      )
+      .setDepth(-1);
+
+    // Gambar asli koridor sekolah tanpa repetisi tile
     this.bg = this.add.image(naturalWidth / 2, height / 2, 'episode1-bg');
     this.bg.setDisplaySize(naturalWidth, height);
     this.bg.setDepth(0);
-
-    // Kalau layar lebih lebar dari gambar aslinya, isi SISA celah di
-    // kanan (dari x=naturalWidth sampai x=levelWidth) dengan tile kecil
-    // dari gambar yang sama, supaya tidak ada area kosong dan karakter
-    // tetap punya sesuatu untuk dijalani sampai levelWidth.
-    const extraWidth = this.levelWidth - naturalWidth;
-    if (extraWidth > 0) {
-      const tile = this.add.tileSprite(
-        naturalWidth + extraWidth / 2,
-        height / 2,
-        extraWidth,
-        height,
-        'episode1-bg',
-      );
-      tile.setTileScale(scale, scale);
-      tile.setDepth(0);
-    }
 
     this._createNpc();
   }
