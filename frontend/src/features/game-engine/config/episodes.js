@@ -35,21 +35,47 @@ export const EPISODES = [
     bgKey: 'episode1-bg',
     bgImagePath: '/scenes/episode-1-corridor.png',
     description:
-      'Hari pertamamu di sekolah baru. Saat berkenalan dengan teman sekelas, kamu menghadapi candaan bernada bias gender. Tentukan sikapmu: diam menahan diri atau berani menyuarakan batasan dengan tenang.',
+      'Hari pertama di sekolah baru. Kamu berkenalan dengan Rafi, teman sekelas yang ramah tapi punya kebiasaan "bercanda" yang sering kali tidak sadar menyudutkan — terutama komentar-komentar yang merendahkan berdasarkan gender. Bagaimana kamu meresponsnya akan menentukan apakah suaramu akan didengar, atau kamu belajar untuk diam.',
+    // Ditampilkan sebagai "briefing" wajib dibaca SEBELUM pemain bisa
+    // bergerak bebas di gameplay episode ini — lihat
+    // ui/ObjectiveBriefing.js & Episode1Scene.create(). Isinya BUKAN
+    // cuma "ajak bicara NPC" generik, tapi eksplisit menyebut tema
+    // moral episode ini (kesetaraan gender & cara menanggulangi
+    // kekerasan verbal/candaan bias-gender terhadap remaja putri,
+    // lihat §2 revisi naskah) DAN arahan cara menjawab/menanggulangi
+    // situasi itu dengan tepat — sejalan dengan mekanisme ending
+    // berbasis label emosi (utils/emotionEnding.js).
     objective:
-      'Episode ini mengangkat tema kesetaraan gender dan penanganan candaan seksis. Dengarkan percakapan Rafi dan latih sikap asertifmu: sampaikan ketidaknyamanan secara tenang dan saling menghargai. Pilihanmu akan dinilai dan menentukan ending episode ini.',
+      'Episode ini mengangkat tema kesetaraan gender dan bentuk awal kekerasan verbal terhadap remaja putri — candaan yang merendahkan berdasarkan gender. Ajak bicara Rafi, teman sekelas barumu, dan dengarkan baik-baik candaannya. Saat diberi pilihan menjawab, itu adalah kesempatanmu berlatih menanggulangi situasi seperti ini dengan tepat: sampaikan ketidaknyamananmu secara tenang, jujur, dan saling menghargai — BUKAN dengan diam menahan diri (membiarkan ketidaknyamanan itu dianggap wajar) atau membalas dengan marah/menyerang balik (yang hanya memicu konflik baru). Setiap responsmu akan dinilai dan menentukan ending episode ini.',
   },
   {
     id: 2,
+
     title: 'Rahasia di Grup Kelas',
+
     sceneKey: 'Episode2Scene',
+
     placeholderColor: 0x243b55,
+
     bgKey: 'episode2-bg',
+
     bgImagePath: '/scenes/episode-2-bg.png',
+
     description:
-      'Ponselmu bergetar di kamar, menampilkan obrolan grup kelas yang mengejek Kirana. Saat perundungan siber terjadi di depan matamu, pilih langkahmu: ikut diam, atau berani peduli dan bertindak nyata.',
+      'Sepulang sekolah, kamu kembali ke kamar dan mencoba beristirahat. ' +
+      'Namun ponsel di atas meja terus menerima notifikasi dari grup kelas. ' +
+      'Saat dibuka, kamu menemukan beberapa teman sedang menjadikan Kirana ' +
+      'bahan ejekan. Rafi kemudian menghubungimu secara pribadi dan menanyakan ' +
+      'pendapatmu. Pilihanmu akan menentukan apakah kamu memilih membantu, ' +
+      'diam karena takut, ikut terbawa suasana, atau membiarkan semuanya terjadi.',
+
     objective:
-      'Episode ini mengangkat tema cyberbullying, empati, dan etika digital. Buka ponsel di meja dan tentukan tindakanmu untuk menghentikan perundungan tanpa memperburuk situasi bagi korban.',
+      'Episode ini mengangkat tema cyberbullying, empati, dan etika digital. ' +
+      'Dekati meja dan periksa ponselmu. Perhatikan bagaimana percakapan grup ' +
+      'dapat berdampak kepada seseorang meskipun hanya dianggap sebagai candaan. ' +
+      'Saat diberi pilihan, pertimbangkan tindakan yang dapat menghentikan ' +
+      'perundungan tanpa ikut menyebarkan konten yang merugikan korban. ' +
+      'Keputusanmu akan menentukan ending Episode 2.',
   },
   {
     id: 3,
@@ -59,9 +85,9 @@ export const EPISODES = [
     bgKey: 'episode3-bg',
     bgImagePath: '/scenes/episode-3-bg.png',
     description:
-      'Malam larut, pesan mencurigakan masuk dari akun anonim yang mengetahui aktivitas pribadimu. Uji kewaspadaanmu dalam menghadapi manipulasi daring: kapan harus memblokir dan melapor ke orang tua.',
+      'Malam itu, sebuah pesan dari akun tak dikenal masuk ke ponselmu. Awalnya terasa ramah, lalu perlahan berubah tidak nyaman. Kamu harus memutuskan cara meresponsnya sebelum semua terlambat.',
     objective:
-      'Episode ini mengangkat tema stranger danger dan online grooming. Jaga data pribadimu dan tentukan kapan harus memblokir serta melapor kepada orang tua saat menghadapi akun tak dikenal.',
+      'Episode ini mengangkat tema stranger danger dan online grooming. Kamu mendapat DM dari akun Instagram anonim yang perlahan berubah mencurigakan. Gunakan naluri dan pengetahuanmu: kapan harus memblokir, kapan harus lapor ke orang tua, dan jangan pernah memberi data pribadi (nomor, foto) kepada orang asing — sekali pun ia mengancam atau punya "bukti". Setiap responsmu akan dinilai dan menentukan ending episode ini.',
   },
   {
     id: 4,
@@ -71,9 +97,7 @@ export const EPISODES = [
     bgKey: 'episode4-bg',
     bgImagePath: '/scenes/episode-4-bg.png',
     description:
-      'Suasana kantin sekolah yang ramai mendadak membuatmu risih akibat komentar fisik dan pelecehan verbal. Waktunya memahami batasan persetujuan (consent) dan mengambil tindakan aman.',
-    objective:
-      'Episode ini membahas pelecehan verbal dan batasan persetujuan (consent). Kenali komentar yang melanggar batas dan ambil tindakan untuk menegur, bercerita kepada teman, atau melapor.',
+      'Di kantin yang ramai, komentar-komentar tentang tubuhmu terdengar dari meja seberang. Kamu harus melewati momen itu dan memutuskan: diam, menegur, atau mencari bantuan.',
   },
   {
     id: 5,
@@ -83,9 +107,7 @@ export const EPISODES = [
     bgKey: 'episode5-bg',
     bgImagePath: '/scenes/episode-5-bg.png',
     description:
-      'Sahabat dekatmu menunjukkan tanda-tanda ketakutan dan perubahan perilaku yang mencurigakan. Kenali tanda-tanda korban kekerasan dan jadilah pendukung yang empatik di taman sekolah.',
-    objective:
-      'Episode ini melatih kepekaan mendeteksi tanda-tanda kekerasan pada sahabat sebaya serta memberikan dukungan awal yang aman.',
+      'Sahabatmu belakangan ini terlihat berbeda — lebih pendiam, sering menunduk. Kamu menghampirinya di taman belakang sekolah dan mencoba memahami apa yang sebenarnya terjadi.',
   },
   {
     id: 6,
@@ -95,9 +117,7 @@ export const EPISODES = [
     bgKey: 'episode6-bg',
     bgImagePath: '/scenes/episode-6-bg.png',
     description:
-      'Tekanan teman sebaya memaksamu melakukan hal yang melanggar kenyamanan dirimu. Latih keberanian dan kemampuan asertif untuk berkata "tidak" demi melindungi batasan diri.',
-    objective:
-      'Episode ini berfokus pada ketegasan asertif dalam menolak tekanan kelompok dan menjaga batasan integritas diri.',
+      'Di sebuah gang dekat rumah, kamu dihadapkan pada tekanan untuk melakukan sesuatu yang tidak kamu inginkan. Inilah saatnya melatih keberanian untuk berkata tidak.',
   },
   {
     id: 7,
@@ -107,9 +127,7 @@ export const EPISODES = [
     bgKey: 'episode7-bg',
     bgImagePath: '/scenes/episode-7-bg.png',
     description:
-      'Situasi sulit menuntut bantuan pihak terpercaya. Pelajari mekanisme pelaporan yang aman dan temukan ruang perlindungan bersama guru BK, keluarga, atau layanan bantuan profesional.',
-    objective:
-      'Episode ini membimbing langkah praktis mencari bantuan kepada orang dewasa terpercaya dan mengakses kanal perlindungan anak.',
+      'Di rumah, kamu akhirnya memutuskan untuk mencari bantuan. Telepon di meja punya beberapa pilihan kontak — orang tua, guru BK, atau layanan bantuan. Semua bisa jadi awal pemulihan.',
   },
   {
     id: 8,
@@ -119,9 +137,7 @@ export const EPISODES = [
     bgKey: 'episode8-bg',
     bgImagePath: '/scenes/episode-8-bg.png',
     description:
-      'Memasuki tahap pemulihan psikologis dan penguatan harga diri (self-esteem). Tuangkan refleksimu, bangun kembali rasa percaya diri, dan temukan dukungan positif di sekitarmu.',
-    objective:
-      'Episode ini mengeksplorasi strategi koping positif, regulasi emosi, dan pemulihan kesehatan mental pasca-tekanan emosional.',
+      'Malam yang lebih tenang. Kamu menuliskan semua yang dirasakan di buku catatan pribadi, sebagai bagian dari proses pemulihan dan menemukan kembali kepercayaan diri.',
   },
   {
     id: 9,
@@ -131,9 +147,7 @@ export const EPISODES = [
     bgKey: 'episode9-bg',
     bgImagePath: '/scenes/episode-9-bg.png',
     description:
-      'Perjalananmu membawa perubahan. Gunakan pemahaman yang kamu miliki untuk menginspirasi kesetaraan gender dan menciptakan lingkungan sekolah yang aman dan bebas dari kekerasan.',
-    objective:
-      'Episode penutup yang menguji integrasi seluruh pemahamanmu dalam menciptakan kepemimpinan positif dan lingkungan yang saling menghormati.',
+      'Sekolah terasa berbeda sekarang. Kamu menjelajahi tempat-tempat yang pernah kamu lalui, bertemu lagi dengan wajah-wajah dari perjalanananmu, dan menutup kisah ini dengan caramu sendiri.',
   },
 ];
 

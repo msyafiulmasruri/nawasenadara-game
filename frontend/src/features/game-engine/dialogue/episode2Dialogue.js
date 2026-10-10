@@ -279,8 +279,18 @@ export const EPISODE2_DIALOGUE = {
         {
           id: 'c',
 
+          label: '"Ya... tapi beberapa chatnya emang lumayan lucu sih."',
+
+          emotion: 'menyinggung',
+
+          next: 'n4c',
+        },
+
+        {
+          id: 'd',
+
           label:
-            '"Gak usah ikut campur kali, nanti juga grupnya sepi sendiri."',
+            '"Gak usah ikut campur kali. Nanti juga grupnya sepi sendiri."',
 
           emotion: 'netral',
 

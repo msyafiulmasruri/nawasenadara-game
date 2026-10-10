@@ -1140,22 +1140,21 @@ export default class AudioManager {
       this._bgmTimeout = null;
     }
 
+    // PENTING: clearTimeout() di atas cuma membatalkan penjadwalan
+    // SIKLUS BERIKUTNYA. Siklus yang SEDANG berjalan sudah terlanjur
+    // di-schedule penuh di muka lewat osc.start()/stop() dengan
+    // timestamp absolut (bisa sampai belasan detik ke depan) — node-node
+    // itu TIDAK ikut berhenti hanya karena flag bgmPlaying jadi false,
+    // makanya sebelumnya BGM lama masih terdengar bertumpuk beberapa
+    // detik dengan BGM baru saat pindah scene (Title/Menu -> Intro ->
+    // Gameplay). Fix: senyapkan gain BGM SAAT INI JUGA — semua chord,
+    // bass, melody, hi-hat, dan crackle yang sudah kadung terjadwal
+    // tetap "berbunyi" secara teknis, tapi tidak terdengar sama sekali
+    // karena melewati bgmGain yang sudah 0.
     if (this.bgmGain && this.ctx) {
       const t = this._now();
-      try {
-        this.bgmGain.gain.cancelScheduledValues(t);
-        this.bgmGain.gain.setValueAtTime(0, t);
-        // Putus koneksi gain lama dari masterGain agar seluruh oscillator
-        // yang terlanjur di-schedule di siklus sebelumnya terputus total & tidak bertabrakan!
-        this.bgmGain.disconnect();
-      } catch (e) {
-        // Abaikan jika sudah terputus
-      }
-
-      // Buat node bgmGain baru yang bersih untuk pemutaran musik berikutnya
-      this.bgmGain = this.ctx.createGain();
-      this.bgmGain.gain.value = this._bgmVolume ?? 0.25;
-      this.bgmGain.connect(this.masterGain);
+      this.bgmGain.gain.cancelScheduledValues(t);
+      this.bgmGain.gain.setValueAtTime(0, t);
     }
   }
 

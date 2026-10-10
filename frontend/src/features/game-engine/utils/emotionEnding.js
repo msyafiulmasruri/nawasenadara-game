@@ -116,33 +116,7 @@ const ENDING_DEFINITIONS = {
       title: 'Ending Buruk — "Ikut Diam, Ikut Bersalah"',
       plusText: 'Setidaknya kamu jujur dengan reaksi pertamamu, walau reaksi itu belum tepat.',
       minusText:
-        'Memilih diam/menghindar atau bahkan ikut mengomentari negatif sama-sama membuat perundungan terus dianggap wajar — padahal temanmu butuh dibantu, bukan ditonton.',
-    },
-  },
-  3: {
-    true: {
-      key: 'true',
-      title: 'Ending Sejati — "Langkah Perlindungan Nyata"',
-      plusText:
-        'Kamu mengambil tindakan paling tepat: tegas menolak intimidasi, segera memblokir akun mencurigakan, dan berani menceritakan kejadian ini kepada orang tua.',
-      minusText:
-        'Tetap jaga keamanan privasi digitalmu ke depan, jangan mudah membagikan informasi jadwal atau rutinitas di media sosial.',
-    },
-    good: {
-      key: 'good',
-      title: 'Ending Baik — "Waspada Walau Sempat Ragu"',
-      plusText:
-        'Kamu menyadari adanya bahaya dan pada akhirnya berhasil membatasi interaksi dengan akun asing tersebut.',
-      minusText:
-        'Sempat ada keraguan atau keinginan membalas yang berisiko memberi celah manipulasi lebih jauh bagi pelaku.',
-    },
-    bad: {
-      key: 'bad',
-      title: 'Ending Buruk — "Terperangkap Ancaman"',
-      plusText:
-        'Rasa takut dan cemas saat menghadapi ancaman orang asing adalah respon alamiah manusiawi.',
-      minusText:
-        'Membeku, menuruti kemauan orang asing, atau memendam ancaman sendirian justru memperbesar risiko bahaya. Jangan ragu mencari perlindungan orang dewasa terpercaya.',
+        'Memilih diam/menghindar atau bahkan ikut mengomentari negatif sama-sama membuat bully-an ke Kirana terus dianggap wajar — padahal dia butuh dibantu, bukan ditonton atau ditambah beban.',
     },
   },
   3: {
@@ -173,28 +147,12 @@ const ENDING_DEFINITIONS = {
   },
 };
 
-const DEFAULT_EPISODE_ENDINGS = {
-  true: {
-    key: 'true',
-    title: 'Ending Sejati — "Keputusan Tepat & Berani"',
-    plusText: 'Kamu konsisten mengambil keputusan asertif dan melindungi batasan diri dengan sangat baik.',
-    minusText: 'Terus pertahankan sikap asertif ini dalam kehidupan sehari-hari.',
-  },
-  good: {
-    key: 'good',
-    title: 'Ending Baik — "Belajar Menghadapi Situasi"',
-    plusText: 'Kamu berhasil melewati situasi dengan cukup baik dan mulai memahami cara merespons.',
-    minusText: 'Latih keberanianmu untuk lebih terbuka dan tegas menyuarakan batasan diri.',
-  },
-  bad: {
-    key: 'bad',
-    title: 'Ending Buruk — "Menghadapi Tekanan"',
-    plusText: 'Setiap pengalaman sulit adalah proses belajar untuk mengenali situasi yang berisiko.',
-    minusText: 'Jangan ragu untuk mencari bantuan dan tidak memendam tekanan seorang diri.',
-  },
+const DEFAULT_ENDING = {
+  key: 'good',
+  title: 'Ending Baik',
+  plusText: 'Kamu melewati episode ini dengan sikap yang cukup seimbang.',
+  minusText: 'Belum ada sikap yang benar-benar menonjol dari pilihan-pilihanmu.',
 };
-
-const DEFAULT_ENDING = DEFAULT_EPISODE_ENDINGS.good;
 
 /**
  * @param {Array<{emotion?: string}>} choices - hasil collectedChoices dari DialogueBox.
@@ -221,8 +179,8 @@ export function computeEnding(episodeId, choices = []) {
   const { avgScore, totalResponses } = computeScore(tally);
   const endingKey = classifyEndingKey(avgScore, totalResponses);
 
-  const episodeDefs = ENDING_DEFINITIONS[episodeId] || DEFAULT_EPISODE_ENDINGS;
-  const ending = episodeDefs[endingKey] || DEFAULT_EPISODE_ENDINGS[endingKey] || DEFAULT_ENDING;
+  const episodeDefs = ENDING_DEFINITIONS[episodeId] || {};
+  const ending = episodeDefs[endingKey] || DEFAULT_ENDING;
 
   return { tally, dominant, avgScore, endingKey, ending };
 }

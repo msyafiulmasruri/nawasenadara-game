@@ -104,23 +104,25 @@ export default class Episode3Scene extends BasePlayerScene {
     const scale = height / source.height;
     const naturalWidth = Math.round(source.width * scale);
 
-    this.levelWidth = naturalWidth;
+    this.levelWidth = Math.max(naturalWidth, width);
 
-    // Backdrop gelap elegan untuk layar lebar / split screen
-    this.add
-      .rectangle(
-        naturalWidth / 2,
-        height / 2,
-        Math.max(naturalWidth * 2, width * 2),
-        height * 2,
-        0x05050f,
-      )
-      .setDepth(-1);
-
-    // Background kamar asli tanpa repetisi tile
+    // Background kamar asli
     this.bg = this.add.image(naturalWidth / 2, height / 2, bgKey);
     this.bg.setDisplaySize(naturalWidth, height);
     this.bg.setDepth(0);
+
+    const extraWidth = this.levelWidth - naturalWidth;
+    if (extraWidth > 0) {
+      const tile = this.add.tileSprite(
+        naturalWidth + extraWidth / 2,
+        height / 2,
+        extraWidth,
+        height,
+        bgKey,
+      );
+      tile.setTileScale(scale, scale);
+      tile.setDepth(0);
+    }
 
     this._createAtmosphericLayers(width, height);
     this._createPhoneObject();
@@ -156,13 +158,14 @@ export default class Episode3Scene extends BasePlayerScene {
     this.npcInDialogue = false;
     this.phoneTalked = hasTalkedToNpc(this.episodeId ?? 3);
 
-    // Posisi di atas meja belajar (persis sama dan selaras dengan Episode 2)
-    const phoneX = 760;
-    const phoneY = 420;
+    // Posisi di atas meja belajar samping laptop (xRatio 0.58)
+    const phoneX = this.levelWidth * (npcConfig.xRatio ?? 0.58);
+    const phoneOffsetY = 240; // Di atas meja belajar kayu
+    const phoneY = this.groundY - phoneOffsetY;
 
     // Halo cahaya biru neon di meja
     this._phoneHalo = this.add
-      .ellipse(phoneX, phoneY + 16, 44, 14, 0x00f0ff, 0.45)
+      .ellipse(phoneX, phoneY + 28, 48, 14, 0x00f0ff, 0.45)
       .setDepth(1);
 
     // Sprite pixel art smartphone custom di atas meja
@@ -194,7 +197,7 @@ export default class Episode3Scene extends BasePlayerScene {
 
       // Dot notifikasi merah yang berdenyut
       this._notifBadge = this.add
-        .circle(phoneX + 14, phoneY - 18, 6, 0xff3b30)
+        .circle(phoneX + 16, phoneY - 26, 6, 0xff3b30)
         .setDepth(3);
 
       this.tweens.add({
@@ -219,7 +222,7 @@ export default class Episode3Scene extends BasePlayerScene {
 
     // Prompt teks interaksi di atas ponsel
     const promptFont = pxToWorld(this, 14);
-    const promptBaseY = phoneY - 42;
+    const promptBaseY = phoneY - 48;
     this.npcPrompt = this.add
       .text(phoneX, promptBaseY, '[E] Cek Ponsel (Klik)', {
         fontFamily: '"Pixelify Sans", monospace',
@@ -1072,7 +1075,6 @@ export default class Episode3Scene extends BasePlayerScene {
         this.npcInDialogue = false;
         this.uiInputLocked = false;
         this._npcInteractCooldownUntil = this.time.now + 400;
-        this._finishEpisode3();
       },
     });
   }
@@ -1081,44 +1083,21 @@ export default class Episode3Scene extends BasePlayerScene {
     return buildEpisode3CounselingContext(this.npcChoices);
   }
 
-  _finishEpisode3() {
-    if (this.finished) return;
-    this.finished = true;
-
-    this.uiInputLocked = true;
-    this.npcPrompt?.setVisible(false);
-    this.player?.setVelocity(0, 0);
-    this.player?.anims.stop();
-
-    const choices = this.npcChoices || [];
-
-    if (this.player) {
-      this.tweens.add({
-        targets: this.player,
-        alpha: 0,
-        duration: 300,
-        ease: 'Sine.easeOut',
-        onComplete: () => {
-          this.scene.start('EpisodeEndingScene', {
-            episodeId: 3,
-            isLastEpisode: false,
-            choices,
-          });
-        },
-      });
-      return;
-    }
-
-    this.scene.start('EpisodeEndingScene', {
-      episodeId: 3,
-      isLastEpisode: false,
-      choices,
-    });
-  }
-
   onSceneUpdate() {
     if (this.finished) return;
     if (!this._phoneSprite) return;
+
+    // Proximity check ke objek ponsel
+    if (!this.npcInDialogue) {
+      const dist = Math.abs(this.player.x - this._phoneSprite.x);
+      const inRange = dist <= (this.npcConfig?.interactionRadius ?? 120);
+      this.npcPrompt.setVisible(inRange);
+      if (inRange && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+        this._tryOpenPhone();
+      }
+    }
+
+    if (this.npcInDialogue) return;
 
     const endZoneX = this.levelWidth - LEVEL_EDGE_MARGIN;
 
@@ -1128,19 +1107,30 @@ export default class Episode3Scene extends BasePlayerScene {
         this.player.x = endZoneX;
         this.player?.setVelocityX(0);
       }
-      this.endBlockHint?.setVisible(this.player.x >= endZoneX - 4);
-    } else {
-      this.endBlockHint?.setVisible(false);
+      this.endBlockHint.setVisible(this.player.x >= endZoneX - 4);
+      return;
     }
 
-    // Proximity check ke objek ponsel
-    if (!this.npcInDialogue) {
-      const dist = Math.abs(this.player.x - this._phoneSprite.x);
-      const inRange = dist <= (this.npcConfig?.interactionRadius ?? 120);
-      this.npcPrompt?.setVisible(inRange);
-      if (inRange && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-        this._tryOpenPhone();
-      }
+    this.endBlockHint.setVisible(false);
+
+    if (this.player.x > endZoneX) {
+      this.finished = true;
+      this.uiInputLocked = true;
+      this.player?.setVelocity(0, 0);
+      this.player?.anims.stop();
+      this.tweens.add({
+        targets: this.player,
+        alpha: 0,
+        duration: 250,
+        ease: 'Sine.easeOut',
+      });
+
+      const choices = this.npcChoices || [];
+      this.scene.start('EpisodeEndingScene', {
+        episodeId: 3,
+        isLastEpisode: false,
+        choices,
+      });
     }
   }
 }
