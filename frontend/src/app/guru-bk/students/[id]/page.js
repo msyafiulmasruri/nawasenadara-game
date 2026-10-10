@@ -160,8 +160,8 @@ function DetailContent({ studentId }) {
         <h2 style={styles.sectionTitle}>Akumulasi Keseluruhan Episode</h2>
         <p style={styles.muted}>
           Gabungan hasil analisis NLP dari seluruh episode yang sudah diselesaikan siswa ini
-          ({accumulated?.completed_episodes ?? 0} / {accumulated?.total_episodes ?? 9}) — persis
-          seperti ending akumulasi yang akan dilihat siswa sendiri di penghujung Episode 9.
+          ({accumulated?.completed_episodes ?? 0} / {accumulated?.total_episodes ?? 6}) — persis
+          seperti ending akumulasi yang akan dilihat siswa sendiri di penghujung Episode 6.
         </p>
         {!accumulated || accumulated.completed_episodes === 0 ? (
           <p style={styles.muted}>

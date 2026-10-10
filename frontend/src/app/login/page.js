@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthShell from '@/features/auth/components/AuthShell';
@@ -10,6 +10,10 @@ import AuthMessage from '@/features/auth/components/AuthMessage';
 import GoogleAuthButton from '@/features/auth/components/GoogleAuthButton';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { requestAppFullscreen } from '@/lib/fullscreen';
+import {
+  clearSessionNotice,
+  readSessionNotice,
+} from '@/features/auth/utils/sessionNotice';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +22,19 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const sessionNotice = readSessionNotice();
+    if (!sessionNotice) return undefined;
+
+    // Dijadwalkan sesudah effect agar aman dari double-effect React Strict
+    // Mode. Notice baru dihapus ketika pesan benar-benar ditampilkan.
+    const timer = window.setTimeout(() => {
+      setError(sessionNotice);
+      clearSessionNotice();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 

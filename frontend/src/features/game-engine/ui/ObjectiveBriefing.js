@@ -37,15 +37,26 @@ export default class ObjectiveBriefing {
       .setScrollFactor(0);
     this._container.add(dim);
 
-    const cardWidth = Math.min(bounds.width * 0.9, 640);
+    const viewportHeight = scene.scale.parentSize?.height || 720;
+    const isCompactLandscape = viewportHeight <= 430;
+    const cardWidth = Math.min(
+      bounds.width * 0.92,
+      pxToWorld(scene, isCompactLandscape ? 720 : 820),
+    );
     const cardX = bounds.centerX;
 
-    const labelFont = pxToWorld(scene, 21);
-    const bodyFont = pxToWorld(scene, 18);
-    const promptFont = pxToWorld(scene, 17);
+    // Ukuran ditentukan dalam CSS pixel agar tetap nyaman dibaca pada
+    // desktop maupun HP. Layar landscape yang pendek memakai ukuran
+    // sedikit lebih ringkas, tetapi masih lebih besar daripada versi lama.
+    const labelFont = pxToWorld(scene, isCompactLandscape ? 30 : 34);
+    const preferredBodyFont = isCompactLandscape ? 22 : 25;
+    const minimumBodyFont = 18;
+    const promptFont = pxToWorld(scene, isCompactLandscape ? 18 : 20);
+    const labelY = bounds.top + bounds.height * (isCompactLandscape ? 0.12 : 0.17);
+    const promptY = bounds.top + bounds.height * 0.89;
 
     const label = scene.add
-      .text(cardX, bounds.top + bounds.height * 0.22, title, {
+      .text(cardX, labelY, title, {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${labelFont}px`,
         color: '#ffdd57',
@@ -54,20 +65,8 @@ export default class ObjectiveBriefing {
       .setOrigin(0.5, 0);
     this._container.add(label);
 
-    const body = scene.add
-      .text(cardX, label.y + label.height + 22, objectiveText, {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${bodyFont}px`,
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: cardWidth },
-        lineSpacing: 6,
-      })
-      .setOrigin(0.5, 0);
-    this._container.add(body);
-
     const promptText = scene.add
-      .text(cardX, bounds.top + bounds.height * 0.86, 'TEKAN UNTUK MULAI', {
+      .text(cardX, promptY, 'TEKAN UNTUK MULAI', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${promptFont}px`,
         color: '#ffffff',
@@ -77,6 +76,33 @@ export default class ObjectiveBriefing {
       .setAlpha(0);
     this._container.add(promptText);
     this._promptText = promptText;
+
+    const bodyY = label.y + label.height + pxToWorld(scene, isCompactLandscape ? 12 : 18);
+    const bodyMaxHeight = Math.max(
+      1,
+      promptText.y - promptText.height / 2 - bodyY - pxToWorld(scene, 24),
+    );
+
+    const body = scene.add
+      .text(cardX, bodyY, objectiveText, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${pxToWorld(scene, preferredBodyFont)}px`,
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: cardWidth },
+        lineSpacing: pxToWorld(scene, isCompactLandscape ? 5 : 8),
+      })
+      .setOrigin(0.5, 0);
+
+    // Turunkan ukuran hanya bila teks episode yang panjang benar-benar
+    // melewati ruang tersedia. Pada ukuran layar umum nilai pilihan tetap
+    // 22/25 px; fallback ini mencegah overflow pada landscape sangat pendek.
+    let fittedBodyFont = preferredBodyFont;
+    while (body.height > bodyMaxHeight && fittedBodyFont > minimumBodyFont) {
+      fittedBodyFont -= 1;
+      body.setFontSize(pxToWorld(scene, fittedBodyFont));
+    }
+    this._container.add(body);
 
     // Kunci "harus dibaca" sederhana: tombol lanjut baru aktif setelah
     // jeda singkat (cukup untuk minimal sempat membaca 1-2 baris

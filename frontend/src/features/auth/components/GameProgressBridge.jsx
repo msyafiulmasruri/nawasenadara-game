@@ -8,7 +8,7 @@ import apiClient from '@/lib/apiClient';
 // tidak punya akses ke React context, jadi progres episode dari server
 // (tabel user_episode_progress) diambil di sini lalu ditaruh sebagai
 // CACHE SINKRON di window, supaya progressStore.js (dipakai banyak
-// scene: EpisodeSelectScene, Episode1Scene, PlaceholderEpisodeScene,
+// scene: EpisodeSelectScene, Episode1Scene, StoryEpisodeScene,
 // dst.) bisa terus dibaca secara SINKRON tanpa perlu me-refactor setiap
 // scene jadi async.
 //

@@ -20,8 +20,9 @@
 //
 // Skema `emotion` SAMA PERSIS dengan Episode 1 & 2 (6 label):
 //   aman | netral | sedih | takut | marah | menyinggung
-// Dipakai DialogueBox → moodStore.setMood() (bar HUD) DAN
-// utils/emotionEnding.js (menghitung ending episode).
+// Dipakai utils/emotionEnding.js untuk menghitung tingkat mood dan
+// tiga kategori ending setelah episode selesai. Mood bar tidak tampil
+// selama gameplay.
 //
 // Speaker di sini ada TIGA:
 //   'narration'     — kotak narasi tanpa portrait (seperti Ep1-2)

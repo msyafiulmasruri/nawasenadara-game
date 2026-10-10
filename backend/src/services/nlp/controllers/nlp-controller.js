@@ -8,7 +8,7 @@ const snippet = (text, max = 160) =>
 
 // POST /api/nlp/analyze
 // Dipanggil frontend SETELAH pemain mengisi jurnal refleksi singkat di
-// akhir SETIAP episode (episode 1-9) — lihat proposal Gambar 3.2 &
+// akhir SETIAP episode (episode 1-6) — lihat proposal Gambar 3.2 &
 // NLP_INTEGRATION_DESIGN.md. Endpoint ini SATU ARAH (bukan
 // percakapan): analisis teks -> simpan -> kembalikan label + rekomendasi
 // apakah perlu menampilkan ajakan halus ke chatbot konseling.
@@ -52,6 +52,32 @@ export const analyzeReflection = async (req, res, next) => {
       // trigger_source 'episode7_phone' yang memang didesain auto-
       // muncul, lihat design doc).
       suggest_counseling: riskLevel !== 'rendah',
+    });
+  } catch (err) {
+    if (err instanceof NlpServiceError) {
+      return next(Object.assign(err, { statusCode: err.statusCode }));
+    }
+    next(err);
+  }
+};
+
+// POST /api/nlp/episode-mood
+// Mengklasifikasikan gabungan respons dialog yang dipilih pemain pada
+// episode aktif. Hasil ini khusus visual mood sebelum jurnal, sehingga
+// tidak disimpan sebagai `reflection` dan tidak membuat risk alert.
+export const classifyEpisodeMood = async (req, res, next) => {
+  try {
+    const { responses, episode_id: episodeId } = req.validated;
+    const text = responses
+      .map((response, index) => `Respons ${index + 1}: ${response}`)
+      .join('\n');
+    const { label, confidence, scores } = await NlpClient.analyze(text);
+
+    return success(res, {
+      episode_id: episodeId,
+      label,
+      confidence,
+      scores,
     });
   } catch (err) {
     if (err instanceof NlpServiceError) {

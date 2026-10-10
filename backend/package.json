@@ -10,6 +10,7 @@
     "migrate": "node-pg-migrate",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
+    "test": "node --test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

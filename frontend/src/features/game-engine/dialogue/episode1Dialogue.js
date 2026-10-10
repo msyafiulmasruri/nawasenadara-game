@@ -8,14 +8,11 @@
 // (app/services/sentiment_model.py, lihat nawasenadara-ai-main):
 //   aman | netral | sedih | takut | marah | menyinggung
 //
-// `emotion` dipakai untuk DUA hal:
-//   1. Update langsung bar mood HUD (lihat DialogueBox._selectChoice ->
-//      moodStore.setMood()) — feedback instan tiap pemain menjawab,
-//      bukan cuma dari jurnal/chat Kak Dara seperti sebelumnya.
-//   2. Diakumulasi jadi `emotion_tally` episode ini (lihat
-//      utils/emotionEnding.js -> computeEnding()) untuk menentukan
-//      Ending Scene yang tampil setelah dialog + sebelum jurnal
-//      refleksi (lihat Episode1Scene.onSceneUpdate -> finishEpisode).
+// `emotion` diakumulasi menjadi `emotion_tally` episode ini (lihat
+// utils/emotionEnding.js -> computeEnding()) untuk menentukan tiga
+// hasil akhir: Ending Sejati, Ending Baik, atau Ending Buruk. Tingkat
+// mood baru ditampilkan setelah episode selesai, tepat sebelum ending
+// diungkapkan; tidak ada mood bar selama gameplay.
 //
 // `scoreKey` LAMA (assertiveness/passive/dst.) dihapus — `emotion`
 // sekarang satu-satunya sumber kebenaran skor, supaya konsisten dengan
@@ -212,7 +209,7 @@ export const EPISODE1_DIALOGUE = {
         },
         {
           id: 'b',
-          label: '"Terserah kalian mau bilang apa."',
+          label: '"Terserah kalian mau bilang apa, aku gak mau ambil pusing."',
           emotion: 'netral',
           next: 'n6b',
         },
@@ -221,12 +218,6 @@ export const EPISODE1_DIALOGUE = {
           label: '"Udah, diemin aja, males ribut." (diucapkan pelan, menahan diri)',
           emotion: 'sedih',
           next: 'n6c',
-        },
-        {
-          id: 'd',
-          label: '"Kalian tuh yang harusnya introspeksi, bukan aku!"',
-          emotion: 'marah',
-          next: 'n6d',
         },
       ],
     },
@@ -250,13 +241,6 @@ export const EPISODE1_DIALOGUE = {
       text: '{PLAYER_NAME} memilih diam, walau dadanya terasa sesak. Rafi tidak menyadarinya. "Btw, selamat datang ya. Semoga betah di sini."',
       dynamic: true,
       situationHint: 'Aku memilih diam menahan perasaan tidak nyaman, dan Rafi tidak menyadarinya sama sekali, tetap menyapa ramah seolah semua baik-baik saja.',
-    },
-    n6d: {
-      id: 'n6d',
-      speaker: 'rafi',
-      text: 'Kelas mendadak hening, beberapa teman menoleh. "Woy santai woy, iya iya, maaf," kata Rafi buru-buru. Suasana terasa canggung sisa hari itu.',
-      dynamic: true,
-      situationHint: 'Aku membalas dengan tegas/marah, membuat Rafi kaget dan buru-buru minta maaf di depan teman-teman sekelas yang menoleh.',
     },
     // Semua node n6* adalah node terakhir (tanpa `next`) — DialogueBox
     // menutup diri & menandai quest selesai setelah salah satunya

@@ -1,17 +1,7 @@
-// Data NPC pendukung cerita — SATU NPC per episode (9 episode = 9
-// NPC total, sesuai arahan). Dikelompokkan di sini (bukan ditulis
-// langsung di masing-masing EpisodeXScene.js) supaya BootScene bisa
-// me-load semua portrait NPC dari satu sumber data, sama seperti pola
-// `EPISODES` di config/episodes.js untuk background.
-//
-// `portraitPath` : gambar potret (dipakai di DialogueBox, gaya
-//   Harvest Moon — portrait tampil di atas kotak dialog).
-// `worldSpriteKey` : sengaja SAMA dengan `portraitKey` untuk saat ini
-//   (dummy asset yang dilampirkan cuma satu gambar per NPC, dipakai
-//   baik sebagai potret dialog maupun sprite berdiri di dunia game).
-//   Kalau nanti tiap NPC punya sprite dunia terpisah (idle pose beda
-//   dari potret dialog), tinggal tambah field `worldSpritePath` sendiri
-//   di sini tanpa perlu ubah kode lain.
+// Data NPC pendukung untuk alur enam episode. BootScene memuat portrait
+// yang memiliki portraitPath; StoryEpisodeScene otomatis memakai visual
+// dummy bila slot aset masih kosong. Saat aset final tersedia, cukup isi
+// portraitPath pada entri terkait tanpa mengubah mekanik episode.
 export const NPCS = {
   1: {
     id: 'rafi',
@@ -57,6 +47,41 @@ export const NPCS = {
     interactionRadius: 120,
     contentHeight: null,
     bottomPadding: null,
+  },
+  4: {
+    id: 'senior_kantin',
+    name: 'Senior Kantin',
+    episodeId: 4,
+    // Slot aset final. Selama file belum ada, StoryEpisodeScene
+    // menggambar karakter dummy yang tetap bisa diajak berinteraksi.
+    portraitKey: 'npc-senior-kantin-portrait',
+    portraitPath: '/characters/senior-kantin.png',
+    xRatio: 0.43,
+    interactionRadius: 105,
+    dummyColor: 0xb55f54,
+    dummyAccent: 0x3d2636,
+  },
+  5: {
+    id: 'kirana',
+    name: 'Kirana',
+    episodeId: 5,
+    portraitKey: 'npc-kirana-portrait',
+    portraitPath: '/characters/kirana.png',
+    xRatio: 0.38,
+    interactionRadius: 105,
+    dummyColor: 0x5b8f79,
+    dummyAccent: 0x273b55,
+  },
+  6: {
+    id: 'naya',
+    name: 'Naya',
+    episodeId: 6,
+    portraitKey: 'npc-naya-portrait',
+    portraitPath: '/characters/naya.png',
+    xRatio: 0.66,
+    interactionRadius: 105,
+    dummyColor: 0x6f73b8,
+    dummyAccent: 0x332b55,
   },
 };
 

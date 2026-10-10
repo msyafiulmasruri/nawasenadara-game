@@ -27,7 +27,7 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     // memaksa quest diulang walau pemain memilih "Lanjutkan Permainan
     // Lama". Menunggu di SINI — satu-satunya pintu masuk ke scene
     // episode manapun — memastikan cache-nya sudah pasti terisi
-    // sebelum Episode1Scene/PlaceholderEpisodeScene sempat dibuat.
+    // sebelum scene gameplay episode sempat dibuat.
     // Race dengan timeout 4 detik supaya tidak macet permanen kalau
     // bridge-nya entah kenapa tidak pernah terpasang/gagal total.
     const progressReady = window.__nawasenadaraProgress?.ready;
@@ -98,8 +98,11 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     // semua perangkat) ke world-unit yang sesuai skala ENVELOP saat
     // ini — sama seperti yang sudah dipakai untuk tombol sentuh.
     const episodeLabelFont = pxToWorld(this, 40);
-    const episodeTitleFont = pxToWorld(this, 26);
-    const episodeDescFont = pxToWorld(this, 18);
+    const episodeTitleFont = pxToWorld(this, 30);
+    // Sinopsis sengaja dibuat lebih besar daripada versi awal agar tetap
+    // nyaman dibaca remaja di layar ponsel. Teksnya sudah diperingkas di
+    // config/episodes.js sehingga kenaikan ukuran tidak membuat layar padat.
+    const episodeDescFont = pxToWorld(this, 27);
     const promptFont = pxToWorld(this, 20);
 
     this.episodeLabel = this.add
@@ -136,7 +139,7 @@ export default class EpisodeIntroScene extends Phaser.Scene {
         color: '#dddddd',
         align: 'center',
         wordWrap: { width: bounds0.width * 0.85 },
-        lineSpacing: 6,
+        lineSpacing: 8,
       })
       .setOrigin(0.5)
       .setDepth(2);
@@ -267,11 +270,11 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     this.episodeLabel?.setFontSize(pxToWorld(this, 40));
     this.episodeLabel?.setPosition(bounds.centerX, baseY);
 
-    this.episodeTitle?.setFontSize(pxToWorld(this, 26));
+    this.episodeTitle?.setFontSize(pxToWorld(this, 30));
     this.episodeTitle?.setPosition(bounds.centerX, baseY + 46);
     this.episodeTitle?.setWordWrapWidth(bounds.width * 0.85);
 
-    this.episodeDesc?.setFontSize(pxToWorld(this, 18));
+    this.episodeDesc?.setFontSize(pxToWorld(this, 27));
     this.episodeDesc?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.55);
     this.episodeDesc?.setWordWrapWidth(bounds.width * 0.85);
 

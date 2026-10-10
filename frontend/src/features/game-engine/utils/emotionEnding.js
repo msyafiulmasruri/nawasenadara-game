@@ -16,7 +16,7 @@
 // pemain di episode itu. Rata-rata itu yang menentukan kategori akhir
 // (classifyEndingKey()) — bukan cuma emosi yang paling sering muncul
 // seperti skema lama. Ini juga otomatis berlaku untuk episode
-// berikutnya (2-9) tanpa perlu logic baru, cukup isi
+// berikutnya (2-6) tanpa perlu logic baru, cukup isi
 // ENDING_DEFINITIONS[episodeId] dengan 3 entri: true/good/bad.
 
 export const EMOTION_PRIORITY = ['aman', 'netral', 'sedih', 'takut', 'menyinggung', 'marah'];
@@ -145,13 +145,105 @@ const ENDING_DEFINITIONS = {
         'Rasa panik membuatmu terpancing merespons atau menghadapi bahaya sendirian. Ingat, jangan pernah mengorbankan privasi demi ancaman pelaku, dan selalu libatkan orang tua sedini mungkin.',
     },
   },
+  4: {
+    true: {
+      key: 'true',
+      title: 'Ending Sejati — "Batas yang Dihormati"',
+      plusText:
+        'Kamu menyampaikan ketidaknyamanan dengan jelas, menjaga jarak, dan tahu kapan perlu meminta bantuan tanpa merendahkan orang lain.',
+      minusText:
+        'Menetapkan batas dapat perlu diulang. Tetap dekati guru atau orang tepercaya jika komentar serupa kembali terjadi.',
+    },
+    good: {
+      key: 'good',
+      title: 'Ending Baik — "Berani Menjauh"',
+      plusText:
+        'Kamu berhasil keluar dari situasi yang tidak nyaman dan mulai melindungi ruang amanmu.',
+      minusText:
+        'Batasmu belum seluruhnya tersampaikan. Dukungan orang tepercaya dapat membantu agar perilaku itu tidak dianggap wajar.',
+    },
+    bad: {
+      key: 'bad',
+      title: 'Ending Buruk — "Candaan yang Tertinggal"',
+      plusText:
+        'Rasa kesal, takut, atau tidak nyaman yang kamu alami tetap valid—kejadian ini bukan salahmu.',
+      minusText:
+        'Menyalahkan diri atau membalas dengan hinaan membuat inti masalah kabur. Menjauh, nyatakan batas, lalu cari bantuan yang aman.',
+    },
+  },
+  5: {
+    true: {
+      key: 'true',
+      title: 'Ending Sejati — "Teman yang Aman"',
+      plusText:
+        'Kamu mendengar tanpa menghakimi, percaya kepada Kirana, memeriksa keselamatannya, dan menemaninya mencari bantuan pilihan dirinya.',
+      minusText:
+        'Pendampingan perlu berlanjut. Hormati keputusan Kirana sambil tetap melibatkan orang dewasa saat ada risiko keselamatan.',
+    },
+    good: {
+      key: 'good',
+      title: 'Ending Baik — "Tetap Menemani"',
+      plusText:
+        'Kamu memberi Kirana ruang dan membuatnya merasa tidak sendirian.',
+      minusText:
+        'Bantuan bisa tertunda bila keselamatan tidak diperiksa dan belum ada orang dewasa tepercaya yang dilibatkan.',
+    },
+    bad: {
+      key: 'bad',
+      title: 'Ending Buruk — "Niat Baik, Risiko Baru"',
+      plusText:
+        'Keinginanmu melindungi Kirana menunjukkan bahwa kamu peduli pada keselamatannya.',
+      minusText:
+        'Memaksa cerita atau menghadapi pelaku sendiri dapat menambah bahaya. Dengarkan kebutuhan korban dan susun bantuan bersama.',
+    },
+  },
+  6: {
+    true: {
+      key: 'true',
+      title: 'Ending Sejati — "Suara yang Menjadi Cahaya"',
+      plusText:
+        'Sepanjang perjalanan, kamu konsisten menetapkan batas, melindungi diri dan teman, mencari bantuan, serta membangun dukungan bersama.',
+      minusText:
+        'Keberanian bukan berarti harus selalu kuat sendirian. Jaga jejaring aman dan terus beri ruang bagi proses pemulihan.',
+    },
+    good: {
+      key: 'good',
+      title: 'Ending Baik — "Berani Melangkah"',
+      plusText:
+        'Kamu sudah mengenali banyak pilihan aman dan mulai berani meminta dukungan ketika membutuhkannya.',
+      minusText:
+        'Beberapa respons masih ragu atau tertunda. Latih kalimat batas dan tentukan sejak awal siapa orang tepercaya yang dapat dihubungi.',
+    },
+    bad: {
+      key: 'bad',
+      title: 'Ending Buruk — "Masih Mencari Suara"',
+      plusText:
+        'Takut, marah, membeku, atau bingung adalah respons yang manusiawi; pengalaman buruk bukan kesalahanmu.',
+      minusText:
+        'Perjalananmu masih membutuhkan dukungan. Mulailah dari satu langkah aman: menjauh, simpan bukti bila memungkinkan, dan cerita kepada orang tepercaya.',
+    },
+  },
 };
 
-const DEFAULT_ENDING = {
-  key: 'good',
-  title: 'Ending Baik',
-  plusText: 'Kamu melewati episode ini dengan sikap yang cukup seimbang.',
-  minusText: 'Belum ada sikap yang benar-benar menonjol dari pilihan-pilihanmu.',
+const DEFAULT_ENDINGS = {
+  true: {
+    key: 'true',
+    title: 'Ending Sejati',
+    plusText: 'Kamu konsisten memilih respons yang aman, tegas, dan sehat sepanjang episode.',
+    minusText: 'Pertahankan keberanian ini sambil tetap mencari dukungan saat situasinya membutuhkan bantuan orang lain.',
+  },
+  good: {
+    key: 'good',
+    title: 'Ending Baik',
+    plusText: 'Kamu melewati episode ini dengan sikap yang cukup seimbang.',
+    minusText: 'Masih ada ruang untuk membuat responsmu lebih tegas dan konsisten pada situasi berikutnya.',
+  },
+  bad: {
+    key: 'bad',
+    title: 'Ending Buruk',
+    plusText: 'Perasaan sulit yang muncul sepanjang episode tetap valid dan layak dipahami.',
+    minusText: 'Pilihanmu masih cenderung berisiko atau memendam masalah; cobalah menetapkan batas dan mencari bantuan tepercaya.',
+  },
 };
 
 /**
@@ -168,7 +260,7 @@ export function computeEnding(episodeId, choices = []) {
   });
 
   let dominant = 'netral';
-  let best = -1;
+  let best = 0;
   EMOTION_PRIORITY.forEach((label) => {
     if (tally[label] > best) {
       best = tally[label];
@@ -180,7 +272,7 @@ export function computeEnding(episodeId, choices = []) {
   const endingKey = classifyEndingKey(avgScore, totalResponses);
 
   const episodeDefs = ENDING_DEFINITIONS[episodeId] || {};
-  const ending = episodeDefs[endingKey] || DEFAULT_ENDING;
+  const ending = episodeDefs[endingKey] || DEFAULT_ENDINGS[endingKey];
 
   return { tally, dominant, avgScore, endingKey, ending };
 }

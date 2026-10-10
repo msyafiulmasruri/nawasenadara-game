@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { setMood } from '@/features/game-engine/utils/moodStore';
+import apiClient from '@/lib/apiClient';
 
 // Overlay HTML/React di ATAS kanvas Phaser untuk dua UI yang perlu
 // input teks bebas & percakapan multi-baris — hal yang jauh lebih
@@ -20,10 +22,20 @@ import { setMood } from '@/features/game-engine/utils/moodStore';
 // berikutnya. Chatbot TIDAK pakai Promise — dia modal independen yang
 // bisa dibuka/tutup kapan saja tanpa memblokir gameplay di baliknya.
 export default function GameUIBridge() {
+  const { getAccessToken } = useAuth();
   const [journal, setJournal] = useState(null); // { episodeId, resolve }
   const [journalText, setJournalText] = useState('');
   const [journalSubmitting, setJournalSubmitting] = useState(false);
   const [journalResultNote, setJournalResultNote] = useState(null);
+
+  // Form masukan pada menu awal. Promise membuat MenuScene tetap
+  // terkunci sampai pemain membatalkan atau selesai mengirim masukan.
+  const [feedback, setFeedback] = useState(null); // { resolve }
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   // Overlay pengisian nama tokoh — dipicu MenuScene saat pemain
   // menekan "Start Story" untuk PERTAMA KALI (belum punya
@@ -50,6 +62,13 @@ export default function GameUIBridge() {
   // window.visualViewport di bawah.
   const [keyboardInset, setKeyboardInset] = useState(0);
   const chatScrollRef = useRef(null);
+  const chatStateRef = useRef(null);
+
+  // Khusus penutupan Episode 2 dan 3. Resolver disimpan di ref agar
+  // percakapan Kak Dara dapat berlangsung selama yang pemain butuhkan
+  // tanpa membuat scene menganggap episode sudah selesai lebih dulu.
+  const pendingEpisodeCompletionRef = useRef(null);
+  const [pendingEpisodeCompletion, setPendingEpisodeCompletion] = useState(null);
 
   // Tawaran "ngobrol dengan Kak Dara atau lanjut main dulu" —
   // dipicu Phaser TEPAT setelah dialog quest dengan NPC episode itu
@@ -69,6 +88,19 @@ export default function GameUIBridge() {
     [],
   );
 
+  const openFeedback = useCallback(
+    () =>
+      new Promise((resolve) => {
+        setFeedbackRating(0);
+        setFeedbackMessage('');
+        setFeedbackSubmitting(false);
+        setFeedbackError(null);
+        setFeedbackSubmitted(false);
+        setFeedback({ resolve });
+      }),
+    [],
+  );
+
   const promptCharacterName = useCallback(
     () =>
       new Promise((resolve) => {
@@ -80,9 +112,15 @@ export default function GameUIBridge() {
   );
 
   const offerCounseling = useCallback(
-    ({ episodeId, npcName, autoContext } = {}) =>
+    ({ episodeId, npcName, autoContext, waitForEpisodeContinue = false } = {}) =>
       new Promise((resolve) => {
-        setCounselOffer({ episodeId, npcName, autoContext, resolve });
+        setCounselOffer({
+          episodeId,
+          npcName,
+          autoContext,
+          waitForEpisodeContinue,
+          resolve,
+        });
       }),
     [],
   );
@@ -109,7 +147,11 @@ export default function GameUIBridge() {
         if (active?.session_id && active.messages?.length) {
           hasHistory = true;
           loadedSessionId = active.session_id;
-          setChat({ open: true, sessionId: active.session_id, episodeId, triggerSource });
+          setChat((current) =>
+            current?.open
+              ? { ...current, sessionId: active.session_id, episodeId, triggerSource }
+              : current,
+          );
           setChatMessages(
             active.messages.map((m) => ({ role: m.role, content: m.content })),
           );
@@ -177,9 +219,14 @@ export default function GameUIBridge() {
   }, []);
 
   const closeChatbot = useCallback(() => {
+    // Pada alur penutupan episode, tombol lanjut di dalam chat adalah
+    // satu-satunya jalan keluar. Ini mencegah Promise scene menggantung
+    // bila ikon chat atau tombol tutup ditekan lebih dulu.
+    if (pendingEpisodeCompletionRef.current) return;
     setChat(null);
     setChatMessages([]);
     setChatInput('');
+    setChatMaximized(false);
   }, []);
 
   // Dipakai tombol ikon chat di Phaser (BasePlayerScene.createChatButton)
@@ -187,11 +234,10 @@ export default function GameUIBridge() {
   // chatbot — supaya ikon yang sama berfungsi sebagai toggle, bukan
   // cuma "buka" satu arah (menutup selama ini cuma bisa lewat tombol ✕
   // di dalam kartu chat).
-  const isChatbotOpenRef = useRef(false);
   useEffect(() => {
-    isChatbotOpenRef.current = Boolean(chat?.open);
+    chatStateRef.current = chat;
   }, [chat]);
-  const isChatbotOpen = useCallback(() => isChatbotOpenRef.current, []);
+  const isChatbotOpen = useCallback(() => Boolean(chatStateRef.current?.open), []);
 
   useEffect(() => {
     window.__nawasenadaraUI = {
@@ -200,6 +246,7 @@ export default function GameUIBridge() {
       closeChatbot,
       promptCharacterName,
       offerCounseling,
+      openFeedback,
       isChatbotOpen,
     };
     return () => {
@@ -207,7 +254,15 @@ export default function GameUIBridge() {
         delete window.__nawasenadaraUI;
       }
     };
-  }, [openJournal, openChatbot, closeChatbot, promptCharacterName, offerCounseling, isChatbotOpen]);
+  }, [
+    openJournal,
+    openChatbot,
+    closeChatbot,
+    promptCharacterName,
+    offerCounseling,
+    openFeedback,
+    isChatbotOpen,
+  ]);
 
   const submitCharacterName = async () => {
     const trimmed = nameInput.trim();
@@ -233,15 +288,64 @@ export default function GameUIBridge() {
     }
   };
 
+  const closeFeedback = (submitted = false) => {
+    const activeFeedback = feedback;
+    setFeedback(null);
+    setFeedbackRating(0);
+    setFeedbackMessage('');
+    setFeedbackSubmitting(false);
+    setFeedbackError(null);
+    setFeedbackSubmitted(false);
+    activeFeedback?.resolve({ submitted });
+  };
+
+  const submitFeedback = async () => {
+    if (!feedback || feedbackSubmitting) return;
+
+    const message = feedbackMessage.trim();
+    if (!Number.isInteger(feedbackRating) || feedbackRating < 1 || feedbackRating > 5) {
+      setFeedbackError('Pilih rating dari 1 sampai 5 terlebih dahulu.');
+      return;
+    }
+    if (message.length < 3) {
+      setFeedbackError('Masukan perlu berisi minimal 3 karakter.');
+      return;
+    }
+
+    setFeedbackSubmitting(true);
+    setFeedbackError(null);
+    try {
+      await apiClient.post(
+        '/api/feedback',
+        { rating: feedbackRating, message },
+        { getAccessToken },
+      );
+      setFeedbackSubmitted(true);
+    } catch (err) {
+      console.warn('Gagal mengirim masukan game:', err);
+      setFeedbackError(err?.message || 'Masukan belum berhasil dikirim. Coba lagi, ya.');
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   const chooseCounseling = () => {
     const ctx = counselOffer;
     setCounselOffer(null);
-    ctx?.resolve(true);
-    // Buka jendela chatbot Kak Dara — non-blocking, pemain boleh
-    // ngobrol selama mau lalu tutup sendiri kapan pun; kontrol
-    // gerak karakter sudah dikembalikan Episode1Scene begitu Promise
-    // offerCounseling ini resolve, jadi tidak perlu menunggu chat
-    // ditutup dulu.
+
+    if (ctx?.waitForEpisodeContinue) {
+      pendingEpisodeCompletionRef.current = {
+        episodeId: ctx.episodeId,
+        resolve: ctx.resolve,
+      };
+      setPendingEpisodeCompletion({ episodeId: ctx.episodeId });
+    } else {
+      ctx?.resolve(true);
+    }
+
+    // Untuk episode biasa, chatbot tetap non-blocking. Khusus Episode
+    // 2 dan 3, Promise ditahan sampai pemain menekan tombol lanjut yang
+    // tersedia di bagian bawah jendela Kak Dara.
     openChatbot({
       triggerSource: 'npc_quest',
       episodeId: ctx?.episodeId,
@@ -255,15 +359,22 @@ export default function GameUIBridge() {
     ctx?.resolve(false);
   };
 
+  const continueToNextEpisode = () => {
+    const pending = pendingEpisodeCompletionRef.current;
+    if (!pending) return;
+
+    pendingEpisodeCompletionRef.current = null;
+    setPendingEpisodeCompletion(null);
+    setChat(null);
+    setChatMessages([]);
+    setChatInput('');
+    setChatMaximized(false);
+    pending.resolve(true);
+  };
+
   useEffect(() => {
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight });
   }, [chatMessages]);
-
-  // Reset maximize tiap kali chat ditutup — supaya buka lagi lain kali
-  // selalu mulai dari ukuran kartu normal, bukan "nyangkut" maximize.
-  useEffect(() => {
-    if (!chat?.open) setChatMaximized(false);
-  }, [chat?.open]);
 
   // Deteksi keyboard virtual HP terbuka lewat window.visualViewport —
   // API browser yang melaporkan ukuran viewport yang BENAR-BENAR
@@ -294,33 +405,38 @@ export default function GameUIBridge() {
     };
   }, [chat?.open]);
 
-  // Matikan keyboard Phaser (WASD/panah/dll) SELAMA jurnal, chatbot,
-  // prompt nama, atau tawaran konseling terbuka, supaya huruf yang
-  // diketik ke textarea/input HTML di overlay ini benar-benar masuk
-  // sebagai teks, bukan malah ditangkap duluan sebagai perintah gerak
-  // karakter. Dihidupkan lagi otomatis begitu semuanya tertutup.
+  // Satu status primitif menjaga dependency useEffect tetap berukuran
+  // tetap ketika jenis overlay bertambah. Ini juga menghindari warning
+  // React Fast Refresh "dependency array changed size" saat form baru
+  // ditambahkan pada sesi development yang masih berjalan.
+  const anyOverlayOpen =
+    Boolean(journal) ||
+    Boolean(chat?.open) ||
+    Boolean(namePrompt) ||
+    Boolean(counselOffer) ||
+    Boolean(feedback);
+  const onlyChatOpen =
+    Boolean(chat?.open) &&
+    !journal &&
+    !namePrompt &&
+    !counselOffer &&
+    !feedback &&
+    !pendingEpisodeCompletion;
+  const overlayLockMode = !anyOverlayOpen ? 'unlocked' : onlyChatOpen ? 'chat-only' : 'locked';
+
+  // Matikan keyboard Phaser (WASD/panah/dll) selama overlay terbuka,
+  // supaya input formulir tidak ikut menggerakkan karakter.
   useEffect(() => {
-    const anyOverlayOpen =
-      Boolean(journal) || Boolean(chat?.open) || Boolean(namePrompt) || Boolean(counselOffer);
-    // FIX: sebelumnya cuma keyboard game yang dimatikan selama overlay
-    // React ini terbuka — tombol-tombol Phaser lain (pause, fullscreen,
-    // kontrol gerak sentuh, tap ke NPC) TETAP bisa ditekan karena
-    // overlay React (terutama kartu chat yang cuma sebagian layar,
-    // bukan menutupi penuh) tidak menutupi area tombol itu secara
-    // visual. Sekarang tombol Phaser itu ikut dikunci lewat
-    // lockGameButtons()/unlockGameButtons(). Ikon chat SENGAJA
-    // dikecualikan HANYA kalau chatbot itu sendiri satu-satunya overlay
-    // yang terbuka — supaya ikonnya tetap bisa ditekan untuk MENUTUP
-    // chatbot itu sendiri (lihat createChatButton di BasePlayerScene).
-    const onlyChatOpen = Boolean(chat?.open) && !journal && !namePrompt && !counselOffer;
-    if (anyOverlayOpen) {
+    if (overlayLockMode !== 'unlocked') {
       window.__nawasenadaraInput?.disableGameKeyboard();
-      window.__nawasenadaraInput?.lockGameButtons?.({ keepChatButton: onlyChatOpen });
+      window.__nawasenadaraInput?.lockGameButtons?.({
+        keepChatButton: overlayLockMode === 'chat-only',
+      });
     } else {
       window.__nawasenadaraInput?.enableGameKeyboard();
       window.__nawasenadaraInput?.unlockGameButtons?.();
     }
-  }, [journal, chat, namePrompt, counselOffer]);
+  }, [overlayLockMode]);
 
   // FIX: hanya dipanggil kalau journal.allowSkip true (lihat tombol
   // "Lewati" di render, dan allowSkip di BasePlayerScene.finishEpisode)
@@ -413,6 +529,130 @@ export default function GameUIBridge() {
 
   return (
     <>
+      {feedback ? (
+        <div style={styles.overlay}>
+          <div
+            style={{ ...styles.journalCard, ...styles.feedbackCard }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="game-feedback-title"
+          >
+            {feedbackSubmitted ? (
+              <>
+                <h2 id="game-feedback-title" style={styles.title}>
+                  Terima kasih atas masukannya!
+                </h2>
+                <p style={styles.bodyText}>
+                  Masukanmu sudah tersimpan dan akan membantu kami membuat Nawasena Dara lebih
+                  nyaman, jelas, dan bermanfaat untuk dimainkan.
+                </p>
+                <div style={styles.actionRow}>
+                  <button
+                    type="button"
+                    style={styles.primaryBtn}
+                    onClick={() => closeFeedback(true)}
+                  >
+                    Kembali ke Menu
+                  </button>
+                </div>
+              </>
+            ) : (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitFeedback();
+                }}
+              >
+                <h2 id="game-feedback-title" style={styles.title}>
+                  Beri Masukan untuk Game
+                </h2>
+                <p style={styles.bodyText}>
+                  Ceritakan pengalamanmu agar game ini semakin mudah dipahami dan nyaman dimainkan.
+                </p>
+
+                <fieldset style={styles.ratingFieldset}>
+                  <legend style={styles.fieldLabel}>Rating pengalaman bermain</legend>
+                  <div style={styles.ratingRow}>
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        type="button"
+                        style={{
+                          ...styles.ratingBtn,
+                          ...(feedbackRating === rating ? styles.ratingBtnActive : {}),
+                        }}
+                        aria-label={`${rating} dari 5`}
+                        aria-pressed={feedbackRating === rating}
+                        disabled={feedbackSubmitting}
+                        onClick={() => {
+                          setFeedbackRating(rating);
+                          setFeedbackError(null);
+                        }}
+                      >
+                        {rating}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={styles.ratingHint}>
+                    <span>1 = Perlu banyak perbaikan</span>
+                    <span>5 = Sangat baik</span>
+                  </div>
+                </fieldset>
+
+                <label htmlFor="game-feedback-message" style={styles.fieldLabel}>
+                  Masukan atau saran
+                </label>
+                <textarea
+                  id="game-feedback-message"
+                  style={{ ...styles.textarea, ...styles.feedbackTextarea }}
+                  value={feedbackMessage}
+                  maxLength={1000}
+                  disabled={feedbackSubmitting}
+                  placeholder="Contoh: teks tujuan episode masih sulit dibaca..."
+                  onChange={(event) => {
+                    setFeedbackMessage(event.target.value);
+                    setFeedbackError(null);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                />
+                <div style={styles.feedbackMetaRow}>
+                  <span>Jangan tulis nama lengkap, nomor telepon, atau data pribadi.</span>
+                  <span>{feedbackMessage.length}/1000</span>
+                </div>
+
+                {feedbackError ? (
+                  <p style={styles.errorText} role="alert">
+                    {feedbackError}
+                  </p>
+                ) : null}
+
+                <div style={styles.actionRow}>
+                  <button
+                    type="button"
+                    style={styles.secondaryBtn}
+                    disabled={feedbackSubmitting}
+                    onClick={() => closeFeedback(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    style={styles.primaryBtn}
+                    disabled={
+                      feedbackSubmitting ||
+                      feedbackRating < 1 ||
+                      feedbackMessage.trim().length < 3
+                    }
+                  >
+                    {feedbackSubmitting ? 'Mengirim…' : 'Kirim Masukan'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {counselOffer ? (
         <div style={styles.overlay}>
           <div style={styles.journalCard}>
@@ -660,14 +900,16 @@ export default function GameUIBridge() {
                 >
                   {chatMaximized ? '❐' : '⛶'}
                 </button>
-                <button
-                  type="button"
-                  style={styles.closeBtn}
-                  onClick={closeChatbot}
-                  aria-label="Tutup chat"
-                >
-                  ✕
-                </button>
+                {!pendingEpisodeCompletion ? (
+                  <button
+                    type="button"
+                    style={styles.closeBtn}
+                    onClick={closeChatbot}
+                    aria-label="Tutup chat"
+                  >
+                    ✕
+                  </button>
+                ) : null}
               </div>
             </div>
             <div style={styles.chatMessages} ref={chatScrollRef}>
@@ -719,6 +961,17 @@ export default function GameUIBridge() {
                 Kirim
               </button>
             </div>
+            {pendingEpisodeCompletion ? (
+              <div style={styles.chatContinueRow}>
+                <button
+                  type="button"
+                  style={styles.episodeContinueBtn}
+                  onClick={continueToNextEpisode}
+                >
+                  Lanjut ke Episode Selanjutnya
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -748,8 +1001,57 @@ const styles = {
     color: '#fff',
     boxSizing: 'border-box',
   },
+  feedbackCard: {
+    maxWidth: 560,
+    maxHeight: 'calc(100dvh - 32px)',
+    overflowY: 'auto',
+  },
   title: { fontFamily: "'Jersey 15', monospace", color: '#ffdd57', fontSize: 23, margin: '0 0 8px' },
   bodyText: { fontSize: 16, lineHeight: 1.6, color: '#ddd', margin: '0 0 14px' },
+  fieldLabel: {
+    display: 'block',
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 700,
+    marginBottom: 8,
+  },
+  ratingFieldset: {
+    border: 0,
+    padding: 0,
+    margin: '0 0 18px',
+  },
+  ratingRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, minmax(42px, 1fr))',
+    gap: 8,
+  },
+  ratingBtn: {
+    minHeight: 46,
+    background: '#0f0f22',
+    color: '#fff',
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: '#555',
+    borderRadius: 9,
+    fontFamily: 'inherit',
+    fontSize: 19,
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  ratingBtnActive: {
+    background: '#ffdd57',
+    borderColor: '#ffdd57',
+    color: '#1a1a2e',
+  },
+  ratingHint: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 12,
+    color: '#b8bfd0',
+    fontSize: 13,
+    lineHeight: 1.35,
+    marginTop: 7,
+  },
   textarea: {
     width: '100%',
     minHeight: 110,
@@ -762,6 +1064,21 @@ const styles = {
     fontFamily: 'inherit',
     resize: 'vertical',
     boxSizing: 'border-box',
+  },
+  feedbackTextarea: {
+    minHeight: 130,
+    fontSize: 17,
+    lineHeight: 1.5,
+  },
+  feedbackMetaRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    color: '#b8bfd0',
+    fontSize: 13,
+    lineHeight: 1.35,
+    marginTop: 6,
   },
   textInput: {
     width: '100%',
@@ -856,6 +1173,21 @@ const styles = {
     gap: 8,
     padding: 10,
     borderTop: '1px solid rgba(255,255,255,0.08)',
+  },
+  chatContinueRow: {
+    padding: '0 10px 10px',
+  },
+  episodeContinueBtn: {
+    width: '100%',
+    background: '#ffdd57',
+    color: '#1a1a2e',
+    border: 'none',
+    borderRadius: 8,
+    padding: '10px 14px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 15,
   },
   chatInput: {
     flex: 1,

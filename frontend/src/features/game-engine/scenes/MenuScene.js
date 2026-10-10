@@ -47,7 +47,7 @@ export default class MenuScene extends Phaser.Scene {
     // lagi.
     startMenuBGM(getSettings());
     const menuFont = pxToWorld(this, 26);
-    const options = ['Start Story', 'Settings', 'Exit'];
+    const options = ['Start Story', 'Beri Masukan', 'Settings', 'Exit'];
     let selectedIndex = 0;
     this._menuLocked = false;
 
@@ -60,6 +60,8 @@ export default class MenuScene extends Phaser.Scene {
       if (this._menuLocked) return;
       if (options[selectedIndex] === 'Start Story') {
         this._handleStartStory();
+      } else if (options[selectedIndex] === 'Beri Masukan') {
+        void this._handleFeedback();
       } else if (options[selectedIndex] === 'Settings') {
         this.scene.start('SettingsScene');
       } else if (options[selectedIndex] === 'Exit') {
@@ -137,6 +139,22 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     this._reposition();
+  }
+
+  async _handleFeedback() {
+    if (this._feedbackOpen) return;
+
+    const ui = typeof window !== 'undefined' ? window.__nawasenadaraUI : null;
+    if (!ui?.openFeedback) return;
+
+    this._feedbackOpen = true;
+    this._menuLocked = true;
+    try {
+      await ui.openFeedback();
+    } finally {
+      this._feedbackOpen = false;
+      this._menuLocked = false;
+    }
   }
 
   // "Exit" di game web bukan menutup aplikasi (tidak ada konsep itu di
@@ -298,7 +316,7 @@ export default class MenuScene extends Phaser.Scene {
     if (this._exiting) return;
     this._exiting = true;
 
-    const exitLabel = this._menuTexts[2];
+    const exitLabel = this._menuTexts[this._menuTexts.length - 1];
     exitLabel?.setText('Logging out…');
     exitLabel?.setColor('#ffdd57');
 

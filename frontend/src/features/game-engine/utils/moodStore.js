@@ -4,7 +4,9 @@
 // progress bar (bukan cuma emotikon) — `value` (0..1) menentukan
 // panjang batang, `color` menentukan warnanya.
 //
-// Sumber datanya DUA endpoint yang sudah ada (bukan endpoint baru):
+// Sumber datanya tiga alur klasifikasi NLP:
+//   - POST /api/nlp/episode-mood (respons pilihan di akhir episode)
+//     -> hasil.label + hasil.confidence dipakai oleh Ending Scene
 //   - POST /api/nlp/analyze     (jurnal refleksi akhir episode)
 //     -> hasil.label + hasil.confidence dipakai lewat setMood()
 //   - POST /api/nlp/counseling  (tiap giliran chat dengan Kak Dara)
@@ -22,12 +24,12 @@
 // `color` dalam format hex number (0xRRGGBB) supaya bisa langsung
 // dipakai Phaser Rectangle.setFillStyle()/create fill color.
 const MOOD_PRESETS = {
-  aman: { emoji: '😊', label: 'Tenang', color: 0x4ade80 },
-  netral: { emoji: '🙂', label: 'Netral', color: 0x9ca3af },
-  sedih: { emoji: '😢', label: 'Sedih', color: 0x60a5fa },
-  takut: { emoji: '😨', label: 'Takut', color: 0xa78bfa },
-  marah: { emoji: '😠', label: 'Marah', color: 0xf87171 },
-  menyinggung: { emoji: '😟', label: 'Waspada', color: 0xfb923c },
+  aman: { emoji: '😊', label: 'aman', color: 0x4ade80 },
+  netral: { emoji: '🙂', label: 'netral', color: 0x9ca3af },
+  sedih: { emoji: '😢', label: 'sedih', color: 0x60a5fa },
+  takut: { emoji: '😨', label: 'takut', color: 0xa78bfa },
+  marah: { emoji: '😠', label: 'marah', color: 0xf87171 },
+  menyinggung: { emoji: '⚠️', label: 'menyinggung', color: 0xfb923c },
 };
 
 const DEFAULT_VALUE = 0.5;

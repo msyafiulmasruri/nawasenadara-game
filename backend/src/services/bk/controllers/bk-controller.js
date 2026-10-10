@@ -24,7 +24,8 @@ export const listStudents = async (req, res, next) => {
     const data = students.map((s) => {
       const combinedTally = sumEmotionTallies(s.completed_tallies);
       const overallEnding = computeOverallEnding(combinedTally);
-      const { completed_tallies: _omit, ...rest } = s;
+      const rest = { ...s };
+      delete rest.completed_tallies;
       return { ...rest, ending_trend: toSnakeEnding(overallEnding) };
     });
     return success(res, data);
@@ -47,7 +48,7 @@ export const getStudentDetail = async (req, res, next) => {
     ]);
 
     // Akumulasi ending "seluruh rangkaian episode" (proposal & alur
-    // game: di Episode 9, skor dari episode 1..8 digabung jadi satu
+    // game: di Episode 6, skor dari Episode 1-6 digabung jadi satu
     // ending akhir) — dihitung di sini dari emotion_tally tiap episode
     // yang statusnya 'completed', TERLEPAS dari berapa episode yang
     // sudah benar-benar dibangun/dimainkan (baru Episode 1 saat ini) —

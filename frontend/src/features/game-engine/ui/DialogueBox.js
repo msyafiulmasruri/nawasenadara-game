@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { getVisibleBounds, pxToWorld } from '../utils/visibleBounds';
-import { setMood } from '../utils/moodStore';
 
 // Dialog box gaya "Harvest Moon: Back to Nature" — label nama
 // pembicara menempel di atas kotak teks, dan (kalau node dialog itu
@@ -88,7 +87,17 @@ export default class DialogueBox {
   // OPEN
   // ==============================================================
 
-  open({ dialogueTree, npcPortraitKey, npcName, playerName, onClose, onNodeChange, onDynamicLine, onChoiceSelected }) {
+  open({
+    dialogueTree,
+    npcPortraitKey,
+    npcName,
+    speakerNames,
+    playerName,
+    onClose,
+    onNodeChange,
+    onDynamicLine,
+    onChoiceSelected,
+  }) {
     if (this.isOpen) return;
 
     this.isOpen = true;
@@ -96,6 +105,9 @@ export default class DialogueBox {
     this._dialogueTree = dialogueTree;
     this._npcPortraitKey = npcPortraitKey;
     this._npcName = npcName;
+    // Opsional: satu episode dapat memiliki lebih dari satu pembicara.
+    // Fallback tetap npcName agar dialog lama tidak perlu diubah.
+    this._speakerNames = speakerNames || {};
     this._playerName = playerName || 'Kamu';
     this._onClose = onClose;
     this._onNodeChange = onNodeChange;
@@ -403,6 +415,13 @@ export default class DialogueBox {
   // RENDER NODE
   // ==============================================================
 
+  _resolveSpeakerName(node) {
+    if (node?.speaker === 'player' || node?.speaker === 'dara') {
+      return this._playerName;
+    }
+    return this._speakerNames?.[node?.speaker] || this._npcName;
+  }
+
   _renderNode(nodeId) {
     const node = this._dialogueTree.nodes[nodeId];
 
@@ -410,9 +429,6 @@ export default class DialogueBox {
       this.close();
       return;
     }
-
-    // Beri tahu scene bahwa dialogue berpindah ke node ini
-    this._onNodeChange?.(node);
 
     // ============================================================
     // REQUEST SEQUENCE
@@ -456,11 +472,7 @@ export default class DialogueBox {
       this._nameTag.setVisible(true);
       this._nameTagBg.setVisible(true);
 
-      this._nameTag.setText(
-        node.speaker === 'player' || node.speaker === 'dara'
-          ? this._playerName
-          : this._npcName,
-      );
+      this._nameTag.setText(this._resolveSpeakerName(node));
 
       this._nameTagBg.setSize(
         this._nameTag.width + 24,
@@ -545,7 +557,7 @@ export default class DialogueBox {
       // ==========================================================
 
       const aiRequest = nlp.generateNpcLine({
-        npcName: this._npcName,
+        npcName: this._resolveSpeakerName(node),
 
         // Ini dialog patokan.
         //
@@ -801,12 +813,18 @@ export default class DialogueBox {
   _selectChoice(choice) {
     if (!this.isOpen) return;
 
+    const responseText = this._substitute(choice.chatReply || choice.label);
+
     this._collectedChoices.push({
       nodeId: this._currentNode.id,
 
       choiceId: choice.id,
 
       emotion: choice.emotion,
+
+      // Dipakai endpoint klasifikasi mood episode. `emotion` di atas
+      // tetap khusus perhitungan ending, bukan dianggap keluaran AI.
+      responseText,
     });
 
     this._onChoiceSelected?.(choice);
@@ -822,15 +840,7 @@ export default class DialogueBox {
     // Ini membantu GenAI membuat parafrase yang lebih natural
     // tanpa mengubah plot.
     //
-    this._lastChoiceLabel = this._substitute(choice.chatReply || choice.label);
-
-    // ============================================================
-    // MOOD HUD
-    // ============================================================
-
-    if (choice.emotion) {
-      setMood(choice.emotion, 0.75);
-    }
+    this._lastChoiceLabel = responseText;
 
     // Keyboard choices tidak boleh tetap aktif ketika pindah node.
     if (this._choiceKeyHandler) {

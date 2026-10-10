@@ -279,22 +279,12 @@ export const EPISODE2_DIALOGUE = {
         {
           id: 'c',
 
-          label: '"Ya... tapi beberapa chatnya emang lumayan lucu sih."',
+          label:
+            '"Gak usah ikut campur kali, lagian beberapa chatnya emang lucu juga."',
 
           emotion: 'menyinggung',
 
           next: 'n4c',
-        },
-
-        {
-          id: 'd',
-
-          label:
-            '"Gak usah ikut campur kali. Nanti juga grupnya sepi sendiri."',
-
-          emotion: 'netral',
-
-          next: 'n4d',
         },
       ],
     },
@@ -598,31 +588,5 @@ export const EPISODE2_DIALOGUE = {
       text: 'Malam itu percakapan terus berlanjut, dan kamu memilih tetap berada di dalam arus candaan tersebut.',
     },
 
-    // ============================================================
-    // CABANG D — CUEK
-    // ============================================================
-
-    n4d: {
-      id: 'n4d',
-
-      speaker: 'rafi',
-
-      text: 'Mungkin sih. Biasanya grup rame sebentar terus pindah bahas yang lain.',
-
-      dynamic: true,
-
-      situationHint:
-        'Sekar memilih menganggap perundungan di grup akan selesai dengan sendirinya. Aku, Rafi, ikut menanggapi dengan sikap cuek dan tidak mengambil tindakan.',
-
-      next: 'n4d2',
-    },
-
-    n4d2: {
-      id: 'n4d2',
-
-      speaker: 'narration',
-
-      text: 'Kamu mematikan layar ponsel dan meletakkannya kembali di meja. Notifikasi masih beberapa kali terdengar di kamar yang kembali sunyi.',
-    },
   },
 };

@@ -27,7 +27,7 @@ class BkRepositories {
           COUNT(*) FILTER (WHERE status = 'completed') AS completed_count,
           COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress_count
         FROM user_episode_progress
-        WHERE user_id = u.id
+        WHERE user_id = u.id AND episode_id BETWEEN 1 AND 6
       ) progress ON true
       LEFT JOIN LATERAL (
         SELECT risk_level, created_at
@@ -51,7 +51,10 @@ class BkRepositories {
         -- dipakai progress-controller.js & bk-controller.js).
         SELECT array_agg(emotion_tally) AS completed_tallies
         FROM user_episode_progress
-        WHERE user_id = u.id AND status = 'completed' AND emotion_tally IS NOT NULL
+        WHERE user_id = u.id
+          AND episode_id BETWEEN 1 AND 6
+          AND status = 'completed'
+          AND emotion_tally IS NOT NULL
       ) tallies ON true
       WHERE u.role = 'siswa'
       ORDER BY
@@ -79,6 +82,7 @@ class BkRepositories {
        FROM episodes e
        LEFT JOIN user_episode_progress p
          ON p.episode_id = e.id AND p.user_id = $1
+       WHERE e.id BETWEEN 1 AND 6
        ORDER BY e.order_index ASC`,
       [studentId],
     );
