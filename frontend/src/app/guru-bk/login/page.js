@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthShell from '@/features/auth/components/AuthShell';
@@ -8,6 +8,10 @@ import AuthInput from '@/features/auth/components/AuthInput';
 import AuthButton from '@/features/auth/components/AuthButton';
 import AuthMessage from '@/features/auth/components/AuthMessage';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import {
+  clearSessionNotice,
+  readSessionNotice,
+} from '@/features/auth/utils/sessionNotice';
 
 // Portal login TERPISAH dari siswa (/login) sesuai permintaan: dua
 // jenis akun (siswa & guru BK) tidak lagi dibedakan lewat dropdown
@@ -33,6 +37,17 @@ export default function GuruBkLoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const sessionNotice = readSessionNotice();
+    if (!sessionNotice) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setError(sessionNotice);
+      clearSessionNotice();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 

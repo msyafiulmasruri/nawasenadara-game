@@ -64,10 +64,8 @@ function classifyEndingKey(avgScore, totalResponses) {
 // sama dilihat PEMAIN (frontend utils/emotionEnding.js
 // ENDING_DEFINITIONS[1][*].title), supaya guru BK & siswa melihat
 // istilah ending yang identik, bukan cuma kode `ending_key` mentah.
-// Episode 2-9 belum punya naskah/ending sendiri (baru Episode 1 yang
-// dibangun), jadi untuk sementara semua episode berbagi label generik
-// ini — begitu episode baru dibangun dengan ENDING_DEFINITIONS sendiri
-// di frontend, tambahkan juga variannya di sini kalau judulnya beda.
+// Setiap episode punya tiga label yang sama kategorinya, tetapi judul
+// naratifnya disesuaikan dengan tema episode.
 export const ENDING_LABELS_PER_EPISODE = {
   1: {
     true: 'Ending Sejati — "Suara yang Didengar"',
@@ -84,12 +82,27 @@ export const ENDING_LABELS_PER_EPISODE = {
     good: 'Ending Baik — "Pelajaran Berharga"',
     bad: 'Ending Buruk — "Terjerat Jebakan Manipulasi"',
   },
+  4: {
+    true: 'Ending Sejati — "Batas yang Dihormati"',
+    good: 'Ending Baik — "Berani Menjauh"',
+    bad: 'Ending Buruk — "Candaan yang Tertinggal"',
+  },
+  5: {
+    true: 'Ending Sejati — "Teman yang Aman"',
+    good: 'Ending Baik — "Tetap Menemani"',
+    bad: 'Ending Buruk — "Niat Baik, Risiko Baru"',
+  },
+  6: {
+    true: 'Ending Sejati — "Suara yang Menjadi Cahaya"',
+    good: 'Ending Baik — "Berani Melangkah"',
+    bad: 'Ending Buruk — "Masih Mencari Suara"',
+  },
 };
 
 export const ENDING_LABELS = {
-  true: 'Ending Sejati — "Suara yang Didengar"',
-  good: 'Ending Baik — "Belajar Bersikap"',
-  bad: 'Ending Buruk — "Terjebak Pola Lama"',
+  true: 'Ending Sejati',
+  good: 'Ending Baik',
+  bad: 'Ending Buruk',
 };
 
 export function getEndingLabel(episodeId, endingKey) {
@@ -115,7 +128,7 @@ export function computeEmotionTallyAndEnding(episodeId, choices = []) {
   });
 
   let dominant = 'netral';
-  let best = -1;
+  let best = 0;
   EMOTION_PRIORITY.forEach((label) => {
     if (tally[label] > best) {
       best = tally[label];
@@ -132,7 +145,7 @@ export function computeEmotionTallyAndEnding(episodeId, choices = []) {
 // Judul + konklusi plus/minus untuk ENDING AKUMULASI (gabungan seluruh
 // episode yang sudah diselesaikan siswa) — dipakai dashboard guru BK
 // (bk-controller.js getStudentDetail) sebagai representasi "kalau
-// siswa ini mencapai Episode 9 sekarang, ending macam apa yang paling
+// siswa ini mencapai Episode 6 sekarang, ending macam apa yang paling
 // mencerminkan pola responsnya selama ini". Bahasanya sengaja lebih
 // merangkum ("secara keseluruhan...", "sepanjang cerita...") daripada
 // judul per-episode di ENDING_LABELS di atas, karena ini bicara pola
@@ -182,7 +195,7 @@ export function computeOverallEnding(combinedTally) {
   const tally = combinedTally || emptyTally();
 
   let dominant = 'netral';
-  let best = -1;
+  let best = 0;
   EMOTION_PRIORITY.forEach((label) => {
     if (tally[label] > best) {
       best = tally[label];

@@ -1,6 +1,7 @@
 import ProgressRepositories from '../repositories/progress-repositories.js';
 import { success } from '../../../utils/response.js';
 import { computeEmotionTallyAndEnding } from '../utils/emotion-ending.js';
+import InvariantError from '../../../exceptions/invariant-error.js';
 
 // GET /api/progress
 // Dipanggil GameProgressBridge.jsx saat game dimuat, untuk mengisi
@@ -54,6 +55,9 @@ export const resetProgress = async (req, res, next) => {
 export const updateProgress = async (req, res, next) => {
   try {
     const episodeId = Number(req.params.episodeId);
+    if (!Number.isInteger(episodeId) || episodeId < 1 || episodeId > 6) {
+      throw new InvariantError('episodeId harus berada pada rentang 1 sampai 6.');
+    }
     const { status, choices } = req.validated;
     const userId = req.user.id;
 
@@ -62,7 +66,7 @@ export const updateProgress = async (req, res, next) => {
     // dikirim frontend (tiap item sekarang bawa `emotion`, lihat
     // episode1Dialogue.js) + tentukan ending dominannya. Disimpan di
     // kolom emotion_tally/ending_key — dipakai dashboard guru BK &
-    // nanti agregasi ending akhir Episode 9. Ending yang PEMAIN lihat
+    // nanti agregasi ending akhir Episode 6. Ending yang PEMAIN lihat
     // di layar dihitung terpisah di frontend dari `choices` yang sama
     // persis (lihat utils/emotionEnding.js), jadi keduanya selalu
     // konsisten walau dihitung dua tempat.
@@ -83,7 +87,7 @@ export const updateProgress = async (req, res, next) => {
       endingKey,
     });
 
-    if (status === 'completed' && episodeId < 9) {
+    if (status === 'completed' && episodeId < 6) {
       await ProgressRepositories.unlockNext({ userId, nextEpisodeId: episodeId + 1 });
     }
 

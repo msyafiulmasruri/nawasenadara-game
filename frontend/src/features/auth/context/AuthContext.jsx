@@ -9,35 +9,28 @@ import {
   useRef,
   useState,
 } from 'react';
-import apiClient, { ApiError } from '@/lib/apiClient';
+import apiClient, { ApiError, configureApiSession } from '@/lib/apiClient';
+import { saveSessionExpiredNotice } from '@/features/auth/utils/sessionNotice';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  // 'checking' saat percobaan silent-refresh pertama kali (dipakai
-  // untuk menahan render halaman yang butuh status login pasti,
-  // mis. redirect guard) supaya tidak sempat "kelihatan" logged-out
-  // sesaat sebelum refresh cookie selesai diverifikasi.
+  // `checking` menahan halaman terlindungi sampai percobaan silent refresh
+  // pertama selesai, sehingga pengguna tidak terlempar ke login terlalu dini.
   const [status, setStatus] = useState('checking');
   const accessTokenRef = useRef(null);
-  // Menjaga supaya silent-refresh di effect bawah cuma benar-benar
-  // dieksekusi SEKALI per page load. Perlu karena Next.js App Router
-  // default reactStrictMode:true, dan di dev mode React 18 sengaja
-  // menjalankan useEffect DUA KALI (setup -> cleanup -> setup) pada
-  // mount pertama untuk mendeteksi side-effect yang tidak aman. Tanpa
-  // guard ini, /api/auth/refresh terpanggil 2x nyaris bersamaan dengan
-  // refresh token cookie yang SAMA (yang lama) — panggilan pertama
-  // sukses lalu merotasi (revoke) token lama, panggilan kedua yang
-  // masih bawa cookie lama otomatis kena reuse-detection di backend
-  // dan MENCABUT SEMUA SESI user, sehingga user yang baru saja login
-  // tiba-tiba ke-logout / diminta login ulang saat refresh halaman.
-  const refreshStartedRef = useRef(false);
+
+  // Backend merotasi refresh token. Semua 401 yang datang bersamaan harus
+  // menunggu promise yang sama agar cookie lama tidak dipakai berulang kali.
+  const refreshPromiseRef = useRef(null);
+  const sessionExpiredHandledRef = useRef(false);
 
   const getAccessToken = useCallback(() => accessTokenRef.current, []);
 
   const applySession = useCallback((data) => {
     accessTokenRef.current = data?.access_token || null;
+    sessionExpiredHandledRef.current = false;
     setUser(data?.user || null);
   }, []);
 
@@ -46,32 +39,92 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  // Silent refresh saat pertama kali app dibuka — memanfaatkan cookie
-  // httpOnly `refresh_token` yang mungkin masih tersimpan dari sesi
-  // sebelumnya untuk langsung mendapat access token baru tanpa user
-  // harus login ulang.
-  useEffect(() => {
-    if (refreshStartedRef.current) return undefined;
-    refreshStartedRef.current = true;
+  const handleSessionExpired = useCallback(() => {
+    // Beberapa request permainan dapat gagal serentak. Pesan dan pembersihan
+    // sesi hanya dilakukan sekali; RequireAuth/RequireRole menangani redirect.
+    if (sessionExpiredHandledRef.current) return;
+    sessionExpiredHandledRef.current = true;
+    clearSession();
+    saveSessionExpiredNotice();
+  }, [clearSession]);
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiClient.post('/api/auth/refresh', undefined, {
-          getAccessToken,
+  const requestSessionRefresh = useCallback(
+    (markExpiredOnFailure = true) => {
+      if (refreshPromiseRef.current) return refreshPromiseRef.current;
+
+      const refreshPromise = apiClient
+        .post('/api/auth/refresh', undefined, {
+          // Jangan kirim access token lama dan jangan menerapkan handler 401
+          // global pada request refresh itu sendiri.
+          getAccessToken: () => null,
+          onUnauthorized: () => {},
+          retryUnauthorized: false,
+        })
+        .then((data) => {
+          if (!data?.access_token || !data?.user) {
+            throw new ApiError('Respons pembaruan sesi tidak valid.', 401);
+          }
+          applySession(data);
+          return data.access_token;
+        })
+        .catch((err) => {
+          // Hanya 401 dari endpoint refresh yang membuktikan cookie sesi
+          // memang tidak berlaku. Gangguan jaringan/5xx tidak boleh
+          // mengeluarkan pengguna; request berikutnya boleh mencoba lagi.
+          if (markExpiredOnFailure && err instanceof ApiError && err.statusCode === 401) {
+            handleSessionExpired();
+          } else if (!markExpiredOnFailure) {
+            clearSession();
+          }
+          throw err;
+        })
+        .finally(() => {
+          if (refreshPromiseRef.current === refreshPromise) {
+            refreshPromiseRef.current = null;
+          }
         });
-        if (!cancelled) applySession(data);
-      } catch {
-        if (!cancelled) clearSession();
-      } finally {
+
+      refreshPromiseRef.current = refreshPromise;
+      return refreshPromise;
+    },
+    [applySession, clearSession, handleSessionExpired],
+  );
+
+  const refreshAccessToken = useCallback(
+    () => requestSessionRefresh(true),
+    [requestSessionRefresh],
+  );
+
+  // apiClient dipakai oleh komponen React dan scene Phaser. Satu konfigurasi
+  // bersama memastikan keduanya memperoleh refresh + retry yang konsisten.
+  useEffect(
+    () =>
+      configureApiSession({
+        getAccessToken,
+        refreshAccessToken,
+        onUnauthorized: handleSessionExpired,
+      }),
+    [getAccessToken, refreshAccessToken, handleSessionExpired],
+  );
+
+  // Coba pulihkan sesi dari refresh cookie ketika aplikasi pertama dibuka.
+  // Promise bersama juga membuat pola ini aman terhadap double-effect React
+  // Strict Mode: setup kedua menunggu request pertama, bukan merotasi lagi.
+  useEffect(() => {
+    let cancelled = false;
+
+    requestSessionRefresh(false)
+      .catch(() => {
+        // Tidak punya refresh cookie pada kunjungan pertama adalah normal.
+      })
+      .finally(() => {
         if (!cancelled) setStatus('ready');
-      }
-    })();
+      });
+
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requestSessionRefresh]);
 
   const login = useCallback(
     async ({ email, password, expected_role }) => {

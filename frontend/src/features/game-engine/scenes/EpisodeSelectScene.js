@@ -76,7 +76,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     this._repositionTitle();
   }
 
-  // Grid persegi 3x3, ukuran & posisi dihitung dari area yang BENAR-BENAR
+  // Grid enam episode, ukuran & posisi dihitung dari area yang BENAR-BENAR
   // terlihat (getVisibleBounds) di KEDUA sumbu — bukan cuma horizontal.
   // Sebelumnya gridTop/gridBottom dihitung dari WORLD_HEIGHT (720) mentah,
   // padahal di layar landscape pendek (HP direbahkan, atau browser
@@ -84,9 +84,12 @@ export default class EpisodeSelectScene extends Phaser.Scene {
   // dunia game, bukan cuma kiri/kanan — itulah sebabnya kotak episode
   // baris atas/bawah kadang terpotong/hilang sebagian.
   _buildGrid() {
-    const cols = 3;
-    const rows = 3;
     const bounds = getVisibleBounds(this);
+    // Dua kolom lebih mudah disentuh pada ponsel portrait; landscape
+    // memakai tiga kolom. Jumlah baris selalu mengikuti jumlah episode,
+    // jadi layout tidak lagi mengasumsikan struktur grid lama.
+    const cols = bounds.width < bounds.height * 0.9 ? 2 : 3;
+    const rows = Math.ceil(EPISODES.length / cols);
 
     // Judul ada di y=44 dengan area teks kira-kira 30px tinggi -> beri
     // ruang aman relatif terhadap TOP yang benar-benar terlihat, bukan 0.

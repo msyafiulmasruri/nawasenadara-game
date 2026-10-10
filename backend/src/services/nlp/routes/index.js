@@ -3,11 +3,13 @@ import { authenticate, authorize } from '../../../middlewares/auth.js';
 import validate from '../../../middlewares/validate.js';
 import {
   analyzeReflectionPayloadSchema,
+  classifyEpisodeMoodPayloadSchema,
   counselingChatPayloadSchema,
   npcDialogueLinePayloadSchema,
 } from '../validator/schema.js';
 import {
   analyzeReflection,
+  classifyEpisodeMood,
   counselingChat,
   generateNpcDialogueLine,
   getActiveSession,
@@ -23,6 +25,11 @@ const router = Router();
 router.use(authenticate, authorize('siswa'));
 
 router.post('/analyze', validate(analyzeReflectionPayloadSchema), analyzeReflection);
+router.post(
+  '/episode-mood',
+  validate(classifyEpisodeMoodPayloadSchema),
+  classifyEpisodeMood,
+);
 router.post('/counseling', validate(counselingChatPayloadSchema), counselingChat);
 router.post('/npc-dialogue', validate(npcDialogueLinePayloadSchema), generateNpcDialogueLine);
 router.get('/counseling/should-auto-open', shouldAutoOpenCounseling);

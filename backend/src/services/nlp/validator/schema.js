@@ -6,10 +6,29 @@ export const analyzeReflectionPayloadSchema = Joi.object({
     'string.empty': 'Teks refleksi tidak boleh kosong.',
     'string.max': 'Teks refleksi maksimal 2000 karakter.',
   }),
-  // Episode tempat jurnal refleksi ini diisi (1-9) — dipakai untuk
+  // Episode tempat jurnal refleksi ini diisi (1-6) — dipakai untuk
   // menandai konteks di sentiment_analyses.episode_id dan menentukan
   // apakah risk_alert perlu mencantumkan info episode.
-  episode_id: Joi.number().integer().min(1).max(9).required().messages({
+  episode_id: Joi.number().integer().min(1).max(6).required().messages({
+    'any.required': 'episode_id diperlukan.',
+  }),
+});
+
+// Respons dialog terpilih diklasifikasikan sebelum jurnal dibuka agar
+// layar mood benar-benar berasal dari model NLP, bukan label statis yang
+// ditempelkan pada opsi untuk perhitungan ending.
+export const classifyEpisodeMoodPayloadSchema = Joi.object({
+  responses: Joi.array()
+    .items(Joi.string().trim().min(1).max(400))
+    .min(1)
+    .max(8)
+    .required()
+    .messages({
+      'any.required': 'Respons dialog diperlukan.',
+      'array.min': 'Minimal satu respons dialog diperlukan.',
+      'array.max': 'Maksimal delapan respons dialog dapat dianalisis.',
+    }),
+  episode_id: Joi.number().integer().min(1).max(6).required().messages({
     'any.required': 'episode_id diperlukan.',
   }),
 });
@@ -40,7 +59,7 @@ export const counselingChatPayloadSchema = Joi.object({
   trigger_source: Joi.string()
     .valid('manual', 'reflection_flag', 'episode7_phone', 'episode_summary')
     .default('manual'),
-  episode_id: Joi.number().integer().min(1).max(9).allow(null).optional(),
+  episode_id: Joi.number().integer().min(1).max(6).allow(null).optional(),
 });
 
 // Dipakai endpoint POST /api/nlp/npc-dialogue — menulis ulang
@@ -63,5 +82,5 @@ export const npcDialogueLinePayloadSchema = Joi.object({
   // Episode tempat baris ini muncul — opsional, murni buat konteks
   // logging/analitik di masa depan (belum ada tabel penyimpanan khusus
   // untuk ini, tidak wajib divalidasi ketat).
-  episode_id: Joi.number().integer().min(1).max(9).optional(),
+  episode_id: Joi.number().integer().min(1).max(6).optional(),
 });

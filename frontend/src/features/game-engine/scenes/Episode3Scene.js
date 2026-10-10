@@ -9,9 +9,17 @@ import {
 import DialogueBox from '../ui/DialogueBox';
 import ObjectiveBriefing from '../ui/ObjectiveBriefing';
 import { getCharacterName } from '../utils/characterName';
-import { hasTalkedToNpc, markNpcTalked } from '../utils/progressStore';
+import {
+  getEpisodeChoices,
+  hasTalkedToNpc,
+  markNpcTalked,
+} from '../utils/progressStore';
 import { pxToWorld } from '../utils/visibleBounds';
 import { getEpisodeById } from '../config/episodes';
+import {
+  DESK_PHONE_STYLE,
+  getDeskPhonePosition,
+} from '../utils/deskPhone';
 
 // ================================================================
 // EPISODE 3 — "Pesan dari Orang Asing"
@@ -103,6 +111,7 @@ export default class Episode3Scene extends BasePlayerScene {
     const source = this.textures.get(bgKey).getSourceImage();
     const scale = height / source.height;
     const naturalWidth = Math.round(source.width * scale);
+    this._backgroundNaturalWidth = naturalWidth;
 
     this.levelWidth = Math.max(naturalWidth, width);
 
@@ -157,22 +166,50 @@ export default class Episode3Scene extends BasePlayerScene {
     this.npcConfig = npcConfig;
     this.npcInDialogue = false;
     this.phoneTalked = hasTalkedToNpc(this.episodeId ?? 3);
+    this.npcChoices = getEpisodeChoices(this.episodeId ?? 3);
 
-    // Posisi di atas meja belajar samping laptop (xRatio 0.58)
-    const phoneX = this.levelWidth * (npcConfig.xRatio ?? 0.58);
-    const phoneOffsetY = 240; // Di atas meja belajar kayu
-    const phoneY = this.groundY - phoneOffsetY;
+    // Posisi mengikuti permukaan meja pada artwork yang sama dengan
+    // Episode 2, bukan offset dari groundY. Dengan begitu perubahan
+    // ukuran karakter tidak membuat HP ikut terangkat dan melayang.
+    const phonePosition = getDeskPhonePosition(
+      this._backgroundNaturalWidth || this.levelWidth,
+      720,
+    );
+    this.phoneX = phonePosition.x;
+    this.phoneY = phonePosition.y;
+    const { x: phoneX, y: phoneY } = phonePosition;
 
-    // Halo cahaya biru neon di meja
+    // Halo cahaya biru neon di meja — depth 2 (di bawah player depth 5)
     this._phoneHalo = this.add
-      .ellipse(phoneX, phoneY + 28, 48, 14, 0x00f0ff, 0.45)
-      .setDepth(1);
+      .ellipse(
+        phoneX,
+        phoneY + 5,
+        DESK_PHONE_STYLE.haloWidth,
+        DESK_PHONE_STYLE.haloHeight,
+        0x38bdf8,
+        0.3,
+      )
+      .setDepth(2);
 
-    // Sprite pixel art smartphone custom di atas meja
+    // Sprite pixel art smartphone custom di atas meja — depth 3 (di bawah player depth 5)
     this._phoneSprite = this.add
       .image(phoneX, phoneY, 'phone-ep3')
-      .setScale(0.55)
-      .setDepth(2)
+      .setScale(DESK_PHONE_STYLE.scale)
+      .setAngle(DESK_PHONE_STYLE.angle)
+      .setDepth(3);
+
+    // Area sentuh sengaja lebih besar daripada sprite HP yang terbaring
+    // di meja agar tetap mudah diklik di perangkat sentuh.
+    this._phoneHitArea = this.add
+      .rectangle(
+        phoneX,
+        phoneY,
+        DESK_PHONE_STYLE.hitWidth,
+        DESK_PHONE_STYLE.hitHeight,
+        0xffffff,
+        0.001,
+      )
+      .setDepth(DESK_PHONE_STYLE.hitDepth)
       .setInteractive({ useHandCursor: true });
 
     // Animasi getar ponsel sebelum dibaca
@@ -195,10 +232,10 @@ export default class Episode3Scene extends BasePlayerScene {
         repeat: -1,
       });
 
-      // Dot notifikasi merah yang berdenyut
+      // Dot notifikasi merah yang berdenyut — depth 4 (masih di bawah player 5)
       this._notifBadge = this.add
-        .circle(phoneX + 16, phoneY - 26, 6, 0xff3b30)
-        .setDepth(3);
+        .circle(phoneX + 18, phoneY - 14, 6, 0xff3b30)
+        .setDepth(4);
 
       this.tweens.add({
         targets: this._notifBadge,
@@ -221,8 +258,8 @@ export default class Episode3Scene extends BasePlayerScene {
     }
 
     // Prompt teks interaksi di atas ponsel
-    const promptFont = pxToWorld(this, 14);
-    const promptBaseY = phoneY - 48;
+    const promptFont = pxToWorld(this, DESK_PHONE_STYLE.promptFontPx);
+    const promptBaseY = phoneY - DESK_PHONE_STYLE.promptOffsetY;
     this.npcPrompt = this.add
       .text(phoneX, promptBaseY, '[E] Cek Ponsel (Klik)', {
         fontFamily: '"Pixelify Sans", monospace',
@@ -237,9 +274,9 @@ export default class Episode3Scene extends BasePlayerScene {
       .setInteractive({ useHandCursor: true });
 
     this.npcPrompt.on('pointerdown', () => this._tryOpenPhone());
-    this._phoneSprite.on('pointerdown', () => this._tryOpenPhone());
+    this._phoneHitArea.on('pointerdown', () => this._tryOpenPhone());
     this.registerLockable(this.npcPrompt);
-    this.registerLockable(this._phoneSprite);
+    this.registerLockable(this._phoneHitArea);
 
     this.tweens.add({
       targets: this.npcPrompt,
@@ -286,6 +323,7 @@ export default class Episode3Scene extends BasePlayerScene {
 
   _tryOpenPhone() {
     if (this.npcInDialogue) return;
+    if (this.uiInputLocked) return;
     if (!this.npcPrompt?.visible) return;
     if (this.time.now < (this._npcInteractCooldownUntil || 0)) return;
 
@@ -357,7 +395,7 @@ export default class Episode3Scene extends BasePlayerScene {
       .setOrigin(0, 0.5);
 
     this._povStatusText = this.add
-      .text(headerTextX, headerStatusY, 'Online', {
+      .text(headerTextX, headerStatusY, 'DM • Online', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '8px',
         color: '#4ade80',
@@ -677,7 +715,7 @@ export default class Episode3Scene extends BasePlayerScene {
     });
 
     if (this._povStatusText) {
-      this._povStatusText.setText('Diblokir').setColor('#ef4444');
+      this._povStatusText.setText('DM • Diblokir').setColor('#ef4444');
     }
 
     this._addPhoneChatMessage({
@@ -806,10 +844,17 @@ export default class Episode3Scene extends BasePlayerScene {
 
     this._stopHeartbeat();
 
-    // Kembalikan ke BGM eksplorasi yang hangat & tenang
-    // (hentikan tema suspense dulu agar tidak bertabrakan)
+    // Hentikan suspense BGM DULU sebelum mulai BGM baru
+    // agar kedua BGM tidak bertabrakan/overlap secara audio
     if (this.audioManager) {
-      this.audioManager.startBGM();
+      this.audioManager.stopBGM(); // stop suspense
+      // Delay singkat sebelum mulai BGM hangat supaya tidak tumpang tindih
+      this.time.delayedCall(300, () => {
+        if (this.audioManager && !this._bgmRestored) {
+          this._bgmRestored = true;
+          this.audioManager.startBGM();
+        }
+      });
     }
 
     // Meredakan kegelapan dingin
@@ -871,7 +916,7 @@ export default class Episode3Scene extends BasePlayerScene {
         duration: 500,
       });
       if (this._povStatusText) {
-        this._povStatusText.setText('Online').setColor('#4ade80');
+        this._povStatusText.setText('DM • Online').setColor('#4ade80');
       }
     }
 
@@ -889,7 +934,7 @@ export default class Episode3Scene extends BasePlayerScene {
       });
       this.cameras.main.zoomTo(1.03, 900, 'Sine.easeInOut');
       if (this._povStatusText) {
-        this._povStatusText.setText('sedang mengetik...').setColor('#fbbf24');
+        this._povStatusText.setText('DM • mengetik...').setColor('#fbbf24');
       }
     }
 
@@ -922,7 +967,7 @@ export default class Episode3Scene extends BasePlayerScene {
       this._startHeartbeat(); // Jantung berdegup tegang
 
       if (this._povStatusText) {
-        this._povStatusText.setText('Online • Mendesak').setColor('#f87171');
+        this._povStatusText.setText('DM • Mendesak').setColor('#f87171');
       }
     }
 
@@ -1069,12 +1114,18 @@ export default class Episode3Scene extends BasePlayerScene {
             episodeId: this.episodeId ?? 3,
             npcName: '@bayang_kelabu91',
             autoContext: this.getCounselingAutoContext(),
+            waitForEpisodeContinue: true,
           });
         }
 
+        if (!this.scene.isActive()) return;
+
         this.npcInDialogue = false;
-        this.uiInputLocked = false;
-        this._npcInteractCooldownUntil = this.time.now + 400;
+
+        // "Lanjut Main" menyelesaikan episode langsung. Jika pemain
+        // memilih Kak Dara, baris ini baru dicapai sesudah tombol lanjut
+        // di bagian bawah chat ditekan.
+        this._finishEpisode3();
       },
     });
   }
@@ -1083,54 +1134,53 @@ export default class Episode3Scene extends BasePlayerScene {
     return buildEpisode3CounselingContext(this.npcChoices);
   }
 
+  // Selesaikan Episode 3 langsung setelah dialog (sama seperti Episode 2)
+  _finishEpisode3() {
+    if (this.finished) return;
+    this.finished = true;
+    this.uiInputLocked = true;
+
+    this.player?.setVelocity(0, 0);
+    this.player?.anims.stop();
+
+    const choices = this.npcChoices || [];
+
+    if (this.player) {
+      this.tweens.add({
+        targets: this.player,
+        alpha: 0,
+        duration: 300,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          this.scene.start('EpisodeEndingScene', {
+            episodeId: 3,
+            isLastEpisode: false,
+            choices,
+          });
+        },
+      });
+      return;
+    }
+
+    this.scene.start('EpisodeEndingScene', {
+      episodeId: 3,
+      isLastEpisode: false,
+      choices,
+    });
+  }
+
   onSceneUpdate() {
     if (this.finished) return;
-    if (!this._phoneSprite) return;
+    if (!this._phoneHitArea) return;
 
     // Proximity check ke objek ponsel
     if (!this.npcInDialogue) {
-      const dist = Math.abs(this.player.x - this._phoneSprite.x);
+      const dist = Math.abs(this.player.x - this._phoneHitArea.x);
       const inRange = dist <= (this.npcConfig?.interactionRadius ?? 120);
       this.npcPrompt.setVisible(inRange);
       if (inRange && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
         this._tryOpenPhone();
       }
-    }
-
-    if (this.npcInDialogue) return;
-
-    const endZoneX = this.levelWidth - LEVEL_EDGE_MARGIN;
-
-    // Blokir ujung level sebelum ponsel diperiksa
-    if (!this.phoneTalked) {
-      if (this.player.x > endZoneX) {
-        this.player.x = endZoneX;
-        this.player?.setVelocityX(0);
-      }
-      this.endBlockHint.setVisible(this.player.x >= endZoneX - 4);
-      return;
-    }
-
-    this.endBlockHint.setVisible(false);
-
-    if (this.player.x > endZoneX) {
-      this.finished = true;
-      this.uiInputLocked = true;
-      this.player?.setVelocity(0, 0);
-      this.player?.anims.stop();
-      this.tweens.add({
-        targets: this.player,
-        alpha: 0,
-        duration: 250,
-        ease: 'Sine.easeOut',
-      });
-
-      const choices = this.npcChoices || [];
-      this.scene.start('EpisodeEndingScene', {
-        episodeId: 3,
-        isLastEpisode: false,
-        choices,
-      });
     }
   }
 }

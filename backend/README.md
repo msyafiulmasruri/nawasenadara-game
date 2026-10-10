@@ -117,6 +117,7 @@ Semua response berbentuk `{ status, message, data }` (sukses) atau
 | POST | `/api/auth/forgot-password` | - | `{ email }` → kirim email link reset |
 | GET | `/api/auth/reset-password/verify?token=` | - | Cek token reset masih valid |
 | POST | `/api/auth/reset-password` | - | `{ token, password }` |
+| POST | `/api/feedback` | Bearer access token siswa | `{ rating: 1-5, message: string }` — simpan masukan permainan tanpa PII tambahan |
 
 Endpoint yang butuh access token kirim header:
 `Authorization: Bearer <access_token>`.
@@ -190,4 +191,3 @@ ke migration awal `1752500000001_create-table-users.js` (constraint
 `chk_users_role` dari awal cuma mengizinkan `'siswa'`/`'guru_bk'`),
 menggantikan migration alter terpisah yang sebelumnya ada — dengan
 alasan konsolidasi yang sama.
-

@@ -1,7 +1,7 @@
 import pool from '../../../config/db.js';
 
 class ProgressRepositories {
-  // Semua 9 episode + status progres user ini (kalau belum pernah ada
+  // Semua 6 episode + status progres user ini (kalau belum pernah ada
   // baris di user_episode_progress sama sekali untuk episode tsb,
   // dianggap 'locked' — KECUALI episode 1 yang selalu 'unlocked' by
   // default, ditangani di controller supaya logic "episode 1 selalu
@@ -20,6 +20,7 @@ class ProgressRepositories {
        FROM episodes e
        LEFT JOIN user_episode_progress uep
          ON uep.episode_id = e.id AND uep.user_id = $1
+       WHERE e.id BETWEEN 1 AND 6
        ORDER BY e.order_index ASC`,
       [userId],
     );

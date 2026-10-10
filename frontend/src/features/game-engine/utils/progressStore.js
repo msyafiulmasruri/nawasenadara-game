@@ -4,7 +4,7 @@
 //
 // Semua fungsi di file ini TETAP SINKRON (tidak ada async/await di
 // signature-nya) supaya scene manapun yang sudah memanggilnya
-// (EpisodeSelectScene, Episode1Scene, PlaceholderEpisodeScene, dst.)
+// (EpisodeSelectScene, Episode1Scene, StoryEpisodeScene, dst.)
 // tidak perlu di-refactor jadi async — baca selalu dari cache yang
 // sudah dimuat GameProgressBridge, tulis selalu fire-and-forget ke
 // backend di belakang layar.
@@ -75,15 +75,24 @@ export function completeEpisode(episodeId, choices) {
   //    UI (EpisodeSelectScene) langsung terasa responsif tanpa nunggu
   //    network.
   const data = readLocalRaw();
-  if (!data.completed.includes(episodeId)) {
-    data.completed.push(episodeId);
-    writeLocalRaw(data);
-  }
+  if (!data.completed.includes(episodeId)) data.completed.push(episodeId);
+  data.choicesByEpisode = data.choicesByEpisode || {};
+  data.choicesByEpisode[episodeId] = Array.isArray(choices) ? choices : [];
+  writeLocalRaw(data);
 
   if (typeof window !== 'undefined' && Array.isArray(window.__nawasenadaraProgressCache)) {
     const cache = window.__nawasenadaraProgressCache;
     const existing = cache.find((r) => r.episode_id === episodeId);
-    if (existing) existing.status = 'completed';
+    if (existing) {
+      existing.status = 'completed';
+      existing.choices = Array.isArray(choices) ? choices : [];
+    } else {
+      cache.push({
+        episode_id: episodeId,
+        status: 'completed',
+        choices: Array.isArray(choices) ? choices : [],
+      });
+    }
 
     const next = cache.find((r) => r.episode_id === episodeId + 1);
     if (next && next.status === 'locked') next.status = 'unlocked';
@@ -103,8 +112,13 @@ export function completeEpisode(episodeId, choices) {
 // BK bisa membedakan "belum pernah dicoba" vs "sedang dijalani" (lihat
 // kolom episodes_in_progress di /api/bk/students).
 export function markEpisodeInProgress(episodeId) {
+  if (getCompletedEpisodes().includes(episodeId)) return;
   if (typeof window !== 'undefined') {
-    window.__nawasenadaraProgress?.updateStatus(episodeId, 'in_progress');
+    window.__nawasenadaraProgress?.updateStatus(
+      episodeId,
+      'in_progress',
+      getEpisodeChoices(episodeId),
+    );
   }
 }
 
@@ -132,6 +146,11 @@ export function markEpisodeInProgress(episodeId) {
 // tetap kebaca benar — sama seperti pola completeEpisode() di atas.
 export function markNpcTalked(episodeId, choices = []) {
   if (typeof window === 'undefined') return;
+
+  const data = readLocalRaw();
+  data.choicesByEpisode = data.choicesByEpisode || {};
+  data.choicesByEpisode[episodeId] = choices;
+  writeLocalRaw(data);
 
   if (Array.isArray(window.__nawasenadaraProgressCache)) {
     const cache = window.__nawasenadaraProgressCache;
@@ -165,8 +184,37 @@ export function hasTalkedToNpc(episodeId) {
   return false;
 }
 
+export function getEpisodeChoices(episodeId) {
+  if (typeof window !== 'undefined' && Array.isArray(window.__nawasenadaraProgressCache)) {
+    const row = window.__nawasenadaraProgressCache.find((r) => r.episode_id === episodeId);
+    if (row && Array.isArray(row.choices) && row.choices.length > 0) {
+      return row.choices;
+    }
+  }
+
+  const localChoices = readLocalRaw().choicesByEpisode?.[episodeId];
+  return Array.isArray(localChoices) ? localChoices : [];
+}
+
+// Dipakai layar penutup Episode 6. Pilihan episode terakhir belum tentu
+// sudah berstatus completed saat ending dihitung, jadi pilihan aktif
+// diberikan terpisah lalu digabung dengan riwayat Episode 1-5.
+export function getStoryChoices(lastEpisodeId, currentEpisodeChoices = []) {
+  const collected = [];
+  for (let episodeId = 1; episodeId < lastEpisodeId; episodeId += 1) {
+    getEpisodeChoices(episodeId).forEach((choice) => {
+      collected.push({ ...choice, episodeId });
+    });
+  }
+
+  currentEpisodeChoices.forEach((choice) => {
+    collected.push({ ...choice, episodeId: lastEpisodeId });
+  });
+  return collected;
+}
+
 export function resetProgress() {
-  writeLocalRaw({ completed: [] });
+  writeLocalRaw({ completed: [], choicesByEpisode: {} });
   if (typeof window !== 'undefined' && Array.isArray(window.__nawasenadaraProgressCache)) {
     window.__nawasenadaraProgressCache = window.__nawasenadaraProgressCache.map((row) => ({
       ...row,

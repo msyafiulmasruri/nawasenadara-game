@@ -8,7 +8,7 @@ export const WORLD_WIDTH = 1280;
 export const WORLD_HEIGHT = 720;
 
 // Lebar level yang bisa di-scroll untuk scene gameplay (Episode1Scene,
-// PlaceholderEpisodeScene). Ini BEDA dari WORLD_WIDTH di atas —
+// StoryEpisodeScene). Ini BEDA dari WORLD_WIDTH di atas —
 // WORLD_WIDTH/HEIGHT itu ukuran "jendela kamera" (viewport referensi
 // yang dipakai mode ENVELOP), sedangkan LEVEL_WIDTH itu total panjang
 // dunia yang bisa dijelajahi karakter secara horizontal. Kamera akan
@@ -34,4 +34,3 @@ export const LEVEL_EDGE_MARGIN = 180;
 // this.player dibuat di create()) — sebelumnya ini menyebabkan NPC
 // memakai fallback 200px yang salah, bukan 240px yang sesungguhnya.
 export const PLAYER_DISPLAY_HEIGHT = 240;
-

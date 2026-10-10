@@ -80,19 +80,19 @@ export default class BootScene extends Phaser.Scene {
     // (config/episodes.js) supaya menambah episode baru tidak perlu
     // sentuh file ini lagi sama sekali.
     //
-    // PENTING: file yang belum ada (episode 2-9 belum punya art asli)
+    // PENTING: file yang belum ada (misalnya latar final Episode 6)
     // TIDAK menggagalkan proses loading keseluruhan. Phaser's Loader
     // menembakkan event 'loaderror' PER FILE yang gagal lalu tetap
     // lanjut memuat sisanya — makanya aman untuk selalu mencoba
     // me-load SEMUA path di bawah dari sekarang, walau sebagian besar
-    // filenya belum ada. PlaceholderEpisodeScene lalu mengecek
+    // filenya belum ada. Scene episode lalu mengecek
     // `this.textures.exists(bgKey)` saat runtime: kalau berhasil
     // dimuat (artinya file sudah ditaruh di public/scenes/), otomatis
     // dipakai sebagai background asli dengan logika portrait/landscape
     // yang sama persis seperti Episode1Scene; kalau belum ada, otomatis
-    // fallback ke warna polos seperti sekarang. Jadi menambah art
+    // fallback ke visual terarah seperti sekarang. Jadi menambah art
     // episode baru nanti benar-benar cuma "taruh file, selesai" — tidak
-    // perlu sentuh BootScene atau PlaceholderEpisodeScene sama sekali.
+    // perlu sentuh BootScene sama sekali.
     this.load.on('loaderror', (file) => {
       // Diam-diam saja di console (bukan error UI) — ini kondisi yang
       // DIHARAPKAN terjadi untuk episode yang art-nya belum ada.
@@ -109,13 +109,11 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
-    this.load.image('ep2-phone-pov', 'scenes/ep2-phone-pov.png');
-
     this.load.image('phone-ep3', '/sprites/phone-ep3.png');
     this.load.image('phone-ep3-pov', '/scenes/ep3-phone-pov.png');
     this.load.image('ep3-window-cg', '/scenes/ep3-window-cg.jpg');
 
-    // --- Potret NPC pendukung cerita, satu per episode (config/npcs.js) ---
+    // --- Potret NPC pendukung cerita (config/npcs.js) ---
     // Sama seperti background episode: kalau suatu episode belum punya
     // NPC terdaftar di sana, ya tidak ada apa pun yang di-load untuk
     // episode itu — aman, tidak menggagalkan loading keseluruhan.

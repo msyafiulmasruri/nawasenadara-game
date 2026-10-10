@@ -10,7 +10,7 @@ import {
 import DialogueBox from '../ui/DialogueBox';
 import ObjectiveBriefing from '../ui/ObjectiveBriefing';
 import { getCharacterName } from '../utils/characterName';
-import { hasTalkedToNpc, markNpcTalked } from '../utils/progressStore';
+import { getEpisodeChoices, hasTalkedToNpc, markNpcTalked } from '../utils/progressStore';
 import { pxToWorld } from '../utils/visibleBounds';
 import { getEpisodeById } from '../config/episodes';
 
@@ -135,6 +135,7 @@ export default class Episode1Scene extends BasePlayerScene {
     // selesai (lihat markNpcTalked() di onClose bawah), jadi status ini
     // tetap benar walau episode 1 belum dituntaskan.
     this.npcTalked = hasTalkedToNpc(this.episodeId ?? 1);
+    this.npcChoices = getEpisodeChoices(this.episodeId ?? 1);
 
     // FIX #4 (revisi): Rafi diposisikan tepat di this.groundY, sama
     // seperti player berpijak. Skala & offset sekarang dihitung dari

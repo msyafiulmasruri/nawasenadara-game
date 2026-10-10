@@ -6,7 +6,7 @@ import {
   LEVEL_EDGE_MARGIN,
   PLAYER_DISPLAY_HEIGHT,
 } from '../config/gameConfig';
-import { completeEpisode, getCompletedEpisodes, markEpisodeInProgress } from '../utils/progressStore';
+import { markEpisodeInProgress } from '../utils/progressStore';
 import { getSettings, setMuted } from '../utils/settingsStore';
 import {
   getVisibleBounds,
@@ -17,7 +17,6 @@ import {
 import AudioManager from '../audio/AudioManager';
 import { stopMenuBGM } from '../audio/menuAudio';
 import { getCharacterName } from '../utils/characterName';
-import { getMood, onMoodChange } from '../utils/moodStore';
 
 const WALK_SPEED = 150;
 const RUN_SPEED = 260;
@@ -26,21 +25,24 @@ const JUMP_DURATION = 480;
 
 // Scene dasar berisi seluruh logic gerakan karakter (walk/run/jump,
 // keyboard + touch control) yang dipakai bersama oleh Episode1Scene dan
-// PlaceholderEpisodeScene, supaya tidak ada kode gerakan yang
+// StoryEpisodeScene, supaya tidak ada kode gerakan yang
 // dobel-tulis di banyak file. Episode/scene turunan cukup meng-override
 // `createBackground()` untuk menentukan tampilan latar masing-masing,
 // dan boleh menambah logic sendiri di `onSceneUpdate()` (dipanggil tiap
 // frame dari update() bawaan kelas ini).
 export default class BasePlayerScene extends Phaser.Scene {
   // Default untuk scene yang TIDAK mendefinisikan init() sendiri
-  // (Episode1Scene). PlaceholderEpisodeScene punya init() sendiri yang
-  // menimpa ini sepenuhnya (tetap menghasilkan this.episodeId juga).
+  // (Episode1Scene). Scene turunan tetap dapat menimpa ini bila perlu.
   init(data) {
     this.episodeId = data?.episodeId ?? this.episodeId ?? 1;
   }
 
   create(data) {
     const height = WORLD_HEIGHT;
+
+    // Instance scene Phaser dipakai ulang setelah restart/start berikutnya.
+    // Jangan membawa permintaan resize tertunda dari lifecycle sebelumnya.
+    this._pendingViewportRestart = false;
 
     // Tandai episode ini 'in_progress' di server begitu scene-nya
     // dimuat (bukan menunggu sampai selesai) — supaya dashboard guru BK
@@ -107,7 +109,19 @@ export default class BasePlayerScene extends Phaser.Scene {
     // ukuran referensi baku 1280x720 (crop kiri-kanan di sana memang
     // disengaja untuk level yang di-pan kamera, lihat
     // _updatePortraitCamera() di bawah).
-    const { width } = syncGameSizeToOrientation(this);
+    const { width: viewportWidth } = syncGameSizeToOrientation(this);
+
+    // Artwork gameplay Episode 2-5 dirancang pada rasio 16:9. Ketika
+    // browser dibuat sangat lebar (mis. keluar fullscreen atau window
+    // di-split), lebar dunia dinamis sebelumnya bisa melampaui artwork.
+    // Scene lalu menutup selisih itu dengan tileSprite sehingga potongan
+    // kamar/sekolah tampak berulang di sisi kanan. Batasi kanvas gameplay
+    // ke lebar referensi 16:9; mode ENVELOP akan melakukan crop vertikal
+    // kecil pada layar ultra-wide tanpa pernah memperlihatkan tile ulang.
+    const width = Math.min(viewportWidth, WORLD_WIDTH);
+    if (width !== viewportWidth) {
+      this.scale.setGameSize(width, height);
+    }
 
     // Dipakai oleh _onResize untuk mendeteksi perubahan rasio aspek
     // landscape yang TIDAK mengubah kategori orientasi (masih sama-sama
@@ -123,7 +137,7 @@ export default class BasePlayerScene extends Phaser.Scene {
     this.levelWidth = this._isPortraitMode ? LEVEL_WIDTH : width;
 
     // Latar belakang: ditentukan oleh scene turunan (Episode1Scene pakai
-    // gambar asli, PlaceholderEpisodeScene pakai warna polos + label).
+    // gambar asli, StoryEpisodeScene punya fallback terarah).
     //
     // PENTING (portrait): scene turunan BOLEH menimpa this.levelWidth di
     // dalam createBackground() kalau punya art asli — lihat catatan
@@ -133,7 +147,7 @@ export default class BasePlayerScene extends Phaser.Scene {
     // createBackground() dipanggil DULU di sini, SEBELUM physics/camera
     // bounds di bawah dibuat — supaya bounds itu memakai this.levelWidth
     // yang sudah final (baik dari override scene turunan, atau default
-    // LEVEL_WIDTH kalau tidak ada art asli, mis. PlaceholderEpisodeScene).
+    // LEVEL_WIDTH kalau tidak ada art asli, mis. fallback Episode 6).
     // Tinggi tampil pemain HARUS sudah tersedia SEBELUM createBackground()
     // dipanggil, karena Episode1Scene._createNpc() (dipanggil dari dalam
     // createBackground()) perlu mencocokkan tinggi NPC ke tinggi ini —
@@ -142,7 +156,7 @@ export default class BasePlayerScene extends Phaser.Scene {
     // dibaca dari this.player.displayHeight yang masih undefined.
     this.playerDisplayHeight = PLAYER_DISPLAY_HEIGHT;
 
-    // HUD profil (avatar + nama + progress bar mood + slot quest guide)
+    // HUD profil (avatar + nama + slot quest guide)
     // dibuat SEBELUM createBackground() — Episode1Scene._createNpc()
     // (dipanggil dari DALAM createBackground()) langsung memanggil
     // this.setQuestGuide()/this.updateQuestGuide() untuk menampilkan
@@ -378,10 +392,6 @@ export default class BasePlayerScene extends Phaser.Scene {
         if (!this.scene?.isActive()) return;
         this.scale.refresh();
         this._repositionUI();
-        if (this.scale.parentSize?.height > 0) {
-          this._lastAspect =
-            this.scale.parentSize.width / this.scale.parentSize.height;
-        }
       }, 100);
     };
     document.addEventListener('fullscreenchange', this._onFullscreenChange);
@@ -404,17 +414,24 @@ export default class BasePlayerScene extends Phaser.Scene {
             ? this.scale.parentSize.width / this.scale.parentSize.height
             : this._lastAspect;
 
-        // Hanya restart scene jika TERJADI ROTASI FISIK (portrait <-> landscape)
-        // dan pemain TIDAK sedang di tengah percakapan dialog/cutscene.
-        if (nowPortrait !== this._isPortraitMode && !this.npcInDialogue) {
-          this.scene.restart({
-            episodeId: this.episodeId,
-            preserveMuted: this.isMuted,
-            preservePlayer: {
-              x: this.player?.x,
-              facingLeft: this.player?.flipX,
-            },
-          });
+        const orientationChanged = nowPortrait !== this._isPortraitMode;
+        const aspectChanged = Math.abs(nowAspect - this._lastAspect) > 0.01;
+
+        // Background dan bounds dibangun dari ukuran viewport pada saat
+        // create(). Karena itu perubahan rasio yang tetap landscape juga
+        // perlu rebuild (contoh: split-window atau keluar fullscreen),
+        // bukan hanya rotasi portrait <-> landscape. Menunda restart saat
+        // dialog/overlay aktif mencegah percakapan terputus di tengah.
+        if (orientationChanged || aspectChanged) {
+          this._pendingViewportRestart = true;
+          this._lastAspect = nowAspect;
+
+          if (!this.npcInDialogue && !this.uiInputLocked && !this.isPaused) {
+            this._restartForViewportChange();
+          } else {
+            this.scale.refresh();
+            this._repositionUI();
+          }
           return;
         }
 
@@ -427,6 +444,22 @@ export default class BasePlayerScene extends Phaser.Scene {
     };
     this._repositionUI();
     this.scale.on('resize', this._onResize);
+  }
+
+  _restartForViewportChange() {
+    if (!this._pendingViewportRestart || !this.scene?.isActive()) return;
+
+    this._pendingViewportRestart = false;
+    this.scene.restart({
+      // StoryEpisodeScene dipakai bersama Episode 4-6, sehingga ID ini
+      // wajib ikut dikirim agar resize tidak kembali ke episode lain.
+      episodeId: this.episodeId,
+      preserveMuted: this.isMuted,
+      preservePlayer: {
+        x: this.player?.x,
+        facingLeft: this.player?.flipX,
+      },
+    });
   }
 
   // BGM default yang dimainkan saat scene dimulai.
@@ -493,7 +526,7 @@ export default class BasePlayerScene extends Phaser.Scene {
   }
 
   /**
-   * Alur "selesai episode" BERSAMA untuk semua episode (1-9) — dipanggil
+   * Alur "selesai episode" BERSAMA untuk semua episode (1-6) — dipanggil
    * dari onSceneUpdate() scene turunan begitu kondisi selesai terpenuhi
    * (mis. karakter sampai ujung level). Lihat NLP_INTEGRATION_DESIGN.md
    * §3: jurnal refleksi + POST /api/nlp/analyze WAJIB di ujung SETIAP
@@ -505,7 +538,7 @@ export default class BasePlayerScene extends Phaser.Scene {
    * BUKAN dikirim ke NLP (lihat §2 dokumen: pilihan terstruktur beda
    * dari teks bebas jurnal).
    */
-  async finishEpisode({ episodeId, isLastEpisode = false, choices = [] } = {}) {
+  finishEpisode({ episodeId, isLastEpisode = false, choices = [] } = {}) {
     const id = episodeId ?? this.episodeId ?? 1;
 
     // FIX: sebelumnya ada jeda antara trigger "episode selesai" ini
@@ -517,44 +550,28 @@ export default class BasePlayerScene extends Phaser.Scene {
     // frame yang sama saat kondisi selesai terpenuhi — tidak menunggu
     // React sama sekali.
     this.uiInputLocked = true;
-    if (this.player) {
-      this.player.setVelocity(0, 0);
-      this.player.anims.stop();
-      this.tweens.add({
-        targets: this.player,
-        alpha: 0,
-        duration: 250,
-        ease: 'Sine.easeOut',
+    const showEpisodeResult = () => {
+      this.scene.start('EpisodeEndingScene', {
+        episodeId: id,
+        isLastEpisode,
+        choices,
       });
+    };
+
+    if (!this.player) {
+      showEpisodeResult();
+      return;
     }
 
-    // Tunggu sampai pemain submit jurnal refleksi (atau menutup ajakan
-    // konseling kalau risk_level sedang/tinggi) sebelum benar-benar
-    // pindah scene. Kalau overlay UI belum sempat terpasang (race
-    // condition yang sangat jarang), lewati saja supaya pemain tidak
-    // terjebak tidak bisa lanjut.
-    //
-    // FIX: pemain yang MENGULANG episode yang sudah pernah dituntaskan
-    // sebelumnya (mis. lewat "Lanjutkan Permainan Lama" atau sengaja
-    // main ulang dari EpisodeSelectScene) boleh melewati jurnal —
-    // refleksinya sudah pernah diisi & dianalisis di playthrough
-    // pertama, tidak perlu dipaksa mengisi ulang tiap kali replay.
-    // Pemain yang BELUM PERNAH menuntaskan episode ini (progres
-    // baru/belum ada) tetap WAJIB mengisi seperti biasa — lihat
-    // allowSkip di GameUIBridge.jsx untuk bagaimana opsi ini dirender.
-    const alreadyCompletedBefore = getCompletedEpisodes().includes(id);
-    const ui = window.__nawasenadaraUI;
-    if (ui?.openJournal) {
-      await ui.openJournal(id, { allowSkip: alreadyCompletedBefore });
-    }
-
-    completeEpisode(id, choices);
-
-    if (isLastEpisode) {
-      this.scene.start('EpisodeSelectScene');
-    } else {
-      this.scene.start('EpisodeIntroScene', { episodeId: id + 1 });
-    }
+    this.player.setVelocity(0, 0);
+    this.player.anims.stop();
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0,
+      duration: 250,
+      ease: 'Sine.easeOut',
+      onComplete: showEpisodeResult,
+    });
   }
 
   /**
@@ -712,7 +729,7 @@ export default class BasePlayerScene extends Phaser.Scene {
   //
   // FIX: dulu ikon ini SELALU tampil sejak episode dimuat. Sekarang
   // defaultnya TAMPIL (dipakai episode yang tidak punya quest NPC
-  // wajib, mis. placeholder episode 2-9), TAPI scene turunan yang
+  // wajib), TAPI scene turunan yang
   // punya quest NPC (mis. Episode1Scene) bisa menyembunyikannya dulu
   // dengan memanggil `this.setChatButtonVisible(false)` SEGERA setelah
   // createChatButton() dipanggil (lihat urutan create() di bawah),
@@ -822,7 +839,7 @@ export default class BasePlayerScene extends Phaser.Scene {
             // Kalau scene episode ini punya konteks obrolan NPC yang
             // sudah tercatat (lihat Episode1Scene.getCounselingAutoContext,
             // dipanggil lewat optional chaining supaya scene lain yang
-            // BELUM override method ini — mis. PlaceholderEpisodeScene —
+            // BELUM override method ini — mis. scene cerita generik —
             // tidak error), Kak Dara tetap otomatis tahu ceritanya
             // walau dibuka manual lewat ikon, bukan lewat tawaran
             // setelah dialog NPC.
@@ -899,11 +916,10 @@ export default class BasePlayerScene extends Phaser.Scene {
   }
 
   // --- HUD Profil Pemain (pojok kiri atas) -------------------------
-  // Menampilkan: (1) avatar bulat wajah karakter pemain, (2) nama tokoh
-  // yang diisi pemain di awal permainan (getCharacterName()), dan
-  // (3) progress bar mood terkini hasil deteksi AI (moodStore.js,
-  // diperbarui GameUIBridge.jsx setiap kali ada hasil analisis jurnal
-  // refleksi atau chat konseling baru) — BUKAN cuma emotikon lagi.
+  // Menampilkan avatar bulat wajah karakter pemain dan nama tokoh yang
+  // diisi pemain di awal permainan (getCharacterName()). Tingkat mood
+  // sengaja tidak ditampilkan selama gameplay; hasilnya baru muncul
+  // setelah episode selesai di EpisodeEndingScene.
   //
   // Avatar: kalau aset foto wajah asli ('player-face', lihat
   // BootScene.preload()) sudah tersedia, itu yang dipakai (di-cover-fit
@@ -925,10 +941,10 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     this._drawProfileFace(cx, cy, r);
 
-    // --- Nama tokoh, di sebelah kanan avatar (baris atas) ---
-    const nameFont = pxToWorld(this, 17);
+    // --- Nama tokoh, di sebelah kanan avatar (vertikal tengah) ---
+    const nameFont = pxToWorld(this, 18);
     this._profileNameText = this.add
-      .text(cx + r + pxToWorld(this, 10), cy - r * 0.55, getCharacterName(), {
+      .text(cx + r + pxToWorld(this, 10), cy, getCharacterName(), {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${nameFont}px`,
         color: '#ffffff',
@@ -936,66 +952,6 @@ export default class BasePlayerScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(31);
-
-    // --- Mood (hasil deteksi AI): label singkat + emotikon, baris
-    // tengah ---
-    const moodFont = pxToWorld(this, 13);
-    const initialMood = getMood();
-    this._profileMoodText = this.add
-      .text(cx + r + pxToWorld(this, 10), cy, `${initialMood.emoji} ${initialMood.label}`, {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${moodFont}px`,
-        color: '#ffdd57',
-      })
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(31);
-
-    // --- Progress bar mood, baris bawah — panjang batang = intensitas
-    // (confidence) hasil deteksi AI, warnanya berubah sesuai kategori
-    // mood. Ini yang menggantikan "cuma emotikon" sebelumnya.
-    const barWidthPx = 110;
-    const barHeightPx = 7;
-    this._moodBarMaxWidth = pxToWorld(this, barWidthPx);
-    this._moodBarHeight = pxToWorld(this, barHeightPx);
-    const barX = cx + r + pxToWorld(this, 10);
-    const barY = cy + r * 0.62;
-
-    this._moodBarBg = this.add
-      .rectangle(barX, barY, this._moodBarMaxWidth, this._moodBarHeight, 0x0f0f22, 0.9)
-      .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0xffffff, 0.25)
-      .setScrollFactor(0)
-      .setDepth(31);
-
-    this._moodBarFill = this.add
-      .rectangle(
-        barX,
-        barY,
-        Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(initialMood.value, 0, 1)),
-        this._moodBarHeight,
-        initialMood.color,
-        0.95,
-      )
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(32);
-
-    // Perbarui teks + bar mood otomatis setiap kali moodStore berubah
-    // (dipicu GameUIBridge.jsx setelah hasil analisis NLP baru masuk).
-    // Listener ini WAJIB dilepas saat scene dihancurkan supaya tidak
-    // menumpuk / mencoba menulis ke game object yang sudah destroy.
-    this._unsubscribeMood = onMoodChange((mood) => {
-      this._profileMoodText?.setText(`${mood.emoji} ${mood.label}`);
-      if (this._moodBarFill) {
-        const w = Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(mood.value, 0, 1));
-        this._moodBarFill.setSize(w, this._moodBarHeight);
-        this._moodBarFill.setFillStyle(mood.color, 0.95);
-      }
-    });
-    this.events.once('shutdown', () => {
-      this._unsubscribeMood?.();
-    });
 
     // --- Quest guide (dipakai episode dengan NPC quest, lihat
     // setQuestGuide()/clearQuestGuide()) — ditaruh TEPAT di bawah blok
@@ -1078,34 +1034,11 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     this._drawProfileFace(cx, cy, r);
 
-    const nameFont = pxToWorld(this, 17);
-    const moodFont = pxToWorld(this, 13);
+    const nameFont = pxToWorld(this, 18);
     const textX = cx + r + pxToWorld(this, 10);
     if (this._profileNameText) {
-      this._profileNameText.setPosition(textX, cy - r * 0.55);
+      this._profileNameText.setPosition(textX, cy);
       this._profileNameText.setFontSize(nameFont);
-    }
-    if (this._profileMoodText) {
-      this._profileMoodText.setPosition(textX, cy);
-      this._profileMoodText.setFontSize(moodFont);
-    }
-
-    const barWidthPx = 110;
-    const barHeightPx = 7;
-    this._moodBarMaxWidth = pxToWorld(this, barWidthPx);
-    this._moodBarHeight = pxToWorld(this, barHeightPx);
-    const barY = cy + r * 0.62;
-    const currentMood = getMood();
-    if (this._moodBarBg) {
-      this._moodBarBg.setPosition(textX, barY);
-      this._moodBarBg.setSize(this._moodBarMaxWidth, this._moodBarHeight);
-    }
-    if (this._moodBarFill) {
-      this._moodBarFill.setPosition(textX, barY);
-      this._moodBarFill.setSize(
-        Math.max(2, this._moodBarMaxWidth * Phaser.Math.Clamp(currentMood.value, 0, 1)),
-        this._moodBarHeight,
-      );
     }
 
     // Quest guide: tepat di bawah blok profil (avatar + teks), rata
@@ -1617,6 +1550,17 @@ export default class BasePlayerScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (
+      this._pendingViewportRestart &&
+      !this.npcInDialogue &&
+      !this.uiInputLocked &&
+      !this.isPaused &&
+      !this.finished
+    ) {
+      this._restartForViewportChange();
+      return;
+    }
+
     // ESC selalu dicek duluan, baik untuk membuka maupun menutup menu
     // jeda — TAPI khusus untuk MEMBUKA menu jeda (belum isPaused),
     // sekarang diblokir selama uiInputLocked (dialog NPC atau overlay

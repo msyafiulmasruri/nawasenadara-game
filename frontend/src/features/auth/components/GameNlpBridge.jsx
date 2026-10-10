@@ -9,7 +9,7 @@ import apiClient from '@/lib/apiClient';
 // scenes berjalan di luar pohon komponen React, jadi tidak punya akses
 // langsung ke AuthContext / access token. Bridge ini menaruh fungsi-
 // fungsi pemanggil endpoint /api/nlp/* ke `window` supaya scene mana
-// pun (EpisodeIntroScene, Episode1Scene, PlaceholderEpisodeScene, dst.)
+// pun (EpisodeIntroScene, Episode1Scene, StoryEpisodeScene, dst.)
 // bisa memanggilnya lewat `window.__nawasenadaraNlp`.
 //
 // CONTOH PEMAKAIAN di dalam sebuah Phaser Scene, saat pemain submit
@@ -29,7 +29,7 @@ import apiClient from '@/lib/apiClient';
 //   }
 //
 // Lihat NLP_INTEGRATION_DESIGN.md untuk peta lengkap kapan tiap
-// endpoint ini dipanggil di masing-masing dari 9 episode.
+// endpoint ini dipanggil di masing-masing dari 6 episode.
 //
 // TAMBAHAN: generateNpcLine (di bawah) dipakai DialogueBox.js untuk
 // menulis-ulang (parafrase) baris dialog NPC yang sudah diplot naskah
@@ -41,12 +41,22 @@ export default function GameNlpBridge() {
   useEffect(() => {
     const bridge = {
       // Dipanggil setelah pemain mengisi jurnal refleksi singkat di
-      // akhir SEBUAH episode (episodeId 1-9). Selalu dipanggil di
+      // akhir SEBUAH episode (episodeId 1-6). Selalu dipanggil di
       // SEMUA episode — lihat proposal Gambar 3.2.
       analyzeReflection: async ({ text, episodeId }) =>
         apiClient.post(
           '/api/nlp/analyze',
           { text, episode_id: episodeId },
+          { getAccessToken },
+        ),
+
+      // Klasifikasi mood yang ditampilkan setelah ending dan sebelum
+      // jurnal. `responses` berisi teks opsi yang benar-benar dipilih,
+      // bukan label emosi buatan UI.
+      classifyEpisodeMood: async ({ responses, episodeId }) =>
+        apiClient.post(
+          '/api/nlp/episode-mood',
+          { responses, episode_id: episodeId },
           { getAccessToken },
         ),
 

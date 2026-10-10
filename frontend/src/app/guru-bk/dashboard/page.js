@@ -188,7 +188,7 @@ function DashboardContent() {
                 {students.map((s) => (
                   <tr key={s.id} style={styles.tr}>
                     <td style={styles.td}>{s.name}</td>
-                    <td style={styles.td}>{s.episodes_completed} / 9</td>
+                    <td style={styles.td}>{s.episodes_completed} / 6</td>
                     <td style={styles.td}>{s.episodes_in_progress}</td>
                     <td style={styles.td}>
                       <EndingBadge
