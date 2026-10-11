@@ -89,7 +89,7 @@ export const EPISODE3_DIALOGUE = {
       text:
         'Pukul sembilan lewat lima belas malam. Kamar terasa hangat dan tenang — ' +
         'buku catatan terbuka di meja belajar, segelas teh kamomil hampir dingin di sisi kanan. ' +
-        'Untuk pertama kalinya dalam berminggu-minggu, Dara merasa benar-benar dilindungi di sini.',
+        'Untuk pertama kalinya dalam berminggu-minggu, {PLAYER_NAME} merasa benar-benar dilindungi di sini.',
       next: 'n2',
     },
     n2: {
@@ -105,7 +105,7 @@ export const EPISODE3_DIALOGUE = {
     n3: {
       id: 'n3',
       speaker: 'bayang_kelabu',
-      text: 'Halo, Dara. Belum tidur ya?',
+      text: 'Halo, {PLAYER_NAME}. Belum tidur ya?',
       next: 'n4',
     },
     n4: {
@@ -124,8 +124,8 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb1',
       speaker: 'narration',
       text:
-        'Orang ini tahu jadwal pelajaran Dara hari ini. Lebih dari itu, ' +
-        'ia tahu persis apa yang terjadi di ruang kelas beberapa jam lalu. Apa yang Dara lakukan?',
+        'Orang ini tahu jadwal pelajaran {PLAYER_NAME} hari ini. Lebih dari itu, ' +
+        'ia tahu persis apa yang terjadi di ruang kelas beberapa jam lalu. Apa yang {PLAYER_NAME} lakukan?',
       choices: [
         {
           id: 'a',
@@ -156,7 +156,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb1_block',
       speaker: 'narration',
       text:
-        'Dara menekan tombol "Blokir & Hapus" dengan cepat. ' +
+        '{PLAYER_NAME} menekan tombol "Blokir & Hapus" dengan cepat. ' +
         'Permintaan pesan itu lenyap seketika. Jantungnya masih berdegup sedikit lebih kencang, ' +
         'tapi ia tahu ia baru membuat keputusan yang benar: akun tak dikenal tanpa foto profil ' +
         'yang tahu detail pribadinya adalah tanda bahaya yang tidak perlu direspons lebih jauh.',
@@ -166,7 +166,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_safe_outro',
       speaker: 'narration',
       text:
-        'Dara meletakkan ponsel kembali ke meja, mengambil teh kamomilnya, dan melanjutkan mengerjakan tugas. ' +
+        '{PLAYER_NAME} meletakkan ponsel kembali ke meja, mengambil teh kamomilnya, dan melanjutkan mengerjakan tugas. ' +
         'Ia juga memutuskan untuk menceritakan kejadian ini ke orang tua malam ini. ' +
         'Ada perasaan lega yang mengalir — ia tidak membiarkan rasa penasaran mengalahkan kewaspadaannya.',
       // node akhir → DialogueBox menutup & quest selesai
@@ -179,7 +179,7 @@ export const EPISODE3_DIALOGUE = {
       text: 'Bukan teman sekelas sih. Tapi aku selalu ada di sekitar kamu kok.',
       dynamic: true,
       situationHint:
-        'Dara baru saja bertanya siapa aku, dan aku menjawab secara misterius bahwa aku "selalu ada di sekitar" dia.',
+        '{PLAYER_NAME} baru saja bertanya siapa aku, dan aku menjawab secara misterius bahwa aku "selalu ada di sekitar" dia.',
       next: 'n5',
     },
 
@@ -192,7 +192,7 @@ export const EPISODE3_DIALOGUE = {
         'kardigan biru muda kamu cocok dipadu sama tas hitam itu.',
       dynamic: true,
       situationHint:
-        'Dara tidak membalas dan tidak memblokir, tapi aku tetap mengirim pesan lagi — kali ini mendeskripsikan penampilan Dara hari ini.',
+        '{PLAYER_NAME} tidak membalas dan tidak memblokir, tapi aku tetap mengirim pesan lagi — kali ini mendeskripsikan penampilan {PLAYER_NAME} hari ini.',
       next: 'n_cb2',
     },
 
@@ -215,10 +215,10 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb2',
       speaker: 'narration',
       text:
-        'Pagi tadi Dara memang memakai kardigan biru muda kesayangannya. ' +
+        'Pagi tadi {PLAYER_NAME} memang memakai kardigan biru muda kesayangannya. ' +
         'Tas hitam itu baru dipakai dua hari terakhir. ' +
         'Orang ini benar-benar melihatnya. Mengamatinya. ' +
-        'Sensasi dingin menjalar dari telapak tangan hingga ke tengkuknya. Apa yang Dara lakukan sekarang?',
+        'Sensasi dingin menjalar dari telapak tangan hingga ke tengkuknya. Apa yang {PLAYER_NAME} lakukan sekarang?',
       choices: [
         {
           id: 'a',
@@ -249,7 +249,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb2_tell_parents',
       speaker: 'narration',
       text:
-        'Dara memblokir akun itu, lalu berdiri dari kursi belajarnya. ' +
+        '{PLAYER_NAME} memblokir akun itu, lalu berdiri dari kursi belajarnya. ' +
         'Ia mengetuk pintu kamar dan keluar menemui Ayah dan Ibu yang sedang menonton sinetron. ' +
         '"Yah, Bu... ada yang perlu aku ceritain." Suaranya sedikit gemetar, tapi mantap.',
       next: 'n_safe_outro2',
@@ -258,9 +258,9 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_safe_outro2',
       speaker: 'narration',
       text:
-        'Ayah segera mengambil ponsel Dara dan memeriksa riwayatnya. ' +
+        'Ayah segera mengambil ponsel {PLAYER_NAME} dan memeriksa riwayatnya. ' +
         'Ibu memeluknya erat. Mereka memutuskan untuk melaporkan akun itu ke pihak sekolah besok pagi. ' +
-        'Dara merasa bahu yang sudah berjam-jam tegang perlahan mengendur — ia tidak sendirian.',
+        '{PLAYER_NAME} merasa bahu yang sudah berjam-jam tegang perlahan mengendur — ia tidak sendirian.',
       // node akhir
     },
 
@@ -274,7 +274,7 @@ export const EPISODE3_DIALOGUE = {
         'Di situ mereka sering ngomongin kamu. Aku punya tangkapan layarnya.',
       dynamic: true,
       situationHint:
-        'Dara menegur aku dengan ketus dan mengancam blokir. Aku membalas dengan memanfaatkan rasa penasaran dan ketakutannya — klaim punya "bukti" tentang dirinya.',
+        '{PLAYER_NAME} menegur aku dengan ketus dan mengancam blokir. Aku membalas dengan memanfaatkan rasa penasaran dan ketakutannya — klaim punya "bukti" tentang dirinya.',
       next: 'n_cb3',
     },
 
@@ -289,7 +289,7 @@ export const EPISODE3_DIALOGUE = {
         'Aku punya screenshot-nya, lengkap.',
       dynamic: true,
       situationHint:
-        'Dara membeku dan tidak membalas, jadi aku mengirim pesan lagi — kali ini mengklaim punya bukti bahwa orang lain sedang membicarakan Dara secara negatif.',
+        '{PLAYER_NAME} membeku dan tidak membalas, jadi aku mengirim pesan lagi — kali ini mengklaim punya bukti bahwa orang lain sedang membicarakan {PLAYER_NAME} secara negatif.',
       next: 'n_cb3',
     },
 
@@ -310,9 +310,9 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_choice',
       speaker: 'narration',
       text:
-        'Tangan Dara gemetar. Ini pola klasik manipulasi: memancing dengan "bukti", ' +
+        'Tangan {PLAYER_NAME} gemetar. Ini pola klasik manipulasi: memancing dengan "bukti", ' +
         'lalu mengancam untuk memaksa memberikan data pribadi atau foto. ' +
-        'Apa yang Dara lakukan?',
+        'Apa yang {PLAYER_NAME} lakukan?',
       choices: [
         {
           id: 'a',
@@ -343,7 +343,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_report',
       speaker: 'narration',
       text:
-        'Dara mengambil screenshot seluruh percakapan dengan cepat. ' +
+        '{PLAYER_NAME} mengambil screenshot seluruh percakapan dengan cepat. ' +
         'Jempolnya menekan "Laporkan" → "Peniruan identitas & pelecehan" → kirim. ' +
         'Akun itu lalu diblokir. Sebuah keputusan tepat: bukti tersimpan, pelaku dilaporkan.',
       next: 'n_cb3_report2',
@@ -352,9 +352,9 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_report2',
       speaker: 'narration',
       text:
-        'Dara kemudian mengetuk pintu kamarnya dan memanggil Ayah. ' +
+        '{PLAYER_NAME} kemudian mengetuk pintu kamarnya dan memanggil Ayah. ' +
         'Memperlihatkan screenshot itu. Ayah mengangguk serius — "Besok kita ke pihak sekolah dan kalau perlu ke polisi." ' +
-        'Dara menghembuskan napas panjang. Ini bukan akhir, tapi ia tahu ia sudah melakukan hal yang benar.',
+        '{PLAYER_NAME} menghembuskan napas panjang. Ini bukan akhir, tapi ia tahu ia sudah melakukan hal yang benar.',
       // node akhir
     },
 
@@ -363,7 +363,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_refuse',
       speaker: 'narration',
       text:
-        'Dara menekan tombol "Blokir" dengan tegas, lalu menutup aplikasi. ' +
+        '{PLAYER_NAME} menekan tombol "Blokir" dengan tegas, lalu menutup aplikasi. ' +
         'Layar HP mati. Ruangan terasa kembali hening — hanya suara jangkrik dan televisi dari ruang tamu. ' +
         'Besok ia akan bercerita ke orang tua dan meminta bantuan guru BK.',
       // node akhir
@@ -374,7 +374,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_panic',
       speaker: 'narration',
       text:
-        'Jari Dara berhenti di tengah mengetik nomor. Sesuatu dalam benaknya berteriak: ' +
+        'Jari {PLAYER_NAME} berhenti di tengah mengetik nomor. Sesuatu dalam benaknya berteriak: ' +
         '"Ini jebakan. Kalau kamu kirim, itu yang mereka tunggu." ' +
         'Ia menghapus ketikannya. Napasnya memburu, tapi jempolnya akhirnya menekan "Blokir".',
       next: 'n_cb3_panic2',
@@ -383,7 +383,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_panic2',
       speaker: 'narration',
       text:
-        'Setelah beberapa detik duduk diam mengumpulkan keberanian, Dara berdiri dan pergi ke ruang tamu. ' +
+        'Setelah beberapa detik duduk diam mengumpulkan keberanian, {PLAYER_NAME} berdiri dan pergi ke ruang tamu. ' +
         '"Bu... ada yang mau aku ceritakan." — Keputusan tepat, meski terlambat sedikit.',
       next: 'n_cb4_pesan_terakhir',
     },
@@ -396,7 +396,7 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb4_pesan_terakhir',
       speaker: 'narration',
       text:
-        'Sebelum Dara sempat menekan blokir, satu notifikasi terakhir membelah kesunyian. ' +
+        'Sebelum {PLAYER_NAME} sempat menekan blokir, satu notifikasi terakhir membelah kesunyian. ' +
         'Layar HP menyala. Masih dari DM Instagram yang sama. Satu baris saja:',
       next: 'n_cb4_msg',
     },
@@ -405,7 +405,7 @@ export const EPISODE3_DIALOGUE = {
       speaker: 'bayang_kelabu',
       text:
         'Kamar kamu dingin ya malam ini? Makanya gorden jendela di samping meja belajar itu ' +
-        'ditutup dong, Dara. Aku dari tadi kedinginan ngeliatin kamu dari seberang jalan.',
+        'ditutup dong, {PLAYER_NAME}. Aku dari tadi kedinginan ngeliatin kamu dari seberang jalan.',
       next: 'n_cb4',
     },
 
@@ -416,12 +416,12 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb4',
       speaker: 'narration',
       text:
-        'Dara memutar pandangan perlahan ke arah jendela. ' +
+        '{PLAYER_NAME} memutar pandangan perlahan ke arah jendela. ' +
         'Gorden kainnya... sedikit tersingkap — celah terbuka selebar lima jari. ' +
         'Di balik lampu jalan yang berkedip redup di seberang gang, ' +
         'ada siluet berdiri tegak menghadap lurus ke jendela kamarnya. ' +
         'Ponsel bergetar kencang: PANGGILAN SUARA — Akun Anonim. ' +
-        'Apa yang Dara lakukan?',
+        'Apa yang {PLAYER_NAME} lakukan?',
       choices: [
         {
           id: 'a',
@@ -452,10 +452,10 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_end_safe',
       speaker: 'narration',
       text:
-        'Dara menekan "Tolak", menarik gorden hingga rapat, ' +
+        '{PLAYER_NAME} menekan "Tolak", menarik gorden hingga rapat, ' +
         'lalu berlari ke pintu kamar. "AYAH! IBU!" ' +
         'Dalam hitungan detik Ayah sudah di ambang pintu, wajahnya langsung berubah serius ' +
-        'begitu melihat ekspresi Dara. "Ada apa?" ' +
+        'begitu melihat ekspresi {PLAYER_NAME}. "Ada apa?" ' +
         '"Ada orang di luar yang ngawasin aku dari tadi."',
       next: 'n_end_safe2',
     },
@@ -466,7 +466,7 @@ export const EPISODE3_DIALOGUE = {
         'Ayah memeriksa ke luar dengan hati-hati. Siluet itu sudah menghilang. ' +
         'Mereka melaporkan kejadian ini ke RT setempat malam itu juga, ' +
         'dan keesokan paginya ke pihak sekolah. ' +
-        'Dara merasa takut — tapi juga lega. Ia tidak menghadapi ini sendirian.',
+        '{PLAYER_NAME} merasa takut — tapi juga lega. Ia tidak menghadapi ini sendirian.',
       // node akhir
     },
 
@@ -477,14 +477,14 @@ export const EPISODE3_DIALOGUE = {
       text:
         'Jempolnya menekan "Angkat". Keheningan selama beberapa detik, ' +
         'lalu suara bisikan: "Aku tahu kamu bisa lihat aku kan?" ' +
-        'Dara langsung mematikan panggilan, jarinya gemetar hebat.',
+        '{PLAYER_NAME} langsung mematikan panggilan, jarinya gemetar hebat.',
       next: 'n_end_scared2',
     },
     n_end_scared2: {
       id: 'n_end_scared2',
       speaker: 'narration',
       text:
-        'Dara berlari ke ruang tamu dan menghambur ke pelukan Ibu sambil menangis. ' +
+        '{PLAYER_NAME} berlari ke ruang tamu dan menghambur ke pelukan Ibu sambil menangis. ' +
         'Mereka melaporkan nomor akun itu ke polisi malam itu juga. ' +
         'Pelajaran pahit: jangan pernah mengangkat panggilan dari orang asing yang mengancam — ' +
         'itu hanya memberi mereka kepuasan dan mengonfirmasi bahwa kamu ketakutan.',
@@ -496,18 +496,18 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_end_window',
       speaker: 'narration',
       text:
-        'Kaki Dara seolah bergerak sendiri menuju jendela. ' +
+        'Kaki {PLAYER_NAME} seolah bergerak sendiri menuju jendela. ' +
         'Tepat ketika tangannya menyentuh gorden — Ibu mengetuk pintu dari luar: ' +
-        '"Dara, sudah larut, matiin lampunya..." Suara itu memecah ketakutannya.',
+        '"{PLAYER_NAME}, sudah larut, matiin lampunya..." Suara itu memecah ketakutannya.',
       next: 'n_end_window2',
     },
     n_end_window2: {
       id: 'n_end_window2',
       speaker: 'narration',
       text:
-        'Dara menarik tangan dari gorden dan berbalik. "Bu, masuk dulu ya, ada yang penting." ' +
+        '{PLAYER_NAME} menarik tangan dari gorden dan berbalik. "Bu, masuk dulu ya, ada yang penting." ' +
         'Siluet di luar menghilang begitu lampu ruang tamu menyala dan suara-suara orang tua memenuhi rumah. ' +
-        'Dara selamat — tapi ia belajar: jangan pernah mendekati ancaman sendirian.',
+        '{PLAYER_NAME} selamat — tapi ia belajar: jangan pernah mendekati ancaman sendirian.',
       // node akhir
     },
   },

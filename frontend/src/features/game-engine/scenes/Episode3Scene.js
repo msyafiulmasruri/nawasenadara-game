@@ -459,7 +459,10 @@ export default class Episode3Scene extends BasePlayerScene {
     if (!this._chatStreamContainer || !this._povContainer) return;
 
     // Bersihkan kutipan atau teks pilihan yang panjang
-    const cleanText = text.replace(/^"|"$/g, '').trim();
+    const cleanText = String(text)
+      .replace(/\{PLAYER_NAME\}/g, getCharacterName())
+      .replace(/^"|"$/g, '')
+      .trim();
     if (!cleanText) return;
 
     const screenW = this._screenW || 172;

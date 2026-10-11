@@ -251,7 +251,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar sedang sendirian di kamar dan baru membaca grup chat kelas yang berisi ejekan terhadap Kirana. Aku, Rafi, mengirim chat pribadi ke Sekar karena aku juga melihat percakapan itu dan ingin tahu pendapatnya.',
+        '{PLAYER_NAME} sedang sendirian di kamar dan baru membaca grup chat kelas yang berisi ejekan terhadap Kirana. Aku, Rafi, mengirim chat pribadi ke {PLAYER_NAME} karena aku juga melihat percakapan itu dan ingin tahu pendapatnya.',
 
       choices: [
         {
@@ -303,7 +303,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar mengatakan bahwa perundungan terhadap Kirana sudah keterlaluan dan ingin membantu. Aku, Rafi, ternyata juga merasa isi grup mulai berlebihan tetapi belum tahu harus melakukan apa.',
+        '{PLAYER_NAME} mengatakan bahwa perundungan terhadap Kirana sudah keterlaluan dan ingin membantu. Aku, Rafi, ternyata juga merasa isi grup mulai berlebihan tetapi belum tahu harus melakukan apa.',
 
       next: 'n5',
     },
@@ -383,7 +383,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar sudah memutuskan bahwa Kirana perlu dibantu setelah melihat perundungan di grup kelas. Aku, Rafi, menanyakan langkah apa yang sebaiknya dilakukan tanpa mengubah situasi menjadi semakin buruk.',
+        '{PLAYER_NAME} sudah memutuskan bahwa Kirana perlu dibantu setelah melihat perundungan di grup kelas. Aku, Rafi, menanyakan langkah apa yang sebaiknya dilakukan tanpa mengubah situasi menjadi semakin buruk.',
 
       choices: [
         {
@@ -435,7 +435,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar memilih menghubungi Kirana secara pribadi agar Kirana tahu bahwa ia tidak sendirian. Aku, Rafi, mendukung keputusan itu dan menawarkan untuk ikut membantu.',
+        '{PLAYER_NAME} memilih menghubungi Kirana secara pribadi agar Kirana tahu bahwa ia tidak sendirian. Aku, Rafi, mendukung keputusan itu dan menawarkan untuk ikut membantu.',
 
       next: 'n8a',
     },
@@ -472,7 +472,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar memilih menyimpan bukti chat dan meminta bantuan wali kelas atau guru BK. Aku, Rafi, setuju dan bersedia ikut membantu melaporkannya.',
+        '{PLAYER_NAME} memilih menyimpan bukti chat dan meminta bantuan wali kelas atau guru BK. Aku, Rafi, setuju dan bersedia ikut membantu melaporkannya.',
 
       next: 'n8b',
     },
@@ -511,7 +511,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar sebenarnya ingin membantu tetapi masih takut ikut terseret masalah. Aku, Rafi, memahami keraguannya dan mengingatkan agar setidaknya tidak ikut memperburuk situasi.',
+        '{PLAYER_NAME} sebenarnya ingin membantu tetapi masih takut ikut terseret masalah. Aku, Rafi, memahami keraguannya dan mengingatkan agar setidaknya tidak ikut memperburuk situasi.',
 
       next: 'n8c',
     },
@@ -538,7 +538,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar merasa tidak nyaman melihat Kirana dirundung tetapi takut menjadi sasaran jika ikut campur. Aku, Rafi, juga menunjukkan rasa ragu dan takut terhadap tekanan dari grup.',
+        '{PLAYER_NAME} merasa tidak nyaman melihat Kirana dirundung tetapi takut menjadi sasaran jika ikut campur. Aku, Rafi, juga menunjukkan rasa ragu dan takut terhadap tekanan dari grup.',
 
       next: 'n4b2',
     },
@@ -565,7 +565,7 @@ export const EPISODE2_DIALOGUE = {
       dynamic: true,
 
       situationHint:
-        'Sekar ikut menganggap sebagian ejekan tentang Kirana lucu. Aku, Rafi, awalnya mengikuti suasana tetapi mulai menyadari bahwa percakapan grup sudah semakin keterlaluan.',
+        '{PLAYER_NAME} ikut menganggap sebagian ejekan tentang Kirana lucu. Aku, Rafi, awalnya mengikuti suasana tetapi mulai menyadari bahwa percakapan grup sudah semakin keterlaluan.',
 
       next: 'n4c2',
     },

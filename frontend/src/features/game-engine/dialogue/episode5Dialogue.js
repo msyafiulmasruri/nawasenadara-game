@@ -20,7 +20,7 @@
 
 // --- Dialog kunjungan ULANG (revisit) --------------------------------
 const EPISODE5_REVISIT_LINES = [
-  'Makasih banyak ya, Dara... berada di dekat kamu bikin duniaku terasa jauh lebih aman.',
+  'Makasih banyak ya, {PLAYER_NAME}... berada di dekat kamu bikin duniaku terasa jauh lebih aman.',
   'Bu Ratih baik banget ya. Sekarang perasaanku jauh lebih plong setelah dapat pendampingan di ruang BK.',
   'Sore ini kita nunggu bus bareng lagi di halte ya? Duduk berdua sama kamu rasanya adem banget.',
   'Aku lagi belajar untuk berani menetapkan batas dan gak membiarkan siapa pun menyakitiku lagi.',
@@ -296,7 +296,7 @@ export const EPISODE5_DIALOGUE = {
     n3_confession: {
       id: 'n3_confession',
       speaker: 'kirana',
-      text: 'Dengan suara bergetar menahan tangis, Kirana akhirnya membuka suara: "Orang yang dekat denganku sering memeriksa isi ponselku, melarangku berteman sama siapa pun, dan membentakku di tempat umum. Kemarin tanganku dicengkeram kuat banget waktu aku menolak permintaannya... Dia bilang aku bakal menyesal seumur hidup kalau berani cerita ke siapa pun. Aku harus bagaimana, Dara?"',
+      text: 'Dengan suara bergetar menahan tangis, Kirana akhirnya membuka suara: "Orang yang dekat denganku sering memeriksa isi ponselku, melarangku berteman sama siapa pun, dan membentakku di tempat umum. Kemarin tanganku dicengkeram kuat banget waktu aku menolak permintaannya... Dia bilang aku bakal menyesal seumur hidup kalau berani cerita ke siapa pun. Aku harus bagaimana, {PLAYER_NAME}?"',
       next: 'n_confession',
     },
 
