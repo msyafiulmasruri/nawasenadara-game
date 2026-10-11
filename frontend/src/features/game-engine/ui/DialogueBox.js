@@ -54,6 +54,11 @@ export default class DialogueBox {
     this._advancePointerHandler = null;
     this._choiceKeyHandler = null;
 
+    this._isUiHidden = false;
+    this._hiddenHint = null;
+    this._onKeyH = null;
+    this._restorePointerHandler = null;
+
     this._nodeReadyAt = 0;
 
     // ============================================================
@@ -123,6 +128,15 @@ export default class DialogueBox {
 
     this._renderNode(dialogueTree.startNode);
 
+    this._isUiHidden = false;
+    this._onKeyH = (event) => {
+      if (!this.isOpen) return;
+      if (event.code === 'KeyH' || event.key === 'h' || event.key === 'H') {
+        this._toggleHideUi();
+      }
+    };
+    this.scene.input.keyboard.on('keydown', this._onKeyH);
+
     this.scene.scale.on('resize', this._onResize, this);
 
     // ============================================================
@@ -171,6 +185,7 @@ export default class DialogueBox {
       this._shutdownHandler = null;
     }
 
+    this._cleanupHideUi();
     this._destroyChoiceObjects();
     this._detachAdvanceInput();
 
@@ -190,7 +205,7 @@ export default class DialogueBox {
   // ==============================================================
 
   _isInputReady() {
-    return this.isOpen && this.scene.time.now >= this._nodeReadyAt;
+    return this.isOpen && !this._isUiHidden && this.scene.time.now >= this._nodeReadyAt;
   }
 
   // ==============================================================
@@ -244,6 +259,52 @@ export default class DialogueBox {
       .setOrigin(0, 0);
 
     this._container.add(this._nameTag);
+
+    // ============================================================
+    // HIDE / SHOW UI BUTTON (Untuk menikmati CG cutscene layar penuh)
+    // ============================================================
+    const hideBtnFont = pxToWorld(scene, 13);
+    const hideBtnRight = cardX + cardWidth / 2 - 4;
+    const hideBtnY = cardTop + (nameFont + 14) / 2;
+
+    this._hideBtnText = scene.add
+      .text(hideBtnRight - 10, hideBtnY, '👁 Sembunyikan UI [H]', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${hideBtnFont}px`,
+        color: '#93c5fd',
+        align: 'right',
+      })
+      .setOrigin(1, 0.5);
+
+    const btnWidth = Math.round(this._hideBtnText.width + 20);
+    const btnHeight = nameFont + 10;
+
+    this._hideBtnBg = scene.add
+      .rectangle(
+        hideBtnRight - btnWidth / 2,
+        hideBtnY,
+        btnWidth,
+        btnHeight,
+        0x1e293b,
+        0.9,
+      )
+      .setStrokeStyle(1.5, 0x38bdf8, 0.7)
+      .setInteractive({ useHandCursor: true });
+
+    this._hideBtnBg.on('pointerover', () => this._hideBtnBg.setFillStyle(0x334155, 0.95));
+    this._hideBtnBg.on('pointerout', () => this._hideBtnBg.setFillStyle(0x1e293b, 0.9));
+    this._hideBtnBg.on('pointerdown', (pointer) => {
+      pointer?.event?.stopPropagation?.();
+      this._toggleHideUi();
+    });
+    this._hideBtnText.setInteractive({ useHandCursor: true });
+    this._hideBtnText.on('pointerdown', (pointer) => {
+      pointer?.event?.stopPropagation?.();
+      this._toggleHideUi();
+    });
+
+    this._container.add(this._hideBtnBg);
+    this._container.add(this._hideBtnText);
 
     // ============================================================
     // DIALOGUE BOX
@@ -970,5 +1031,86 @@ export default class DialogueBox {
     this._buildStaticFrame();
 
     this._renderNode(currentNodeId ?? this._dialogueTree.startNode);
+  }
+
+  // ==============================================================
+  // HIDE / SHOW UI TOGGLE
+  // ==============================================================
+
+  _toggleHideUi() {
+    if (!this.isOpen || !this._container) return;
+
+    this._isUiHidden = !this._isUiHidden;
+
+    if (this._isUiHidden) {
+      this._container.setVisible(false);
+
+      if (!this._hiddenHint) {
+        const bounds = getVisibleBounds(this.scene);
+        const hintY = bounds.bottom - pxToWorld(this.scene, 32);
+        const fontSz = pxToWorld(this.scene, 14);
+
+        this._hiddenHint = this.scene.add
+          .text(
+            bounds.centerX,
+            hintY,
+            '👁 Mode Layar Penuh — Ketuk di mana saja atau tekan [H] untuk menampilkan dialog',
+            {
+              fontFamily: '"Pixelify Sans", monospace',
+              fontSize: `${fontSz}px`,
+              color: '#ffffff',
+              backgroundColor: '#0f172aee',
+              padding: { x: 16, y: 8 },
+            },
+          )
+          .setOrigin(0.5)
+          .setDepth(600)
+          .setScrollFactor(0);
+      } else {
+        this._hiddenHint.setVisible(true);
+      }
+
+      this._restorePointerHandler = () => {
+        if (this._isUiHidden) {
+          this._toggleHideUi();
+        }
+      };
+
+      this.scene.time.delayedCall(120, () => {
+        if (this._isUiHidden && this.isOpen) {
+          this.scene.input.once('pointerdown', this._restorePointerHandler);
+        }
+      });
+    } else {
+      this._container.setVisible(true);
+
+      if (this._hiddenHint) {
+        this._hiddenHint.setVisible(false);
+      }
+
+      if (this._restorePointerHandler) {
+        this.scene.input.off('pointerdown', this._restorePointerHandler);
+        this._restorePointerHandler = null;
+      }
+    }
+  }
+
+  _cleanupHideUi() {
+    this._isUiHidden = false;
+
+    if (this._hiddenHint) {
+      this._hiddenHint.destroy();
+      this._hiddenHint = null;
+    }
+
+    if (this._onKeyH) {
+      this.scene.input.keyboard.off('keydown', this._onKeyH);
+      this._onKeyH = null;
+    }
+
+    if (this._restorePointerHandler) {
+      this.scene.input.off('pointerdown', this._restorePointerHandler);
+      this._restorePointerHandler = null;
+    }
   }
 }

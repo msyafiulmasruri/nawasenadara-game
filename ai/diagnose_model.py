@@ -21,6 +21,11 @@ sama dengan yang dipakai `uvicorn app.main:app` (aktifkan .venv dulu).
 import sys
 import traceback
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 print("=" * 70)
 print("DIAGNOSA MODEL NLP — Nawasena Dara")
 print("=" * 70)

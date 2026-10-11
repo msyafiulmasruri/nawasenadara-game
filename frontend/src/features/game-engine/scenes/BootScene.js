@@ -124,6 +124,17 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ep5-bk-room-cg', '/scenes/ep5-bk-room-cg.jpg');
     this.load.image('ep5-halte-cg', '/scenes/ep5-halte-cg.jpg');
 
+    // Aset khusus Episode 6: Sprite Naya, Potret, Background & Cutscene CG Layar Penuh
+    this.load.image('naya', '/characters/naya.png?v=2');
+    this.load.image('naya-portrait', '/characters/naya-portrait.png?v=2');
+    this.load.image('npc-naya-portrait', '/characters/naya-portrait.png?v=2');
+    this.load.image('episode-6-bg', '/scenes/episode-6-bg.jpg?v=2');
+    this.load.image('episode6-bg', '/scenes/episode-6-bg.jpg?v=2');
+    this.load.image('ep6-corridor-chat-cg', '/scenes/ep6-corridor-chat-cg.jpg');
+    this.load.image('ep6-gate-pressure-cg', '/scenes/ep6-gate-pressure-cg.jpg');
+    this.load.image('ep6-safety-haven-cg', '/scenes/ep6-safety-haven-cg.jpg');
+    this.load.image('ep6-teman-aman-cg', '/scenes/ep6-teman-aman-cg.jpg');
+
     // --- Potret NPC pendukung cerita (config/npcs.js) ---
     // Sama seperti background episode: kalau suatu episode belum punya
     // NPC terdaftar di sana, ya tidak ada apa pun yang di-load untuk

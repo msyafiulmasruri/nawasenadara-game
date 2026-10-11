@@ -67,16 +67,14 @@ export const EPISODES = [
   {
     id: 6,
     title: 'Langkah Berani Bersama',
-    sceneKey: 'StoryEpisodeScene',
+    sceneKey: 'Episode6Scene',
     placeholderColor: 0x1a1a2e,
-    bgKey: 'episode6-bg',
-    // Aset yang semula bernama episode-6-bg.jpeg adalah taman Episode 5.
-    // Episode 6 memakai fallback terarah sampai latar final diunggah.
-    bgImagePath: null,
+    bgKey: 'episode-6-bg',
+    bgImagePath: '/scenes/episode-6-bg.jpg',
     description:
-      'Tekanan di jalan pulang menguji keberanianmu berkata tidak. Cari tempat aman, lapor dengan dukungan, lalu bangun langkah bersama.',
+      'Tekanan di depan gerbang sekolah menguji keberanianmu berkata tidak. Cari tempat aman, lapor dengan dukungan, lalu bangun langkah bersama.',
     objective:
-      'Berlatih menolak dengan tegas, bergerak ke tempat aman, mencatat kejadian, dan melapor bersama pendamping. Pemulihan dan keberanianmu dapat menjadi dukungan bagi teman lain.',
+      'Hampiri Naya di depan gerbang sekolah. Berlatih menolak dengan tegas, bergerak ke tempat aman pos satpam, mencatat kejadian, dan melapor bersama pendamping.',
   },
 ];
 

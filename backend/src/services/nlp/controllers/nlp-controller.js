@@ -68,8 +68,13 @@ export const analyzeReflection = async (req, res, next) => {
 export const classifyEpisodeMood = async (req, res, next) => {
   try {
     const { responses, episode_id: episodeId } = req.validated;
+    // Bersihkan dan gabungkan teks secara alami tanpa prefix buatan seperti "Respons 1:",
+    // karena model IndoBERT dilatih pada kalimat percakapan/refleksi alami.
+    // Format prefix dapat mendistorsi representasi atensi model sehingga kalimat
+    // asertif yang tegas keliru diklasifikasikan sebagai emosi 'marah'.
     const text = responses
-      .map((response, index) => `Respons ${index + 1}: ${response}`)
+      .map((response) => (typeof response === 'string' ? response.trim() : ''))
+      .filter(Boolean)
       .join('\n');
     const { label, confidence, scores } = await NlpClient.analyze(text);
 
