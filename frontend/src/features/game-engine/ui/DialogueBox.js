@@ -93,6 +93,7 @@ export default class DialogueBox {
     npcName,
     speakerNames,
     playerName,
+    cardWidth,
     onClose,
     onNodeChange,
     onDynamicLine,
@@ -109,6 +110,7 @@ export default class DialogueBox {
     // Fallback tetap npcName agar dialog lama tidak perlu diubah.
     this._speakerNames = speakerNames || {};
     this._playerName = playerName || 'Kamu';
+    this._customCardWidth = cardWidth || null;
     this._onClose = onClose;
     this._onNodeChange = onNodeChange;
     this._onDynamicLine = onDynamicLine;
@@ -151,6 +153,7 @@ export default class DialogueBox {
     if (!this.isOpen) return;
 
     this.isOpen = false;
+    this._customCardWidth = null;
 
     // Hentikan loading GenAI kalau masih aktif.
     this._stopLoadingDots();
@@ -198,7 +201,8 @@ export default class DialogueBox {
     const scene = this.scene;
     const bounds = getVisibleBounds(scene);
 
-    const cardWidth = Math.min(bounds.width * 0.92, 640);
+    const baseCardWidth = this._customCardWidth || 640;
+    const cardWidth = Math.min(bounds.width * 0.92, baseCardWidth);
 
     const cardX = bounds.centerX;
 
@@ -714,12 +718,37 @@ export default class DialogueBox {
 
     const btnFont = pxToWorld(scene, 17);
 
-    const btnHeight = pxToWorld(scene, 34);
+    const minBtnHeight = pxToWorld(scene, 36);
+
+    const padY = pxToWorld(scene, 5);
 
     const gap = 8;
 
+    let currentY = this._choicesStartY;
+
     choices.forEach((choice, i) => {
-      const y = this._choicesStartY + i * (btnHeight + gap);
+      // ========================================================
+      // BUTTON TEXT
+      // ========================================================
+
+      const label = scene.add
+        .text(
+          this._cardX - this._cardWidth / 2 + 14,
+          0,
+          `${i + 1}. ${this._substitute(choice.label)}`,
+          {
+            fontFamily: '"Pixelify Sans", monospace',
+            fontSize: `${btnFont}px`,
+            color: '#ffffff',
+            wordWrap: {
+              width: this._cardWidth - 28,
+            },
+            lineSpacing: 2,
+          },
+        );
+
+      // Tinggi tombol diperlebar sedikit ke bawah bila teks terdiri dari 2 baris
+      const btnHeight = Math.max(minBtnHeight, Math.round(label.height + padY * 2));
 
       // ========================================================
       // BUTTON BACKGROUND
@@ -728,7 +757,7 @@ export default class DialogueBox {
       const bg = scene.add
         .rectangle(
           this._cardX,
-          y + btnHeight / 2,
+          currentY + btnHeight / 2,
           this._cardWidth,
           btnHeight,
           0x243b55,
@@ -739,31 +768,8 @@ export default class DialogueBox {
           useHandCursor: true,
         });
 
-      // ========================================================
-      // BUTTON TEXT
-      // ========================================================
-
-      const label = scene.add
-        .text(
-          this._cardX - this._cardWidth / 2 + 14,
-
-          y + btnHeight / 2,
-
-          `${i + 1}. ${this._substitute(choice.label)}`,
-
-          {
-            fontFamily: '"Pixelify Sans", monospace',
-
-            fontSize: `${btnFont}px`,
-
-            color: '#ffffff',
-
-            wordWrap: {
-              width: this._cardWidth - 28,
-            },
-          },
-        )
-        .setOrigin(0, 0.5);
+      label.setY(currentY + btnHeight / 2);
+      label.setOrigin(0, 0.5);
 
       // ========================================================
       // POINTER EVENTS
@@ -781,10 +787,23 @@ export default class DialogueBox {
         this._selectChoice(choice);
       });
 
+      label.setInteractive({ useHandCursor: true });
+      label.on('pointerover', () => bg.setFillStyle(0x2f4d73, 0.95));
+      label.on('pointerout', () => bg.setFillStyle(0x243b55, 0.95));
+      label.on('pointerdown', () => {
+        if (!this._isInputReady()) {
+          return;
+        }
+
+        this._selectChoice(choice);
+      });
+
       this._container.add(bg);
       this._container.add(label);
 
       this._choiceObjects.push(bg, label);
+
+      currentY += btnHeight + gap;
     });
 
     // ============================================================

@@ -55,10 +55,10 @@ export const EPISODES = [
   {
     id: 5,
     title: 'Ketika Sahabat Berubah',
-    sceneKey: 'StoryEpisodeScene',
+    sceneKey: 'Episode5Scene',
     placeholderColor: 0x234238,
-    bgKey: 'episode5-bg',
-    bgImagePath: '/scenes/episode-5-bg.jpeg',
+    bgKey: 'episode-5-bg',
+    bgImagePath: '/scenes/episode-5-bg.jpg',
     description:
       'Kirana berubah pendiam dan cemas. Dengarkan tanpa menghakimi, cek keselamatannya, lalu bantu ia menemui orang tepercaya.',
     objective:

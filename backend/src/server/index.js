@@ -46,6 +46,7 @@ app.use(
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
+  skip: () => process.env.NODE_ENV === 'development',
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -59,6 +60,7 @@ const limiter = rateLimit({
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
+  skip: () => process.env.NODE_ENV === 'development',
   standardHeaders: true,
   legacyHeaders: false,
   message: {
