@@ -514,7 +514,7 @@ export default class Episode2Scene extends BasePlayerScene {
     this._povChatHeight = chatBottomY - chatTopY;
 
     this._povUserTitle = this.add
-      .text(headerTextX, headerTitleY, 'Grup Kelas XI-A', {
+      .text(headerTextX, headerTitleY, 'Grup Kelas XI-5', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '9.5px',
         fontStyle: 'bold',
@@ -522,7 +522,7 @@ export default class Episode2Scene extends BasePlayerScene {
       })
       .setOrigin(0, 0.5);
     this._povStatusText = this.add
-      .text(headerTextX, headerStatusY, '32 anggota • GRUP', {
+      .text(headerTextX, headerStatusY, '32 anggota', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '8px',
         color: '#94a3b8',
@@ -777,7 +777,7 @@ _hideRafiNotification() {
         this._povUserTitle.setText('Rafi');
         this._povUserTitle.x = this._povUserTitleDefaultX;
     }
-    this._povStatusText?.setText('Online • DM').setColor('#4ade80');
+    this._povStatusText?.setText('Online').setColor('#4ade80');
 
     const cleanText = String(text || '').replace(/^"|"$/g, '').trim();
     const { container, height } = this._createPovBubble({
