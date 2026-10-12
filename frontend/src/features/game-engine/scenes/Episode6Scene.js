@@ -27,8 +27,35 @@ export default class Episode6Scene extends BasePlayerScene {
     super('Episode6Scene');
   }
 
+  init(data) {
+    super.init(data);
+    this.episodeId = 6;
+    this._cutsceneContainer = null;
+    this._cutsceneBg = null;
+    this._cutsceneImg = null;
+    this._cutsceneVignette = null;
+    this._cutsceneTitle = null;
+    this._currentCutsceneKey = null;
+  }
+
   create(data) {
+    this._cutsceneContainer = null;
+    this._cutsceneBg = null;
+    this._cutsceneImg = null;
+    this._cutsceneVignette = null;
+    this._cutsceneTitle = null;
+    this._currentCutsceneKey = null;
+
     super.create(data);
+
+    this.events.once('shutdown', () => {
+      this._cutsceneContainer = null;
+      this._cutsceneBg = null;
+      this._cutsceneImg = null;
+      this._cutsceneVignette = null;
+      this._cutsceneTitle = null;
+      this._currentCutsceneKey = null;
+    });
 
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
@@ -221,7 +248,7 @@ export default class Episode6Scene extends BasePlayerScene {
 
   updateQuestGuide() {
     if (this.npcTalked) {
-      this.clearQuestGuide();
+      this.setQuestGuide('○ ── Melangkah melewati gerbang untuk menuntaskan perjalanan ──');
     } else {
       this.setQuestGuide(`○ ── Temui ${this.npcConfig?.name || 'Naya'} di depan gerbang sekolah ──`);
     }
@@ -255,6 +282,10 @@ export default class Episode6Scene extends BasePlayerScene {
       dialogueTree: buildEpisode6RevisitDialogue(),
       npcPortraitKey: this.npcConfig.portraitKey,
       npcName: this.npcConfig.name,
+      speakerNames: {
+        naya: 'Naya',
+        senior: 'Senior',
+      },
       playerName: getCharacterName(),
       cardWidth: 710,
       onNodeChange: (node) => {
@@ -292,18 +323,30 @@ export default class Episode6Scene extends BasePlayerScene {
       dialogueTree: EPISODE6_DIALOGUE,
       npcPortraitKey: this.npcConfig.portraitKey,
       npcName: this.npcConfig.name,
+      speakerNames: {
+        naya: 'Naya',
+        senior: 'Senior',
+      },
       playerName: getCharacterName(),
       cardWidth: 710,
       onNodeChange: (node) => {
         this._updateCutsceneForNode(node);
-        // Sinkronisasi alur cerita: Naya kembali masuk ke dalam gedung saat Babak 2
-        if (node.id === 'n2' || node.id.startsWith('n2_') || node.id === 'n3') {
+        // Sinkronisasi alur cerita: Naya kembali masuk ke gedung di Babak 2 saat Dara sendirian
+        if (
+          node.id === 'n2' ||
+          node.id.startsWith('n2_') ||
+          node.id === 'n3' ||
+          (node.id.startsWith('n4') && !node.id.startsWith('n4_rescue') && !node.id.startsWith('n4_senior_flee'))
+        ) {
           this.npcSprite?.setVisible(false);
           this.npcPrompt?.setVisible(false);
+        } else {
+          this.npcSprite?.setVisible(true);
         }
       },
       onClose: async (collectedChoices) => {
         this._hideCutscene();
+        this.npcSprite?.setVisible(true);
         this.npcTalked = true;
         this.npcChoices = collectedChoices;
 
@@ -320,25 +363,9 @@ export default class Episode6Scene extends BasePlayerScene {
           });
         }
 
-        // Transisi pamungkas otomatis ke Ending Scene sebagai penutup 6 episode
-        this.finished = true;
-        this.uiInputLocked = true;
-        this.player?.setVelocity(0, 0);
-        this.player?.anims.stop();
-
-        this.tweens.add({
-          targets: this.player,
-          alpha: 0,
-          duration: 300,
-          ease: 'Sine.easeOut',
-          onComplete: () => {
-            this.scene.start('EpisodeEndingScene', {
-              episodeId: 6,
-              isLastEpisode: true,
-              choices: collectedChoices || [],
-            });
-          },
-        });
+        this.npcInDialogue = false;
+        this.uiInputLocked = false;
+        this._npcInteractCooldownUntil = this.time.now + 400;
       },
     });
   }
@@ -354,75 +381,51 @@ export default class Episode6Scene extends BasePlayerScene {
 
     const id = node.id;
 
-    // Babak 1: Kilas Sore (Obrolan Santai & Hangat Sepulang Ekskul Bersama Naya)
+    // Babak 1: Kilas Sore (Obrolan Santai & Hangat Sepulang Ekskul Bersama Naya di Depan Mading)
     if (
       id === 'n1' ||
-      id === 'n1_banter1' ||
-      id === 'n1_dara_reply1' ||
-      id === 'n1_banter2' ||
-      id === 'n1_dara_reply2' ||
-      id === 'n1_banter3' ||
-      id === 'n_chat_icebreak' ||
-      id.startsWith('n1_res_') ||
-      id === 'n1_keys_notice' ||
-      id === 'n1_dara_wait' ||
-      id === 'n1_naya_instruct' ||
-      id === 'n1_corridor_end'
+      id.startsWith('n1_') ||
+      id === 'n_chat_icebreak'
     ) {
       this._showCutscene(
         'ep6-corridor-chat-cg',
-        '✦ Kilas Sore: Obrolan Hangat Sepulang Ekskul Bersama Naya ✦'
+        '✦ Babak 1: Obrolan Hangat di Koridor Mading Lantai Dua ✦'
       );
     }
     // Babak 2: Halaman Dekat Gerbang Sekolah (Tekanan Senior & Batasan Asertif)
     else if (
       id === 'n2' ||
-      id === 'n2_senior_entry' ||
-      id === 'n2_senior_talk' ||
-      id === 'n2_senior_insist' ||
+      id.startsWith('n2_') ||
       id === 'n3' ||
-      id === 'n4a' ||
-      id === 'n4b' ||
-      id === 'n4c' ||
-      id === 'n4d'
+      (id.startsWith('n4') && !id.startsWith('n4_rescue') && !id.startsWith('n4_senior_flee'))
     ) {
       this._showCutscene(
         'ep6-gate-pressure-cg',
-        '✦ Gerbang Depan Sekolah: Menghadapi Tekanan & Batasan Asertif ✦'
+        '✦ Babak 2: Gerbang Depan Sekolah — Batasan Asertif "Ini Batasan Saya!" ✦'
       );
     }
     // Babak 3 & 4: Pos Satpam (Perlindungan Aman & Perencanaan Bersama)
     else if (
+      id === 'n4_rescue_narr' ||
       id === 'n4_rescue_shout' ||
       id === 'n4_senior_flee' ||
-      id === 'n5_haven_arrival' ||
-      id === 'n5' ||
-      id === 'n5_grounding_complete' ||
-      id === 'n5_validation' ||
+      id.startsWith('n5') ||
       id === 'n6' ||
-      id === 'n7a' ||
-      id === 'n7b' ||
-      id === 'n7c' ||
-      id === 'n7d'
+      id.startsWith('n7')
     ) {
       this._showCutscene(
         'ep6-safety-haven-cg',
-        '✦ Pos Satpam: Ruang Aman, Menenangkan Diri & Rencana Melapor ✦'
+        '✦ Babak 3 & 4: Pos Satpam SMA Negeri 1 — Ruang Aman & Rencana Perlindungan ✦'
       );
     }
     // Babak 5: Aula Sekolah (Puncak Epik: Deklarasi "Teman Aman")
     else if (
-      id === 'n8_transition' ||
-      id === 'n8_movement_born' ||
-      id === 'n8_hall_ceremony' ||
-      id === 'n8_naya_proud' ||
-      id === 'n8_epilogue' ||
-      id === 'n8_final' ||
+      id.startsWith('n8_') ||
       id.startsWith('rev_')
     ) {
       this._showCutscene(
         'ep6-teman-aman-cg',
-        '✦ Aula Sekolah: Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
+        '✦ Babak 5: Aula SMA Negeri 1 — Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
       );
     } else {
       this._hideCutscene();
@@ -438,7 +441,21 @@ export default class Episode6Scene extends BasePlayerScene {
     const centerX = bounds.centerX;
     const centerY = bounds.centerY;
 
-    if (!this._cutsceneContainer) {
+    // Pastikan container & komponennya masih aktif di scene ini dan belum di-destroy
+    const needsNewContainer =
+      !this._cutsceneContainer ||
+      !this._cutsceneContainer.scene ||
+      !this._cutsceneBg ||
+      !this._cutsceneBg.scene ||
+      !this._cutsceneBg.geom;
+
+    if (needsNewContainer) {
+      if (this._cutsceneContainer) {
+        try {
+          this._cutsceneContainer.destroy();
+        } catch (_) {}
+      }
+
       // Depth 100 agar berada di atas world gameplay (background, NPC, player),
       // namun di bawah DialogueBox (depth 500) & HUD jeda.
       this._cutsceneContainer = this.add.container(0, 0).setDepth(100).setScrollFactor(0);
@@ -478,15 +495,25 @@ export default class Episode6Scene extends BasePlayerScene {
     }
 
     // Posisikan dan sesuaikan ukuran ke layar penuh (cover full screen)
-    this._cutsceneBg.setPosition(centerX, centerY);
-    this._cutsceneBg.setSize(bounds.width * 1.3, bounds.height * 1.3);
+    if (this._cutsceneBg?.setPosition) {
+      this._cutsceneBg.setPosition(centerX, centerY);
+      if (this._cutsceneBg.geom) {
+        this._cutsceneBg.setSize(bounds.width * 1.3, bounds.height * 1.3);
+      }
+    }
 
-    this._cutsceneVignette.setPosition(centerX, centerY);
-    this._cutsceneVignette.setSize(bounds.width * 1.3, bounds.height * 1.3);
+    if (this._cutsceneVignette?.setPosition) {
+      this._cutsceneVignette.setPosition(centerX, centerY);
+      if (this._cutsceneVignette.geom) {
+        this._cutsceneVignette.setSize(bounds.width * 1.3, bounds.height * 1.3);
+      }
+    }
 
-    this._cutsceneTitle.setText(titleText || '');
-    this._cutsceneTitle.setFontSize(`${pxToWorld(this, 14)}px`);
-    this._cutsceneTitle.setPosition(centerX, bounds.top + pxToWorld(this, 22));
+    if (this._cutsceneTitle) {
+      this._cutsceneTitle.setText(titleText || '');
+      this._cutsceneTitle.setFontSize(`${pxToWorld(this, 14)}px`);
+      this._cutsceneTitle.setPosition(centerX, bounds.top + pxToWorld(this, 22));
+    }
 
     if (
       this._currentCutsceneKey === textureKey &&
@@ -542,7 +569,7 @@ export default class Episode6Scene extends BasePlayerScene {
 
   _hideCutscene() {
     this._currentCutsceneKey = null;
-    if (!this._cutsceneContainer || !this._cutsceneContainer.visible) return;
+    if (!this._cutsceneContainer || !this._cutsceneContainer.scene || !this._cutsceneContainer.visible) return;
     this.tweens.killTweensOf(this._cutsceneContainer);
     this.tweens.add({
       targets: this._cutsceneContainer,

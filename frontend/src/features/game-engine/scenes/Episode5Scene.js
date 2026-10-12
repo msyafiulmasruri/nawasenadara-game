@@ -27,8 +27,35 @@ export default class Episode5Scene extends BasePlayerScene {
     super('Episode5Scene');
   }
 
+  init(data) {
+    super.init(data);
+    this.episodeId = 5;
+    this._cutsceneContainer = null;
+    this._cutsceneBg = null;
+    this._cutsceneImg = null;
+    this._cutsceneVignette = null;
+    this._cutsceneTitle = null;
+    this._currentCutsceneKey = null;
+  }
+
   create(data) {
+    this._cutsceneContainer = null;
+    this._cutsceneBg = null;
+    this._cutsceneImg = null;
+    this._cutsceneVignette = null;
+    this._cutsceneTitle = null;
+    this._currentCutsceneKey = null;
+
     super.create(data);
+
+    this.events.once('shutdown', () => {
+      this._cutsceneContainer = null;
+      this._cutsceneBg = null;
+      this._cutsceneImg = null;
+      this._cutsceneVignette = null;
+      this._cutsceneTitle = null;
+      this._currentCutsceneKey = null;
+    });
 
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
@@ -319,6 +346,7 @@ export default class Episode5Scene extends BasePlayerScene {
     // Babak 1: Bangku Taman Sekolah (Obrolan santai, sapaan awal, & berbagi minuman)
     if (
       id === 'n1' ||
+      id === 'n1_approach' ||
       id === 'n1b' ||
       id === 'n1c' ||
       id === 'n_icebreak' ||
@@ -341,6 +369,7 @@ export default class Episode5Scene extends BasePlayerScene {
       id === 'n2_threat' ||
       id === 'n_threat' ||
       id.startsWith('n_threat_res') ||
+      id === 'n3_memory_narr' ||
       id === 'n3_memory_intro' ||
       id === 'n5' ||
       id === 'n2_whisper_intro' ||
@@ -355,6 +384,7 @@ export default class Episode5Scene extends BasePlayerScene {
     // Babak 3: Flashback Memori Perpustakaan & Pengakuan Curahan Hati
     else if (
       id === 'n3_memory' ||
+      id === 'n3_confession_narr' ||
       id === 'n3_confession' ||
       id === 'n_confession' ||
       id.startsWith('n_confession_res') ||
@@ -371,6 +401,7 @@ export default class Episode5Scene extends BasePlayerScene {
     // Babak 4: Ruang Bimbingan Konseling / Ruang BK bersama Bu Ratih
     else if (
       id === 'n4_bell' ||
+      id === 'n4_kirana_plea' ||
       id === 'n4_bk_intro' ||
       id === 'n_action' ||
       id.startsWith('n_action_res') ||
@@ -386,8 +417,10 @@ export default class Episode5Scene extends BasePlayerScene {
     // Babak 5: Halte Bus Senja (Puncak kehangatan persahabatan di ujung sore)
     else if (
       id === 'n5_halte' ||
+      id === 'n5_halte_narr' ||
       id === 'n5_outro' ||
       id === 'n5_halte_neutral' ||
+      id === 'n5_halte_neutral_narr' ||
       id === 'n5_outro_neutral' ||
       id === 'n5_outro_confront' ||
       id === 'n5_outro_passive' ||
@@ -412,7 +445,21 @@ export default class Episode5Scene extends BasePlayerScene {
     const bounds = getVisibleBounds(this);
     const { width, height } = this.scale;
 
-    if (!this._cutsceneContainer) {
+    // Pastikan container & komponennya masih aktif di scene ini dan belum di-destroy
+    const needsNewContainer =
+      !this._cutsceneContainer ||
+      !this._cutsceneContainer.scene ||
+      !this._cutsceneBg ||
+      !this._cutsceneBg.scene ||
+      !this._cutsceneBg.geom;
+
+    if (needsNewContainer) {
+      if (this._cutsceneContainer) {
+        try {
+          this._cutsceneContainer.destroy();
+        } catch (_) {}
+      }
+
       // Depth 100 agar berada di atas world gameplay (background, NPC, player),
       // namun di bawah DialogueBox (depth 500) & HUD jeda.
       this._cutsceneContainer = this.add.container(0, 0).setDepth(100).setScrollFactor(0);
@@ -452,15 +499,25 @@ export default class Episode5Scene extends BasePlayerScene {
     }
 
     // Posisikan dan sesuaikan ukuran ke layar penuh (cover full screen)
-    this._cutsceneBg.setPosition(bounds.centerX, bounds.centerY);
-    this._cutsceneBg.setSize(bounds.width * 1.3, bounds.height * 1.3);
+    if (this._cutsceneBg?.setPosition) {
+      this._cutsceneBg.setPosition(bounds.centerX, bounds.centerY);
+      if (this._cutsceneBg.geom) {
+        this._cutsceneBg.setSize(bounds.width * 1.3, bounds.height * 1.3);
+      }
+    }
 
-    this._cutsceneVignette.setPosition(bounds.centerX, bounds.centerY);
-    this._cutsceneVignette.setSize(bounds.width * 1.3, bounds.height * 1.3);
+    if (this._cutsceneVignette?.setPosition) {
+      this._cutsceneVignette.setPosition(bounds.centerX, bounds.centerY);
+      if (this._cutsceneVignette.geom) {
+        this._cutsceneVignette.setSize(bounds.width * 1.3, bounds.height * 1.3);
+      }
+    }
 
-    this._cutsceneTitle.setText(titleText || '');
-    this._cutsceneTitle.setFontSize(`${pxToWorld(this, 14)}px`);
-    this._cutsceneTitle.setPosition(bounds.centerX, bounds.top + pxToWorld(this, 22));
+    if (this._cutsceneTitle) {
+      this._cutsceneTitle.setText(titleText || '');
+      this._cutsceneTitle.setFontSize(`${pxToWorld(this, 14)}px`);
+      this._cutsceneTitle.setPosition(bounds.centerX, bounds.top + pxToWorld(this, 22));
+    }
 
     // Jika adegan yang diminta sama persis dengan yang sedang aktif, pertahankan tampilan tanpa flicker
     if (
@@ -517,7 +574,7 @@ export default class Episode5Scene extends BasePlayerScene {
 
   _hideCutscene() {
     this._currentCutsceneKey = null;
-    if (!this._cutsceneContainer || !this._cutsceneContainer.visible) return;
+    if (!this._cutsceneContainer || !this._cutsceneContainer.scene || !this._cutsceneContainer.visible) return;
     this.tweens.killTweensOf(this._cutsceneContainer);
     this.tweens.add({
       targets: this._cutsceneContainer,

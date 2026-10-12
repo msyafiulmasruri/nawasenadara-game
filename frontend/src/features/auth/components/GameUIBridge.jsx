@@ -141,20 +141,20 @@ export default function GameUIBridge() {
     const nlp = window.__nawasenadaraNlp;
     let hasHistory = false;
     let loadedSessionId = null;
+    let loadedActiveMessages = [];
     if (nlp?.getActiveSession) {
       try {
         const active = await nlp.getActiveSession();
         if (active?.session_id && active.messages?.length) {
           hasHistory = true;
           loadedSessionId = active.session_id;
+          loadedActiveMessages = active.messages.map((m) => ({ role: m.role, content: m.content }));
           setChat((current) =>
             current?.open
               ? { ...current, sessionId: active.session_id, episodeId, triggerSource }
               : current,
           );
-          setChatMessages(
-            active.messages.map((m) => ({ role: m.role, content: m.content })),
-          );
+          setChatMessages(loadedActiveMessages);
         }
       } catch (err) {
         // Gagal muat riwayat BUKAN alasan untuk gagal buka chatbot —
@@ -179,18 +179,17 @@ export default function GameUIBridge() {
       return;
     }
 
-    // Kak Dara "sudah tahu" isi obrolan pemain dengan NPC episode ini —
-    // begitu chatbot dibuka DAN belum ada riwayat sesi aktif, ringkasan
-    // otomatis (`autoContext`, dibangun dari pilihan dialog pemain,
-    // lihat Episode1Scene.getCounselingAutoContext()) dikirim SENDIRI
-    // sebagai giliran pertama ke /api/nlp/counseling — pemain tidak
-    // perlu mengetik ulang ceritanya dari nol, jendela chat langsung
-    // terbuka dengan balasan Kak Dara yang sudah kontekstual. Kalau
-    // memang sudah ada riwayat (hasHistory true), lewati bagian ini
-    // supaya tidak mengirim ringkasan yang sama berkali-kali tiap kali
-    // jendela dibuka-tutup dalam window sesi yang sama.
-    if (!hasHistory && autoContext) {
-      setChatMessages([{ role: 'user', content: autoContext }]);
+    // Kak Dara "sudah tahu" isi obrolan pemain atau hasil jurnal episode ini —
+    // jika autoContext belum pernah dikirim dalam riwayat sesi aktif, kirimkan
+    // secara otomatis agar pemain tidak perlu mengetik ulang dari nol dan
+    // Kak Dara langsung merespons secara empatik dan kontekstual.
+    // Jika ringkasan ini sudah pernah dikirim sebelumnya (mis. pemain menutup
+    // lalu membuka lagi jendela chat pada episode yang sama), lewati agar tidak dobel.
+    const contextAlreadySent = hasHistory && loadedActiveMessages.some((m) => m.content === autoContext);
+    const shouldSendAutoContext = autoContext && (!hasHistory || !contextAlreadySent);
+
+    if (shouldSendAutoContext) {
+      setChatMessages((prev) => [...prev, { role: 'user', content: autoContext }]);
       setChatSending(true);
       try {
         const result = await nlp.sendCounselingMessage({
@@ -218,16 +217,31 @@ export default function GameUIBridge() {
     }
   }, []);
 
-  const closeChatbot = useCallback(() => {
-    // Pada alur penutupan episode, tombol lanjut di dalam chat adalah
-    // satu-satunya jalan keluar. Ini mencegah Promise scene menggantung
-    // bila ikon chat atau tombol tutup ditekan lebih dulu.
-    if (pendingEpisodeCompletionRef.current) return;
+  const continueToNextEpisode = useCallback(() => {
+    const pending = pendingEpisodeCompletionRef.current;
+    if (!pending) return;
+
+    pendingEpisodeCompletionRef.current = null;
+    setPendingEpisodeCompletion(null);
     setChat(null);
     setChatMessages([]);
     setChatInput('');
     setChatMaximized(false);
+    pending.resolve(true);
   }, []);
+
+  const closeChatbot = useCallback(() => {
+    // Bila obrolan Kak Dara terbuka saat penutupan episode, menutup chat
+    // secara aman juga menyelesaikan penutupan dan lanjut ke episode berikutnya
+    if (pendingEpisodeCompletionRef.current) {
+      continueToNextEpisode();
+      return;
+    }
+    setChat(null);
+    setChatMessages([]);
+    setChatInput('');
+    setChatMaximized(false);
+  }, [continueToNextEpisode]);
 
   // Dipakai tombol ikon chat di Phaser (BasePlayerScene.createChatButton)
   // untuk memutuskan: tap berikutnya harus MEMBUKA atau MENUTUP jendela
@@ -359,18 +373,6 @@ export default function GameUIBridge() {
     ctx?.resolve(false);
   };
 
-  const continueToNextEpisode = () => {
-    const pending = pendingEpisodeCompletionRef.current;
-    if (!pending) return;
-
-    pendingEpisodeCompletionRef.current = null;
-    setPendingEpisodeCompletion(null);
-    setChat(null);
-    setChatMessages([]);
-    setChatInput('');
-    setChatMaximized(false);
-    pending.resolve(true);
-  };
 
   useEffect(() => {
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight });
@@ -411,6 +413,7 @@ export default function GameUIBridge() {
   // ditambahkan pada sesi development yang masih berjalan.
   const anyOverlayOpen =
     Boolean(journal) ||
+    Boolean(journalResultNote) ||
     Boolean(chat?.open) ||
     Boolean(namePrompt) ||
     Boolean(counselOffer) ||
@@ -418,6 +421,7 @@ export default function GameUIBridge() {
   const onlyChatOpen =
     Boolean(chat?.open) &&
     !journal &&
+    !journalResultNote &&
     !namePrompt &&
     !counselOffer &&
     !feedback &&
@@ -485,13 +489,32 @@ export default function GameUIBridge() {
 
   const dismissJournalNote = (openCounseling) => {
     const result = journalResultNote;
+    const activeJournal = journal;
+    const userReflection = journalText.trim();
     setJournalResultNote(null);
-    if (journal) {
-      journal.resolve(result);
-      setJournal(null);
-    }
+    setJournal(null);
+    setJournalText('');
+
     if (openCounseling) {
-      openChatbot({ triggerSource: 'reflection_flag', episodeId: journal?.episodeId });
+      // TAHAN penyelesaian episode: simpan resolver di pendingEpisodeCompletionRef
+      // agar Phaser scene TIDAK langsung berpindah ke episode selanjutnya di background!
+      pendingEpisodeCompletionRef.current = {
+        episodeId: activeJournal?.episodeId,
+        resolve: () => activeJournal?.resolve(result),
+      };
+      setPendingEpisodeCompletion({ episodeId: activeJournal?.episodeId });
+
+      const autoContext = userReflection
+        ? `Aku baru saja menyelesaikan episode ${activeJournal?.episodeId ?? ''} dan curhat di jurnal refleksi: "${userReflection}". Aku butuh teman cerita dari Kak Dara.`
+        : `Aku baru saja menyelesaikan episode ${activeJournal?.episodeId ?? ''} dan mengisi jurnal refleksi. Perasaanku sedang membutuhkan teman cerita dan dukungan emosional dari Kak Dara.`;
+
+      openChatbot({
+        triggerSource: 'reflection_flag',
+        episodeId: activeJournal?.episodeId,
+        autoContext,
+      });
+    } else {
+      activeJournal?.resolve(result);
     }
   };
 
@@ -711,70 +734,74 @@ export default function GameUIBridge() {
         </div>
       ) : null}
 
-      {journal ? (
+      {journalResultNote ? (
+        <div style={styles.overlay}>
+          <div style={styles.supportiveCard} role="dialog" aria-modal="true" aria-labelledby="supportive-dialog-title">
+            <div style={styles.supportiveBadge}>
+              <span style={{ fontSize: 18 }}>🌸</span>
+              <span>Ruang Cerita Kak Dara</span>
+            </div>
+            <h2 id="supportive-dialog-title" style={styles.supportiveTitle}>
+              Sepertinya Kamu Sedang Merasa Berat atau Prihatin
+            </h2>
+            <p style={styles.supportiveBody}>
+              Dari tulisan refleksimu, tampaknya ada hal yang cukup mengganjal di perasaan atau pikiranmu setelah kejadian tadi.
+              Kamu tidak harus menghadapinya sendirian. Kak Dara ada di sini untuk mendengarkan ceritamu dengan tenang, aman, dan tanpa menghakimi.
+            </p>
+            <div style={styles.actionRow}>
+              <button
+                type="button"
+                style={styles.secondaryBtn}
+                onClick={() => dismissJournalNote(false)}
+              >
+                Lewati & Lanjut Episode ➔
+              </button>
+              <button
+                type="button"
+                style={styles.supportivePrimaryBtn}
+                onClick={() => dismissJournalNote(true)}
+              >
+                💬 Ngobrol Bareng Kak Dara
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : journal ? (
         <div style={styles.overlay}>
           <div style={styles.journalCard}>
-            {journalResultNote ? (
-              <>
-                <h2 style={styles.title}>Sepertinya kamu sedang tidak baik-baik saja</h2>
-                <p style={styles.bodyText}>
-                  Boleh kok kalau kamu belum mau cerita lebih lanjut. Tapi kalau kamu ingin, Kak
-                  Dara selalu ada untuk diajak bicara — kapan pun kamu siap.
-                </p>
-                <div style={styles.actionRow}>
-                  <button
-                    type="button"
-                    style={styles.secondaryBtn}
-                    onClick={() => dismissJournalNote(false)}
-                  >
-                    Lanjut Main Dulu
-                  </button>
-                  <button
-                    type="button"
-                    style={styles.primaryBtn}
-                    onClick={() => dismissJournalNote(true)}
-                  >
-                    Ngobrol dengan Kak Dara
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 style={styles.title}>Jurnal Refleksi</h2>
-                <p style={styles.bodyText}>
-                  Sebelum lanjut ke episode berikutnya, tuliskan sejenak apa yang kamu rasakan
-                  atau pikirkan setelah kejadian barusan. Tidak ada jawaban benar atau salah.
-                </p>
-                <textarea
-                  style={styles.textarea}
-                  value={journalText}
-                  onChange={(e) => setJournalText(e.target.value)}
-                  placeholder="Tulis di sini…"
+            <h2 style={styles.title}>Jurnal Refleksi</h2>
+            <p style={styles.bodyText}>
+              Sebelum lanjut ke episode berikutnya, tuliskan sejenak apa yang kamu rasakan
+              atau pikirkan setelah kejadian barusan. Tidak ada jawaban benar atau salah.
+            </p>
+            <textarea
+              style={styles.textarea}
+              value={journalText}
+              onChange={(e) => setJournalText(e.target.value)}
+              placeholder="Tulis di sini…"
+              disabled={journalSubmitting}
+              autoFocus
+            />
+            <div style={styles.actionRow}>
+              {journal.allowSkip ? (
+                <button
+                  type="button"
+                  style={styles.secondaryBtn}
                   disabled={journalSubmitting}
-                  autoFocus
-                />
-                <div style={styles.actionRow}>
-                  {journal.allowSkip ? (
-                    <button
-                      type="button"
-                      style={styles.secondaryBtn}
-                      disabled={journalSubmitting}
-                      onClick={skipJournal}
-                    >
-                      Lewati
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    style={styles.primaryBtn}
-                    disabled={journalSubmitting || !journalText.trim()}
-                    onClick={submitJournal}
-                  >
-                    {journalSubmitting ? 'Mengirim…' : 'Selesai & Lanjutkan'}
-                  </button>
-                </div>
-              </>
-            )}
+                  onClick={skipJournal}
+                >
+                  Lewati
+                </button>
+              ) : null}
+              <button
+                type="button"
+                style={styles.primaryBtn}
+                disabled={journalSubmitting || !journalText.trim()}
+                onClick={submitJournal}
+              >
+                {journalSubmitting ? 'Mengirim…' : 'Selesai & Lanjutkan'}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -900,18 +927,22 @@ export default function GameUIBridge() {
                 >
                   {chatMaximized ? '❐' : '⛶'}
                 </button>
-                {!pendingEpisodeCompletion ? (
-                  <button
-                    type="button"
-                    style={styles.closeBtn}
-                    onClick={closeChatbot}
-                    aria-label="Tutup chat"
-                  >
-                    ✕
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  style={styles.closeBtn}
+                  onClick={closeChatbot}
+                  aria-label="Tutup chat"
+                  title="Tutup chat"
+                >
+                  ✕
+                </button>
               </div>
             </div>
+            {pendingEpisodeCompletion ? (
+              <div style={styles.chatPendingNotice}>
+                🌸 Episode dijeda sementara. Selesai mengobrol, klik tombol di bawah untuk lanjut.
+              </div>
+            ) : null}
             <div style={styles.chatMessages} ref={chatScrollRef}>
               {chatMessages.length === 0 ? (
                 <p style={styles.chatEmpty}>
@@ -968,7 +999,7 @@ export default function GameUIBridge() {
                   style={styles.episodeContinueBtn}
                   onClick={continueToNextEpisode}
                 >
-                  Lanjut ke Episode Selanjutnya
+                  Lanjut ke Episode Selanjutnya ➔
                 </button>
               </div>
             ) : null}
@@ -989,6 +1020,65 @@ const styles = {
     justifyContent: 'center',
     zIndex: 200,
     padding: 16,
+  },
+  supportiveCard: {
+    width: '100%',
+    maxWidth: 480,
+    background: '#1a1a2e',
+    border: '2px solid rgba(255, 107, 107, 0.55)',
+    borderRadius: 16,
+    padding: '24px 22px',
+    fontFamily: "'Pixelify Sans', monospace",
+    color: '#fff',
+    boxSizing: 'border-box',
+    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 107, 107, 0.15)',
+  },
+  supportiveBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: 'rgba(255, 107, 107, 0.15)',
+    color: '#ff9494',
+    border: '1px solid rgba(255, 107, 107, 0.35)',
+    borderRadius: 20,
+    padding: '4px 12px',
+    fontSize: 14,
+    fontWeight: 600,
+    marginBottom: 14,
+  },
+  supportiveTitle: {
+    fontFamily: "'Jersey 15', monospace",
+    color: '#ffdd57',
+    fontSize: 25,
+    margin: '0 0 10px',
+    lineHeight: 1.25,
+  },
+  supportiveBody: {
+    fontSize: 16,
+    lineHeight: 1.6,
+    color: '#e2e8f0',
+    margin: '0 0 20px',
+  },
+  supportivePrimaryBtn: {
+    background: '#ff6b6b',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: 8,
+    padding: '10px 18px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    boxShadow: '0 4px 14px rgba(255, 107, 107, 0.4)',
+  },
+  chatPendingNotice: {
+    padding: '8px 12px',
+    background: 'rgba(255, 221, 87, 0.15)',
+    color: '#ffdd57',
+    fontSize: 13,
+    borderBottom: '1px solid rgba(255, 221, 87, 0.25)',
+    textAlign: 'center',
+    lineHeight: 1.4,
   },
   journalCard: {
     width: '100%',

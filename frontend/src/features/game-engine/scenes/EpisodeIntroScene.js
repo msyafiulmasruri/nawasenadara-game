@@ -97,16 +97,14 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     // mengonversi ukuran CSS px FISIK yang diinginkan (konsisten di
     // semua perangkat) ke world-unit yang sesuai skala ENVELOP saat
     // ini — sama seperti yang sudah dipakai untuk tombol sentuh.
-    const episodeLabelFont = pxToWorld(this, 40);
-    const episodeTitleFont = pxToWorld(this, 30);
-    // Sinopsis sengaja dibuat lebih besar daripada versi awal agar tetap
-    // nyaman dibaca remaja di layar ponsel. Teksnya sudah diperingkas di
-    // config/episodes.js sehingga kenaikan ukuran tidak membuat layar padat.
-    const episodeDescFont = pxToWorld(this, 27);
-    const promptFont = pxToWorld(this, 20);
+    const episodeLabelFont = pxToWorld(this, 46);
+    const episodeTitleFont = pxToWorld(this, 36);
+    // Sinopsis diperbesar secara nyaman agar sangat mudah dibaca sebelum masuk ke game
+    const episodeDescFont = pxToWorld(this, 34);
+    const promptFont = pxToWorld(this, 22);
 
     this.episodeLabel = this.add
-      .text(width / 2, height * 0.32, `EPISODE ${this.episodeId}`, {
+      .text(width / 2, height * 0.28, `EPISODE ${this.episodeId}`, {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${episodeLabelFont}px`,
         color: '#ffdd57',
@@ -114,32 +112,26 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
 
-    // wordWrap WAJIB di sini — episodeTitle diisi dari data episode
-    // (judulnya bervariasi panjangnya, mis. "Rahasia di Grup Kelas"),
-    // sebelumnya TIDAK ADA wordWrap sama sekali di teks ini, jadi judul
-    // yang lebih panjang dari lebar dunia portrait yang sempit pasti
-    // meluber/ke-crop di kedua sisi. Ini penyebab utama keluhan "teks
-    // kepotong saat portrait".
     this.episodeTitle = this.add
-      .text(width / 2, height * 0.32 + 46, this.episodeData?.title ?? '', {
+      .text(width / 2, height * 0.28 + 48, this.episodeData?.title ?? '', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${episodeTitleFont}px`,
         fontStyle: '600',
         color: '#ffffff',
         align: 'center',
-        wordWrap: { width: bounds0.width * 0.85 },
+        wordWrap: { width: bounds0.width * 0.88 },
       })
       .setOrigin(0.5)
       .setDepth(2);
 
     this.episodeDesc = this.add
-      .text(width / 2, height * 0.55, '', {
+      .text(width / 2, height * 0.54, '', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${episodeDescFont}px`,
-        color: '#dddddd',
+        color: '#f1f5f9',
         align: 'center',
-        wordWrap: { width: bounds0.width * 0.85 },
-        lineSpacing: 8,
+        wordWrap: { width: bounds0.width * 0.88 },
+        lineSpacing: 12,
       })
       .setOrigin(0.5)
       .setDepth(2);
@@ -260,26 +252,22 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     this.bgRect?.setSize(width, height);
 
     const bounds = getVisibleBounds(this);
-    const baseY = bounds.top + bounds.height * 0.32;
+    const baseY = bounds.top + bounds.height * 0.28;
 
-    // Ukuran font DIHITUNG ULANG tiap resize (bukan cuma posisi) —
-    // supaya transisi non-fullscreen <-> fullscreen (yang mengubah
-    // skala ENVELOP secara signifikan) tetap menghasilkan ukuran teks
-    // yang proporsional & tidak meluber, bukan cuma dipindah posisinya
-    // saja dengan ukuran font basi dari render sebelumnya.
-    this.episodeLabel?.setFontSize(pxToWorld(this, 40));
+    this.episodeLabel?.setFontSize(pxToWorld(this, 46));
     this.episodeLabel?.setPosition(bounds.centerX, baseY);
 
-    this.episodeTitle?.setFontSize(pxToWorld(this, 30));
-    this.episodeTitle?.setPosition(bounds.centerX, baseY + 46);
-    this.episodeTitle?.setWordWrapWidth(bounds.width * 0.85);
+    this.episodeTitle?.setFontSize(pxToWorld(this, 36));
+    this.episodeTitle?.setPosition(bounds.centerX, baseY + 48);
+    this.episodeTitle?.setWordWrapWidth(bounds.width * 0.88);
 
-    this.episodeDesc?.setFontSize(pxToWorld(this, 27));
-    this.episodeDesc?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.55);
-    this.episodeDesc?.setWordWrapWidth(bounds.width * 0.85);
+    this.episodeDesc?.setFontSize(pxToWorld(this, 34));
+    this.episodeDesc?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.54);
+    this.episodeDesc?.setWordWrapWidth(bounds.width * 0.88);
+    this.episodeDesc?.setLineSpacing(12);
 
-    this.promptText?.setFontSize(pxToWorld(this, 20));
+    this.promptText?.setFontSize(pxToWorld(this, 22));
     this.promptText?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.85);
-    this.promptText?.setWordWrapWidth(bounds.width * 0.85);
+    this.promptText?.setWordWrapWidth(bounds.width * 0.88);
   }
 }

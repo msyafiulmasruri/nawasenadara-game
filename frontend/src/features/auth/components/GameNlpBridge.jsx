@@ -64,22 +64,23 @@ export default function GameNlpBridge() {
       // opsional — kosongkan di pesan pertama sebuah percakapan baru,
       // lalu simpan `session_id` dari respons untuk dipakai di pesan-
       // pesan berikutnya supaya histori percakapan tetap nyambung.
-      sendCounselingMessage: async ({ text, sessionId, triggerSource, episodeId }) =>
-        apiClient.post(
+      sendCounselingMessage: async ({ text, sessionId, triggerSource, episodeId }) => {
+        const allowedTriggers = ['manual', 'reflection_flag', 'episode7_phone', 'episode_summary', 'npc_quest'];
+        const safeTrigger = allowedTriggers.includes(triggerSource) ? triggerSource : 'manual';
+        const numEpisode = Number(episodeId);
+        const validEpisodeId = Number.isInteger(numEpisode) && numEpisode >= 1 && numEpisode <= 6 ? numEpisode : undefined;
+
+        return apiClient.post(
           '/api/nlp/counseling',
           {
             text,
-            // Cuma disertakan kalau benar-benar ada nilainya — backend
-            // sudah menerima null (validator di-fix untuk itu juga),
-            // tapi lebih bersih tidak mengirim key sama sekali saat
-            // belum ada sesi, supaya payload konsisten dengan skema
-            // "session_id opsional" yang sesungguhnya.
             ...(sessionId ? { session_id: sessionId } : {}),
-            trigger_source: triggerSource || 'manual',
-            ...(episodeId ? { episode_id: Number(episodeId) } : {}),
+            trigger_source: safeTrigger,
+            ...(validEpisodeId !== undefined ? { episode_id: validEpisodeId } : {}),
           },
           { getAccessToken },
-        ),
+        );
+      },
 
       getCounselingHistory: async (sessionId) =>
         apiClient.get(`/api/nlp/counseling/${sessionId}/messages`, { getAccessToken }),

@@ -57,7 +57,7 @@ export const counselingChatPayloadSchema = Joi.object({
   // — lihat NLP_INTEGRATION_DESIGN.md untuk penjelasan lengkap tiap
   // trigger.
   trigger_source: Joi.string()
-    .valid('manual', 'reflection_flag', 'episode7_phone', 'episode_summary')
+    .valid('manual', 'reflection_flag', 'episode7_phone', 'episode_summary', 'npc_quest')
     .default('manual'),
   episode_id: Joi.number().integer().min(1).max(6).allow(null).optional(),
 });

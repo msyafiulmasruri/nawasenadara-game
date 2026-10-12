@@ -256,34 +256,23 @@ export const EPISODE2_DIALOGUE = {
       choices: [
         {
           id: 'a',
-
           label:
-            '"Ini udah kelewatan sih. Kasian Kirana, aku pengen bantu dia."',
-
+            '"Ini udah kelewatan. Kasian Kirana, aku mau bantu."',
           emotion: 'aman',
-
           next: 'n4a',
         },
-
         {
           id: 'b',
-
           label:
-            '"Aku juga gak nyaman bacanya... tapi takut kalau ikut campur malah jadi sasaran."',
-
+            '"Aku gak nyaman... tapi takut ikut jadi sasaran."',
           emotion: 'takut',
-
           next: 'n4b',
         },
-
         {
           id: 'c',
-
           label:
-            '"Gak usah ikut campur kali, lagian beberapa chatnya emang lucu juga."',
-
+            '"Gak usah ikut campur, lagian chatnya ada yang lucu."',
           emotion: 'menyinggung',
-
           next: 'n4c',
         },
       ],
@@ -388,34 +377,23 @@ export const EPISODE2_DIALOGUE = {
       choices: [
         {
           id: 'a',
-
           label:
-            '"Aku mau chat Kirana pribadi dulu. Setidaknya dia tahu ada yang peduli dan dia gak sendirian."',
-
+            '"Chat Kirana pribadi, biar dia tahu gak sendirian."',
           emotion: 'aman',
-
           next: 'n7a',
         },
-
         {
           id: 'b',
-
           label:
-            '"Kita simpan screenshot-nya terus ngomong ke wali kelas atau guru BK. Biar ada orang dewasa yang bantu nangani."',
-
+            '"Simpan screenshot bukti, lalu lapor ke guru BK."',
           emotion: 'aman',
-
           next: 'n7b',
         },
-
         {
           id: 'c',
-
           label:
-            '"Aku pengen bantu, tapi aku masih takut ikut terseret. Aku pantau dulu deh."',
-
+            '"Pengen bantu, tapi masih takut terseret. Pantau dulu."',
           emotion: 'takut',
-
           next: 'n7c',
         },
       ],

@@ -63,10 +63,10 @@ import {
 // Kalau terlalu besar:
 //     1.25
 //
-const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.55;
+const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.0;
 
-// Jarak horizontal agar prompt HP muncul.
-const PHONE_INTERACTION_RADIUS = 115;
+// Jarak interaksi luas agar prompt HP dan klik selalu responsif dari depan meja
+const PHONE_INTERACTION_RADIUS = 220;
 
 // ================================================================
 // SCENE
@@ -129,38 +129,29 @@ export default class Episode2Scene extends BasePlayerScene {
     //
     super.create(data);
 
-    // ============================================================
-    // PERBESAR PLAYER KHUSUS EPISODE 2
-    // ============================================================
-    //
-    // PENTING:
-    //
-    // Jangan pakai:
-    //
-    // this.player.displayHeight = ...
-    //
-    // karena BasePlayerScene akan memanggil:
-    //
-    // this.player.setScale(this.spriteScale)
-    //
-    // lagi ketika update movement.
-    //
-    // Jadi yang harus dibesarkan adalah spriteScale itu sendiri.
-    //
-    this.spriteScale *= EPISODE2_PLAYER_SCALE_MULTIPLIER;
+    // Pijakan kaki karakter pada lantai kamar / karpet (720 - 60 = 660)
+    // sama persis dengan Episode 3 agar karakter berdiri grounded di lantai depan meja,
+    // bukan melayang di atas meja atau perabotan.
+    const newGroundY = 720 - 60;
+    const newDisplayHeight = 400;
+    const newScale = newDisplayHeight / 400;
+
+    this.groundY = newGroundY;
+    this.playerDisplayHeight = newDisplayHeight;
+    this.spriteScale = newScale;
 
     if (this.player) {
-      this.player.setScale(this.spriteScale);
+      this.player.setScale(newScale);
+      this.player.setY(newGroundY);
       this.player.setDepth(5);
-    }
+      this.physics.world.setBounds(0, 0, this.levelWidth, 720);
 
-    // Karena origin player adalah:
-    //
-    // setOrigin(0.5, 1)
-    //
-    // memperbesar sprite tidak mengubah posisi kaki.
-    //
-    // Kaki tetap berada tepat pada groundY.
+      // Posisi X spawn: tempatkan karakter berdiri di area lantai depan meja (bukan di atas kasur)
+      if (!data?.preservePlayer) {
+        const naturalWidth = this._backgroundNaturalWidth || this.levelWidth;
+        this.player.setX(Math.round(naturalWidth * 0.42));
+      }
+    }
 
     // ============================================================
     // CHATBOT
@@ -277,6 +268,7 @@ export default class Episode2Scene extends BasePlayerScene {
     const scale = height / source.height;
 
     const naturalWidth = Math.round(source.width * scale);
+    this._backgroundNaturalWidth = naturalWidth;
 
     this._backgroundScale = scale;
 
@@ -313,13 +305,14 @@ export default class Episode2Scene extends BasePlayerScene {
     // ============================================================
     // WALKABLE AREA
     // ============================================================
+    // Batasi area berjalan agar karakter tidak naik ke atas kasur di kiri
+    // dan tetap berpijak rapi di lantai ruangan / karpet depan meja
 
-    this.walkMinX = LEVEL_EDGE_MARGIN;
+    this.walkMinX = Math.round(naturalWidth * 0.22);
 
-    this.walkMaxX = Math.max(
-      LEVEL_EDGE_MARGIN,
-
-      this.levelWidth - LEVEL_EDGE_MARGIN,
+    this.walkMaxX = Math.min(
+      this.levelWidth - 100,
+      Math.round(naturalWidth * 0.88),
     );
 
     // ============================================================
@@ -358,31 +351,38 @@ export default class Episode2Scene extends BasePlayerScene {
     this.phoneBody = scene.add
       .image(this.phoneX, this.phoneY, 'phone-ep3')
       .setScale(DESK_PHONE_STYLE.scale)
-      .setDepth(3)
-      .setAngle(DESK_PHONE_STYLE.angle);
+      .setDepth(6)
+      .setAngle(DESK_PHONE_STYLE.angle)
+      .setInteractive({
+        useHandCursor: true,
+      });
+
+    this.phoneBody.on('pointerdown', () => {
+      this._tryOpenPhone();
+    });
 
     // ============================================================
     // PHONE SCREEN
     // ============================================================
 
-    // Dipertahankan sebagai properti agar kode fokus/blur lama tetap
-    // kompatibel; layar sudah menjadi bagian dari sprite bersama.
     this.phoneScreen = null;
 
     // ============================================================
     // HIT AREA
     // ============================================================
+    // Hit area diperluas (160x120) dan depth diatur 10 (di atas player depth 5)
+    // agar klik mouse/tap layar tidak pernah terblokir oleh sprite karakter
 
     this.phoneHitArea = scene.add
       .rectangle(
         this.phoneX,
         this.phoneY,
-        DESK_PHONE_STYLE.hitWidth,
-        DESK_PHONE_STYLE.hitHeight,
+        Math.max(160, DESK_PHONE_STYLE.hitWidth * 1.5),
+        Math.max(120, DESK_PHONE_STYLE.hitHeight * 1.5),
         0xffffff,
         0.001,
       )
-      .setDepth(DESK_PHONE_STYLE.hitDepth)
+      .setDepth(10)
       .setInteractive({
         useHandCursor: true,
       });
@@ -423,7 +423,7 @@ export default class Episode2Scene extends BasePlayerScene {
         },
       )
       .setOrigin(0.5, 1)
-      .setDepth(3)
+      .setDepth(11)
       .setVisible(false)
       .setInteractive({
         useHandCursor: true,
@@ -441,8 +441,8 @@ export default class Episode2Scene extends BasePlayerScene {
       Phaser.Input.Keyboard.KeyCodes.E,
     );
 
+    this.registerLockable(this.phoneBody);
     this.registerLockable(this.phoneHitArea);
-
     this.registerLockable(this.phonePrompt);
 
     // ============================================================
@@ -465,11 +465,24 @@ export default class Episode2Scene extends BasePlayerScene {
       return;
     }
 
-    if (!this.phonePrompt?.visible) {
+    if (this.time.now < this._phoneInteractCooldownUntil) {
       return;
     }
 
-    if (this.time.now < this._phoneInteractCooldownUntil) {
+    const distance = Math.abs((this.player?.x ?? 0) - this.phoneX);
+    if (distance > PHONE_INTERACTION_RADIUS + 60) {
+      // Jika pemain masih agak jauh, geser pemain mendekat ke depan meja lalu buka dialog
+      if (this.player) {
+        this.tweens.add({
+          targets: this.player,
+          x: Phaser.Math.Clamp(this.phoneX - 80, this.walkMinX, this.walkMaxX),
+          duration: 350,
+          ease: 'Sine.easeOut',
+          onComplete: () => {
+            this._startPhoneDialogue();
+          },
+        });
+      }
       return;
     }
 

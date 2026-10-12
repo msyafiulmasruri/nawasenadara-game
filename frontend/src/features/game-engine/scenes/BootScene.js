@@ -130,10 +130,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('npc-naya-portrait', '/characters/naya-portrait.png?v=2');
     this.load.image('episode-6-bg', '/scenes/episode-6-bg.jpg?v=2');
     this.load.image('episode6-bg', '/scenes/episode-6-bg.jpg?v=2');
-    this.load.image('ep6-corridor-chat-cg', '/scenes/ep6-corridor-chat-cg.jpg');
-    this.load.image('ep6-gate-pressure-cg', '/scenes/ep6-gate-pressure-cg.jpg');
-    this.load.image('ep6-safety-haven-cg', '/scenes/ep6-safety-haven-cg.jpg');
-    this.load.image('ep6-teman-aman-cg', '/scenes/ep6-teman-aman-cg.jpg');
+    this.load.image('ep6-corridor-chat-cg', '/scenes/ep6-corridor-chat-cg.jpg?v=3');
+    this.load.image('ep6-gate-pressure-cg', '/scenes/ep6-gate-pressure-cg.jpg?v=3');
+    this.load.image('ep6-safety-haven-cg', '/scenes/ep6-safety-haven-cg.jpg?v=3');
+    this.load.image('ep6-teman-aman-cg', '/scenes/ep6-teman-aman-cg.jpg?v=3');
 
     // --- Potret NPC pendukung cerita (config/npcs.js) ---
     // Sama seperti background episode: kalau suatu episode belum punya

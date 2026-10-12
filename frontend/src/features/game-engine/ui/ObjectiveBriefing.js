@@ -40,20 +40,19 @@ export default class ObjectiveBriefing {
     const viewportHeight = scene.scale.parentSize?.height || 720;
     const isCompactLandscape = viewportHeight <= 430;
     const cardWidth = Math.min(
-      bounds.width * 0.92,
-      pxToWorld(scene, isCompactLandscape ? 720 : 820),
+      bounds.width * 0.94,
+      pxToWorld(scene, isCompactLandscape ? 780 : 940),
     );
     const cardX = bounds.centerX;
 
-    // Ukuran ditentukan dalam CSS pixel agar tetap nyaman dibaca pada
-    // desktop maupun HP. Layar landscape yang pendek memakai ukuran
-    // sedikit lebih ringkas, tetapi masih lebih besar daripada versi lama.
-    const labelFont = pxToWorld(scene, isCompactLandscape ? 30 : 34);
-    const preferredBodyFont = isCompactLandscape ? 22 : 25;
-    const minimumBodyFont = 18;
-    const promptFont = pxToWorld(scene, isCompactLandscape ? 18 : 20);
-    const labelY = bounds.top + bounds.height * (isCompactLandscape ? 0.12 : 0.17);
-    const promptY = bounds.top + bounds.height * 0.89;
+    // Ukuran diperbesar secara signifikan agar tujuan episode tampil tegas dan
+    // sangat mudah dibaca pada layar HP maupun desktop.
+    const labelFont = pxToWorld(scene, isCompactLandscape ? 36 : 42);
+    const preferredBodyFont = isCompactLandscape ? 26 : 30;
+    const minimumBodyFont = 22;
+    const promptFont = pxToWorld(scene, isCompactLandscape ? 20 : 23);
+    const labelY = bounds.top + bounds.height * (isCompactLandscape ? 0.10 : 0.14);
+    const promptY = bounds.top + bounds.height * 0.90;
 
     const label = scene.add
       .text(cardX, labelY, title, {
@@ -77,10 +76,10 @@ export default class ObjectiveBriefing {
     this._container.add(promptText);
     this._promptText = promptText;
 
-    const bodyY = label.y + label.height + pxToWorld(scene, isCompactLandscape ? 12 : 18);
+    const bodyY = label.y + label.height + pxToWorld(scene, isCompactLandscape ? 14 : 20);
     const bodyMaxHeight = Math.max(
       1,
-      promptText.y - promptText.height / 2 - bodyY - pxToWorld(scene, 24),
+      promptText.y - promptText.height / 2 - bodyY - pxToWorld(scene, 18),
     );
 
     const body = scene.add
@@ -90,13 +89,12 @@ export default class ObjectiveBriefing {
         color: '#ffffff',
         align: 'center',
         wordWrap: { width: cardWidth },
-        lineSpacing: pxToWorld(scene, isCompactLandscape ? 5 : 8),
+        lineSpacing: pxToWorld(scene, isCompactLandscape ? 7 : 11),
       })
       .setOrigin(0.5, 0);
 
     // Turunkan ukuran hanya bila teks episode yang panjang benar-benar
-    // melewati ruang tersedia. Pada ukuran layar umum nilai pilihan tetap
-    // 22/25 px; fallback ini mencegah overflow pada landscape sangat pendek.
+    // melewati ruang tersedia.
     let fittedBodyFont = preferredBodyFont;
     while (body.height > bodyMaxHeight && fittedBodyFont > minimumBodyFont) {
       fittedBodyFont -= 1;

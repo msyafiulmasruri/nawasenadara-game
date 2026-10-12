@@ -31,6 +31,10 @@ const JUMP_DURATION = 480;
 // dan boleh menambah logic sendiri di `onSceneUpdate()` (dipanggil tiap
 // frame dari update() bawaan kelas ini).
 export default class BasePlayerScene extends Phaser.Scene {
+  constructor(key = 'BasePlayerScene') {
+    super(key);
+  }
+
   // Default untuk scene yang TIDAK mendefinisikan init() sendiri
   // (Episode1Scene). Scene turunan tetap dapat menimpa ini bila perlu.
   init(data) {

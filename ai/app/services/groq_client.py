@@ -170,49 +170,28 @@ def _placeholders_preserved(
 # =========================================================
 
 SYSTEM_PROMPT_TEMPLATE = """
-Kamu adalah "Kak Dara", konselor virtual di aplikasi Nawasena Dara,
-sebuah learning game edukasi pencegahan kekerasan untuk remaja
-putri SMP/SMA di Indonesia.
+Kamu adalah "Kak Dara", teman cerita dan konselor virtual di aplikasi Nawasena Dara, sebuah game edukasi pencegahan kekerasan untuk remaja putri SMP/SMA di Indonesia (usia 13-18 tahun).
 
-KEPRIBADIAN:
-- Empatik, hangat, sabar, dan tidak menghakimi.
-- Menggunakan bahasa Indonesia santai tetapi sopan.
-- Sesuaikan bahasa dengan remaja usia 13-18 tahun.
-- Dengarkan pengguna terlebih dahulu sebelum memberikan saran.
-- Jangan memberikan respons seperti ceramah panjang.
+KEPRIBADIAN & GAYA KOMUNIKASI:
+- Hangat, empatik, sabar, dan tidak menghakimi layaknya seorang kakak perempuan yang mendengarkan tulus.
+- Gunakan bahasa Indonesia santai, akrab, dan wajar untuk remaja (misal: "aku", "kamu", "banget", "ya").
+- Dengarkan dan validasi perasaan pengguna secara hangat sebelum memberikan tanggapan atau dorongan kecil.
+
+ATURAN PANJANG & FORMAT JAWABAN (SANGAT KETAT — WAJIB DIPATUHI):
+1. JANGAN PANJANG-PANJANG: Buat respons yang SINGKAT, PADAT, dan TIDAK BERTELE-TELE (cukup 1 sampai maksimal 2 paragraf pendek, total sekitar 35 hingga 75 kata).
+2. DILARANG KERAS MENGGUNAKAN DAFTAR ANGKA ATAU POIN: JANGAN PERNAH memakai format "1., 2., 3.", nomor urut, strip bullet (-), atau bintang (*). Hindari membuat daftar langkah-langkah.
+3. UTAMAKAN PARAGRAF SAJA: Semua jawaban HARUS ditulis dalam bentuk paragraf teks percakapan biasa yang mengalir alami, seperti sedang saling berbalas pesan singkat di ruang chat.
+4. FOKUS PADA CURHATAN USER: Langsung jawab inti persoalan, keluhan, atau perasaan yang diungkapkan user tanpa pengantar klise yang panjang dan tanpa menceramahi.
 
 BATASAN PENTING:
-- Kamu bukan psikolog, psikiater, dokter, atau pengganti konselor manusia.
-- Jangan membuat diagnosis medis atau psikologis.
-- Jangan meminta data pribadi sensitif seperti alamat lengkap,
-  nomor identitas, password, nomor rekening, dan sejenisnya.
-- Fokus pada dukungan emosional, edukasi pencegahan kekerasan,
-  relasi sehat, keamanan diri, dan pencarian bantuan.
-- Jangan menghakimi keputusan atau cerita pengguna.
-
-RISIKO TINGGI:
-Jika pengguna menunjukkan indikasi:
-- sedang mengalami kekerasan,
-- berada dalam bahaya,
-- ingin menyakiti dirinya sendiri,
-- ingin menyakiti orang lain,
-- atau membutuhkan pertolongan segera,
-
-tanggapi dengan tenang dan suportif.
-
-Dorong pengguna untuk menghubungi orang dewasa yang dapat dipercaya,
-seperti orang tua, wali, guru BK, atau layanan bantuan profesional/resmi
-yang sesuai. Jangan meninggalkan percakapan secara tiba-tiba dan jangan
-memberikan diagnosis.
+- Kamu bukan psikolog, psikiater, dokter, atau pengganti konselor profesional manusia. Jangan mendiagnosis.
+- Jangan meminta data pribadi sensitif (alamat, nomor identitas, kontak pribadi, password, dsb).
+- Jika pengguna terindikasi dalam krisis bahaya nyata atau kekerasan ekstrem, berikan penguatan tenang dalam paragraf singkat dan dorong untuk bercerita ke orang dewasa tepercaya (orang tua atau guru BK).
 
 KONTEKS EMOSI INTERNAL:
 {emotion_context}
 
-Konteks emosi tersebut hanya digunakan untuk menyesuaikan nada respons.
-JANGAN menyebutkan secara eksplisit bahwa sistem mendeteksi,
-mengklasifikasi, atau memprediksi emosi pengguna.
-
-Berikan respons yang alami, ringkas, dan terasa seperti percakapan.
+Konteks emosi tersebut hanya digunakan untuk menyesuaikan nada empati responsmu. JANGAN menyebutkan secara eksplisit bahwa sistem mendeteksi atau mengklasifikasi emosinya.
 """.strip()
 
 
@@ -320,6 +299,46 @@ def _build_messages(
 
 
 # =========================================================
+# CLEANER RESPON KONSELING
+# =========================================================
+
+def _clean_counseling_reply(text: str) -> str:
+    """
+    Membersihkan respon Kak Dara agar:
+    1. Bebas dari penomoran list (1., 2., 3., a., b.) dan bullet points (- / * / •).
+    2. Mengalir dalam 1 atau maksimal 2 paragraf percakapan yang rapi, hangat, dan ringkas.
+    """
+    if not text:
+        return ""
+
+    raw_paragraphs = [p.strip() for p in text.strip().split("\n\n") if p.strip()]
+    cleaned_paragraphs = []
+
+    for p in raw_paragraphs:
+        lines = [line.strip() for line in p.split("\n") if line.strip()]
+        cleaned_lines = []
+        for line in lines:
+            # Hapus bullet, bintang, angka di awal baris: "1. ", "1) ", "* ", "- ", "• "
+            cleaned = re.sub(r"^(\d+[\.\)]|\*+|\-+|\u2022|[a-zA-Z][\.\)])\s*", "", line)
+            # Hilangkan sisa markdown bold header daftar seperti "**1. ", "**Langkah 1:**"
+            cleaned = re.sub(r"^\*\*(?:\d+[\.\)]|[a-zA-Z][\.\)]|[^\*]+:)\*\*\s*", "", cleaned)
+            if cleaned:
+                cleaned_lines.append(cleaned)
+        if cleaned_lines:
+            para_text = " ".join(cleaned_lines)
+            para_text = re.sub(r"\s{2,}", " ", para_text).strip()
+            cleaned_paragraphs.append(para_text)
+
+    # Batasi maksimal 2 paragraf saja sesuai instruksi
+    if len(cleaned_paragraphs) > 2:
+        para1 = cleaned_paragraphs[0]
+        para2 = " ".join(cleaned_paragraphs[1:])
+        cleaned_paragraphs = [para1, para2]
+
+    return "\n\n".join(cleaned_paragraphs)
+
+
+# =========================================================
 # GROQ COUNSELING CLIENT
 # =========================================================
 
@@ -384,8 +403,6 @@ class GroqCounselingClient:
                     # Reasoning tidak perlu dikirim ke aplikasi.
                     include_reasoning=False,
 
-                    # Jangan gunakan max_tokens=400.
-                    #
                     # Reasoning model membutuhkan ruang token
                     # lebih besar sebelum final answer terbentuk.
                     max_completion_tokens=1024,
@@ -403,7 +420,7 @@ class GroqCounselingClient:
                     messages=messages,
                     temperature=0.7,
                     top_p=0.95,
-                    max_completion_tokens=600,
+                    max_completion_tokens=350,
                     stream=False,
                 )
 
@@ -425,7 +442,7 @@ class GroqCounselingClient:
                     "kamu rasakan atau alami, ya."
                 )
 
-            return content
+            return _clean_counseling_reply(content)
 
         except Exception:
             logger.exception(

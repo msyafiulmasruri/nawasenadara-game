@@ -16,7 +16,7 @@ const SESSION_IDLE_MINUTES = 30;
 // console, alih-alih membiarkan query INSERT/UPDATE gagal total
 // dengan error constraint yang membingungkan pemain.
 const VALID_RISK_LEVELS = ['rendah', 'sedang', 'tinggi'];
-const VALID_TRIGGER_SOURCES = ['manual', 'reflection_flag', 'episode7_phone', 'episode_summary'];
+const VALID_TRIGGER_SOURCES = ['manual', 'reflection_flag', 'episode7_phone', 'episode_summary', 'npc_quest'];
 
 function sanitizeRiskLevel(value) {
   if (VALID_RISK_LEVELS.includes(value)) return value;

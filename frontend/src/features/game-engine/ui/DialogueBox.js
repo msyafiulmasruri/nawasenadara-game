@@ -398,6 +398,25 @@ export default class DialogueBox {
     return String(text).replace(/\{PLAYER_NAME\}/g, this._playerName);
   }
 
+  _formatSpeechText(text = '', node = null) {
+    const substituted = this._substitute(text);
+    if (!substituted) return '';
+    // Jika narasi, tampilkan apa adanya tanpa tanda kutip
+    if (node?.speaker === 'narration') {
+      return substituted;
+    }
+    // Jika dialog/obrolan karakter, pastikan selalu dibungkus tanda kutip
+    const trimmed = substituted.trim();
+    if (
+      (!trimmed.startsWith('"') && !trimmed.startsWith('“') && !trimmed.startsWith("'")) ||
+      (!trimmed.endsWith('"') && !trimmed.endsWith('”') && !trimmed.endsWith("'"))
+    ) {
+      const clean = trimmed.replace(/^["'“]|["'”]$/g, '').trim();
+      return `"${clean}"`;
+    }
+    return substituted;
+  }
+
   // ==============================================================
   // LOADING ANIMATION
   // ==============================================================
@@ -577,7 +596,7 @@ export default class DialogueBox {
     // STATIC NODE
     // ============================================================
 
-    this._dialogueText.setText(this._substitute(node.text));
+    this._dialogueText.setText(this._formatSpeechText(node.text, node));
 
     // Setelah teks siap baru tombol lanjut / choices aktif.
     this._activateNodeInteraction(node);
@@ -593,7 +612,7 @@ export default class DialogueBox {
     const requestedNodeId = node.id;
 
     // Dialog asli tetap menjadi fallback.
-    const fallbackLine = this._substitute(node.text);
+    const fallbackLine = this._formatSpeechText(node.text, node);
 
     // ============================================================
     // NLP BRIDGE TIDAK TERSEDIA
@@ -643,8 +662,7 @@ export default class DialogueBox {
           () => {
             reject(
               new Error(
-                `NPC dialogue generation timeout setelah ${
-                  DYNAMIC_DIALOGUE_TIMEOUT_MS / 1000
+                `NPC dialogue generation timeout setelah ${DYNAMIC_DIALOGUE_TIMEOUT_MS / 1000
                 } detik`,
               ),
             );
@@ -685,18 +703,19 @@ export default class DialogueBox {
       // maupun langsung string "..."
       //
       const generatedLine =
-          typeof result === 'string'
-              ? result.trim()
-              : result?.line?.trim();
+        typeof result === 'string'
+          ? result.trim()
+          : result?.line?.trim();
 
       const finalLine = generatedLine || fallbackLine;
+      const formattedFinalLine = this._formatSpeechText(finalLine, node);
 
-      this._dialogueText.setText(finalLine);
+      this._dialogueText.setText(formattedFinalLine);
 
       // Kirim hasil dialog ke scene
       this._onDynamicLine?.({
-          node,
-          text: finalLine,
+        node,
+        text: formattedFinalLine,
       });
 
       // Baru sekarang pemain boleh:
