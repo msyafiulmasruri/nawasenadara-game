@@ -4,6 +4,10 @@ import BasePlayerScene from './BasePlayerScene';
 
 import {
   EPISODE2_DIALOGUE,
+  EPISODE2_CUTSCENES_B,
+  EPISODE2_CUTSCENES_C,
+  EPISODE2_KIRANA_DIALOGUE_B,
+  EPISODE2_KIRANA_DIALOGUE_C,
   buildEpisode2CounselingContext,
 } from '../dialogue/episode2Dialogue';
 
