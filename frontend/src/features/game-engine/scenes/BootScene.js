@@ -109,6 +109,16 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
+    // Aset khusus Episode 2: cutscene cabang B/C dan background kelas Kirana
+    this.load.image('ep2-hp-grup-diam', '/scenes/ep2-hp-grup-diam.jpg');
+    this.load.image('ep2-koridor-sekolah-hp', '/scenes/ep2-koridor-sekolah-hp.jpg');
+
+    this.load.image('ep2-hp-grup-ketawa', '/scenes/ep2-hp-grup-ketawa.jpg');
+    this.load.image('ep2-kelas-closeup-kirana', '/scenes/ep2-kelas-closeup-kirana.jpg');
+
+    this.load.image('ep2-kelas-kirana-sendirian', '/scenes/ep2-kelas-kirana-sendirian.jpg');
+    this.load.image('ep2-kelas-kirana-ditertawakan', '/scenes/ep2-kelas-kirana-ditertawakan.jpg');
+
     this.load.image('phone-ep3', '/sprites/phone-ep3.png');
     this.load.image('phone-ep3-pov', '/scenes/ep3-phone-pov.png');
     this.load.image('ep3-window-cg', '/scenes/ep3-window-cg.jpg');

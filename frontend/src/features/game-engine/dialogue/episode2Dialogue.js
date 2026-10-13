@@ -568,3 +568,123 @@ export const EPISODE2_DIALOGUE = {
 
   },
 };
+
+export const EPISODE2_CUTSCENES_B = [
+  {
+    image: 'ep2-hp-grup-diam',
+    speaker: 'Narasi',
+    text: 'Malam itu, kamu kembali membuka grup kelas. Candaan tentang Kirana masih bermunculan, dan semakin lama kamu membacanya, semakin tidak nyaman perasaanmu. Tapi kamu tidak tahu harus bagaimana, dan akhirnya memilih untuk diam.',
+  },
+  {
+    image: 'ep2-koridor-sekolah-hp',
+    speaker: 'Narasi',
+    text: 'Keesokan harinya, di koridor sekolah, kamu melihat Kirana berjalan sendirian. Kamu teringat pesan-pesan di grup semalam dan mulai bertanya-tanya apakah Kirana baik-baik saja.',
+  },
+];
+
+export const EPISODE2_CUTSCENES_C = [
+  {
+    image: 'ep2-hp-grup-ketawa',
+    speaker: 'Narasi',
+    text: 'Malam itu, grup kelas kembali ramai. Kamu melihat teman-teman menjadikan Kirana bahan candaan. Kamu memilih untuk tidak ikut campur dan membiarkan percakapan itu berlalu.',
+  },
+  {
+    image: 'ep2-kelas-closeup-kirana',
+    speaker: 'Narasi',
+    text: 'Candaan tentang Kirana terus berlanjut. Sebagian teman menganggapnya lucu, tetapi kamu tidak benar-benar tahu bagaimana perasaan Kirana saat membaca semua itu.',
+  },
+];
+
+export const EPISODE2_KIRANA_DIALOGUE_B = {
+  npcId: 'kirana',
+  startNode: 'kb1',
+  nodes: {
+    kb1: {
+      id: 'kb1',
+      speaker: 'narration',
+      text: 'Kamu menghampiri Kirana yang duduk sendirian. Ia menatap meja dan buru-buru mengusap matanya.',
+      next: 'kb2',
+    },
+    kb2: {
+      id: 'kb2',
+      speaker: 'kirana',
+      text: 'Kamu... tadi lihat grup kelas juga, ya?',
+      choices: [
+        {
+          id: 'support',
+          label: '"Iya. Aku ikut nggak nyaman bacanya. Maaf aku belum berani ngomong di grup."',
+          next: 'kb3',
+        },
+        {
+          id: 'listen',
+          label: '"Aku belum tahu harus gimana, tapi kalau kamu mau cerita, aku mau dengerin."',
+          next: 'kb4',
+        },
+      ],
+    },
+    kb3: {
+      id: 'kb3',
+      speaker: 'kirana',
+      text: 'Makasih udah jujur. Aku cuma capek merasa semua orang menganggap aku aneh.',
+      next: 'kb5',
+    },
+    kb4: {
+      id: 'kb4',
+      speaker: 'kirana',
+      text: 'Aku cuma pengen bisa sekolah dengan tenang tanpa takut jadi bahan candaan lagi.',
+      next: 'kb5',
+    },
+    kb5: {
+      id: 'kb5',
+      speaker: 'narration',
+      text: 'Kamu menyadari bahwa mendengarkan dan menunjukkan kepedulian bisa menjadi langkah awal, meski kamu belum tahu cara menyelesaikan semuanya.',
+    },
+  },
+};
+
+export const EPISODE2_KIRANA_DIALOGUE_C = {
+  npcId: 'kirana',
+  startNode: 'kc1',
+  nodes: {
+    kc1: {
+      id: 'kc1',
+      speaker: 'narration',
+      text: 'Kamu menghampiri Kirana. Dari kejauhan, suara tawa teman-teman masih terdengar. Kirana memilih diam.',
+      next: 'kc2',
+    },
+    kc2: {
+      id: 'kc2',
+      speaker: 'kirana',
+      text: 'Kamu juga ikut ketawa waktu mereka ngomongin aku?',
+      choices: [
+        {
+          id: 'apologize',
+          label: '"Aku salah karena menganggapnya lucu. Maaf, Kirana."',
+          next: 'kc3',
+        },
+        {
+          id: 'deflect',
+          label: '"Aku cuma ikut-ikutan. Aku nggak bermaksud bikin kamu sakit hati."',
+          next: 'kc4',
+        },
+      ],
+    },
+    kc3: {
+      id: 'kc3',
+      speaker: 'kirana',
+      text: 'Aku nggak bisa langsung melupakan itu. Tapi setidaknya kamu mau mengakui kesalahanmu.',
+      next: 'kc5',
+    },
+    kc4: {
+      id: 'kc4',
+      speaker: 'kirana',
+      text: 'Walaupun cuma ikut-ikutan, tetap aja rasanya menyakitkan kalau banyak orang menertawakan aku.',
+      next: 'kc5',
+    },
+    kc5: {
+      id: 'kc5',
+      speaker: 'narration',
+      text: 'Kamu mulai memahami bahwa sesuatu yang dianggap lucu oleh banyak orang tetap bisa melukai orang yang menjadi sasaran.',
+    },
+  },
+};

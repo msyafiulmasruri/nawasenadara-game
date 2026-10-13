@@ -1078,6 +1078,21 @@ _handlePhoneVisuals(node) {
         // Tutup POV HP
         this._closePovPhone();
 
+        // Cek pilihan pemain pada node n3
+        const branchChoice = collectedChoices.find(
+          (choice) => choice.nodeId === 'n3'
+        );
+
+        const choiceId = branchChoice?.choiceId;
+
+        // Pilihan B dan C masuk ke rangkaian cerita Kirana
+        if (choiceId === 'b' || choiceId === 'c') {
+          this._branchSequenceActive = true;
+
+          this._beginBranchSequence(choiceId);
+          return;
+        }
+
         // ======================================================
         // COUNSELING
         // ======================================================
@@ -1106,6 +1121,326 @@ _handlePhoneVisuals(node) {
         this._finishEpisode2();
       },
     });
+  }
+
+  // ==============================================================
+  // CABANG CERITA KIRANA — PILIHAN B / C
+  // ==============================================================
+
+  _beginBranchSequence(choiceId) {
+    this._branchSequenceActive = true;
+    this._kiranaChoiceId = choiceId;
+
+    // Dialog dan gambar khusus untuk masing-masing cabang.
+    const scenes =
+      choiceId === 'b'
+        ? EPISODE2_CUTSCENES_B
+        : EPISODE2_CUTSCENES_C;
+
+    let index = 0;
+
+    const showNextScene = () => {
+      if (!this.scene.isActive()) return;
+
+      // Bersihkan tampilan cutscene sebelumnya.
+      this._branchCutsceneImage?.destroy();
+      this._branchCutsceneImage = null;
+      this._branchCutsceneText?.destroy();
+      this._branchCutsceneText = null;
+      this._branchCutsceneSpeaker?.destroy();
+      this._branchCutsceneSpeaker = null;
+      this._branchCutscenePrompt?.destroy();
+      this._branchCutscenePrompt = null;
+
+      // Semua cutscene selesai, masuk gameplay cabang.
+      if (index >= scenes.length) {
+        this._branchCutsceneAdvance = null;
+        this._enterKiranaGameplay(choiceId);
+        return;
+      }
+
+      const sceneData = scenes[index];
+      index++;
+
+      const { width, height } = this.scale;
+
+      // Gambar cutscene memenuhi layar.
+      this._branchCutsceneImage = this.add
+        .image(width / 2, height / 2, sceneData.image)
+        .setScrollFactor(0)
+        .setDepth(900)
+        .setDisplaySize(width, height);
+
+      // Panel dialog.
+      const panelHeight = 150;
+      const panelY = height - panelHeight / 2 - 18;
+      const panelWidth = width - 48;
+      const panelX = width / 2;
+      const panelTop = height - panelHeight - 18;
+
+      const fadeOverlay = this.add
+        .rectangle(
+          this.scale.width / 2,
+          this.scale.height / 2,
+          this.scale.width,
+          this.scale.height,
+          0x000000,
+          1
+        )
+        .setScrollFactor(0)
+        .setDepth(950);
+
+      this.tweens.add({
+        targets: fadeOverlay,
+        alpha: 0,
+        duration: 650,
+        ease: 'Sine.easeInOut',
+        onComplete: () => {
+          fadeOverlay.destroy();
+        },
+      });
+
+      // Panel navy dengan border emas, mirip dialog utama.
+      const panel = this.add
+        .rectangle(
+          panelX,
+          panelY,
+          panelWidth,
+          panelHeight,
+          0x101020,
+          0.97
+        )
+        .setStrokeStyle(2, 0xc8ad55, 1)
+        .setScrollFactor(0)
+        .setDepth(901);
+
+      // Teks dialog: tanpa nama speaker agar tampil seperti screenshot.
+      const dialogue = this.add
+        .text(
+          panelX - panelWidth / 2 + 24,
+          panelTop + 20,
+          sceneData.text,
+          {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '16px',
+            color: '#f5f3ff',
+            lineSpacing: 10,
+            wordWrap: {
+              width: panelWidth - 48,
+              useAdvancedWrap: true,
+            },
+          }
+        )
+        .setScrollFactor(0)
+        .setDepth(902);
+
+      // Petunjuk kecil di pojok kanan bawah panel.
+      const prompt = this.add
+        .text(
+          panelX + panelWidth / 2 - 18,
+          panelTop + panelHeight - 12,
+          '▼',
+          {
+            fontFamily: 'monospace',
+            fontSize: '15px',
+            color: '#d8c16c',
+          }
+        )
+        .setOrigin(1, 1)
+        .setScrollFactor(0)
+        .setDepth(902);
+
+      this._branchCutscenePanel = panel;
+      this._branchCutsceneSpeaker = null;
+      this._branchCutsceneText = dialogue;
+      this._branchCutscenePrompt = prompt;
+
+      // Lanjut hanya setelah pemain melakukan input.
+      const advance = () => {
+        if (!this._branchSequenceActive) return;
+
+        this.input.off('pointerdown', advance);
+        this.input.keyboard?.off('keydown-SPACE', advance);
+
+        this._branchCutsceneAdvance = null;
+        showNextScene();
+      };
+
+      this._branchCutsceneAdvance = advance;
+      this.input.once('pointerdown', advance);
+      this.input.keyboard?.once('keydown-SPACE', advance);
+    };
+
+    showNextScene();
+  }
+
+  // ==============================================================
+  // MASUK KE KELAS KIRANA
+  // ==============================================================
+
+  _enterKiranaGameplay(choiceId) {
+    if (!this.scene.isActive()) return;
+
+    const isChoiceB = choiceId === 'b';
+    const backgroundKey = isChoiceB
+      ? 'ep2-kelas-kirana-sendirian'
+      : 'ep2-kelas-kirana-ditertawakan';
+
+    if (!this.textures.exists(backgroundKey)) {
+      console.error(`Background kelas tidak ditemukan: ${backgroundKey}`);
+      this._branchSequenceActive = false;
+      this._offerCounselingAndFinish();
+      return;
+    }
+
+    // Background kelas menutupi background kamar Episode 2.
+    const { width, height } = this.scale;
+
+    this._kiranaBackground?.destroy();
+
+    this._kiranaBackground = this.add
+      .image(width / 2, height / 2, backgroundKey)
+      .setDisplaySize(width, height)
+      .setScrollFactor(0)
+      .setDepth(1);
+
+    // Letakkan titik interaksi di depan pemain.
+    const minX = this.walkMinX ?? 50;
+    const maxX = this.walkMaxX ?? width - 50;
+    const groundY = this.groundY ?? height - 120;
+
+    const desiredX = Phaser.Math.Clamp(
+      this.player.x + 240,
+      minX + 30,
+      maxX - 30
+    );
+
+    this.kiranaX = desiredX;
+    this.kiranaY = groundY;
+
+    this.player.x = Phaser.Math.Clamp(
+      desiredX - 200,
+      minX,
+      maxX
+    );
+
+    this.player.setVisible(true);
+    this.player.setDepth(5);
+    this.player.setVelocity(0, 0);
+
+    // Penanda sementara lokasi Kirana.
+    // Bisa diganti sprite Kirana jika aset karakternya sudah tersedia.
+    this._kiranaMarker?.destroy();
+
+    this._kiranaMarker = this.add
+      .container(this.kiranaX, this.kiranaY - 55)
+      .setDepth(6);
+
+    const marker = this.add.ellipse(
+      0, 0, 34, 50, 0xf9a8d4, 0.9
+    );
+
+    const label = this.add.text(
+      0, -42, 'Kirana', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#374151',
+        padding: { x: 7, y: 4 },
+      }
+    ).setOrigin(0.5);
+
+    this._kiranaMarker.add([marker, label]);
+
+    this._kiranaPrompt?.destroy();
+
+    this._kiranaPrompt = this.add
+      .text(width / 2, height - 75, 'Dekati Kirana lalu tekan E', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#1a1a2e',
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(100);
+
+    this._kiranaChoiceId = choiceId;
+    this.uiInputLocked = false;
+  }
+
+  // ==============================================================
+  // INTERAKSI DENGAN KIRANA
+  // ==============================================================
+
+
+  _startKiranaDialogue() {
+    if (!this._branchSequenceActive || this._kiranaDialogueOpen) {
+      return;
+    }
+
+    this._kiranaDialogueOpen = true;
+    this.uiInputLocked = true;
+    this.player?.setVelocity(0, 0);
+    this.player?.anims.stop();
+    this._kiranaPrompt?.setVisible(false);
+
+    const dialogueTree =
+      this._kiranaChoiceId === 'b'
+        ? EPISODE2_KIRANA_DIALOGUE_B
+        : EPISODE2_KIRANA_DIALOGUE_C;
+
+    this.dialogueBox.open({
+      dialogueTree,
+      npcName: 'Kirana',
+      playerName: getCharacterName(),
+
+      onClose: () => {
+        if (!this.scene.isActive()) return;
+
+        this._kiranaDialogueOpen = false;
+
+        this._kiranaMarker?.destroy();
+        this._kiranaMarker = null;
+
+        this._kiranaPrompt?.destroy();
+        this._kiranaPrompt = null;
+
+        this._kiranaBackground?.destroy();
+        this._kiranaBackground = null;
+
+        this._branchSequenceActive = false;
+
+        this._offerCounselingAndFinish();
+      },
+    });
+  }
+
+  // ==============================================================
+  // COUNSELING SETELAH INTERAKSI KIRANA
+  // ==============================================================
+
+  async _offerCounselingAndFinish() {
+    if (!this.scene.isActive()) return;
+
+    this.uiInputLocked = true;
+    this.player?.setVelocity(0, 0);
+
+    const ui = window.__nawasenadaraUI;
+
+    if (ui?.offerCounseling) {
+      await ui.offerCounseling({
+        episodeId: 2,
+        npcName: 'Kirana',
+        autoContext: this.getCounselingAutoContext(),
+        waitForEpisodeContinue: true,
+      });
+    }
+
+    if (!this.scene.isActive()) return;
+
+    this._finishEpisode2();
   }
 
   // ==============================================================
@@ -1200,6 +1535,19 @@ onSceneUpdate() {
     this.walkMinX,
     this.walkMaxX,
   );
+
+  // Saat cabang Kirana aktif, interaksi HP tidak digunakan.
+  if (this._branchSequenceActive) {
+    if (
+      !this._kiranaDialogueOpen &&
+      Math.abs(this.player.x - this.kiranaX) < 100 &&
+      Phaser.Input.Keyboard.JustDown(this.interactKey)
+    ) {
+      this._startKiranaDialogue();
+    }
+
+    return;
+  }
 
   // HP tetap dapat dibuka ketika episode dimainkan ulang. Sebelumnya
   // progres tersimpan membuat seluruh interaksi HP dimatikan, sehingga
