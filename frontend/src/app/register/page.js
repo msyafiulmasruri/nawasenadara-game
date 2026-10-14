@@ -7,7 +7,6 @@ import AuthShell from '@/features/auth/components/AuthShell';
 import AuthInput from '@/features/auth/components/AuthInput';
 import AuthButton from '@/features/auth/components/AuthButton';
 import AuthMessage from '@/features/auth/components/AuthMessage';
-import GoogleAuthButton from '@/features/auth/components/GoogleAuthButton';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { requestAppFullscreen } from '@/lib/fullscreen';
 
@@ -17,7 +16,7 @@ import { requestAppFullscreen } from '@/lib/fullscreen';
 // lewat dropdown peran seperti sebelumnya.
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, googleLogin } = useAuth();
+  const { register } = useAuth();
 
   const [form, setForm] = useState({
     name: '',
@@ -55,20 +54,6 @@ export default function RegisterPage() {
       router.push('/game');
     } catch (err) {
       setError(err.message || 'Gagal mendaftar. Coba lagi.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async ({ credential }) => {
-    requestAppFullscreen();
-    setError('');
-    setLoading(true);
-    try {
-      await googleLogin({ credential, role: 'siswa' });
-      router.push('/game');
-    } catch (err) {
-      setError(err.message || 'Gagal mendaftar dengan Google.');
     } finally {
       setLoading(false);
     }
@@ -142,10 +127,6 @@ export default function RegisterPage() {
         <AuthButton type="submit" loading={loading}>
           Daftar
         </AuthButton>
-
-        <div className="auth-divider">atau</div>
-
-        <GoogleAuthButton role="siswa" onSuccess={handleGoogle} onError={setError} />
       </form>
     </AuthShell>
   );

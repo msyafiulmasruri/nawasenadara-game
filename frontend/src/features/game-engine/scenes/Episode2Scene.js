@@ -70,7 +70,7 @@ import {
 const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.0;
 
 // Jarak interaksi luas agar prompt HP dan klik selalu responsif dari depan meja
-const PHONE_INTERACTION_RADIUS = 220;
+const PHONE_INTERACTION_RADIUS = 250;
 
 // ================================================================
 // SCENE
@@ -94,9 +94,14 @@ export default class Episode2Scene extends BasePlayerScene {
 
     this.phoneInDialogue = false;
 
-    this.phoneQuestComplete = hasTalkedToNpc(2);
+    // Reset status HP — akan di-restore di create() berdasarkan progress yang tersimpan
+    this.phoneQuestComplete = false;
 
-    this.phoneChoices = getEpisodeChoices(2);
+    this.phoneChoices = [];
+
+    this._branchSequenceActive = false;
+
+    this._kiranaDialogueOpen = false;
 
     this._phoneInteractCooldownUntil = 0;
 
@@ -150,10 +155,10 @@ export default class Episode2Scene extends BasePlayerScene {
       this.player.setDepth(5);
       this.physics.world.setBounds(0, 0, this.levelWidth, 720);
 
-      // Posisi X spawn: tempatkan karakter berdiri di area lantai depan meja (bukan di atas kasur)
+      // Posisi X spawn: tempatkan karakter berdiri nyaman di depan meja belajar
       if (!data?.preservePlayer) {
         const naturalWidth = this._backgroundNaturalWidth || this.levelWidth;
-        this.player.setX(Math.round(naturalWidth * 0.42));
+        this.player.setX(Math.round(naturalWidth * 0.48));
       }
     }
 
@@ -161,16 +166,33 @@ export default class Episode2Scene extends BasePlayerScene {
     // CHATBOT
     // ============================================================
 
-    this.setChatButtonVisible(Boolean(this.phoneQuestComplete));
+    this.setChatButtonVisible(false);
 
     // ============================================================
     // QUEST GUIDE
     // ============================================================
 
-    if (this.phoneQuestComplete) {
-      this.clearQuestGuide();
-    } else {
+    // ============================================================
+    // RESTORE STATE DARI PROGRESS TERSIMPAN
+    // ============================================================
+    //
+    // Jika player sudah pernah menyelesaikan dialog HP di episode 2
+    // (markNpcTalked sudah pernah dipanggil), kunci HP agar tidak bisa
+    // diinteraksi lagi — baik setelah refresh maupun ketika episode
+    // diulang dari EpisodeSelectScene.
+    //
+    if (hasTalkedToNpc(2)) {
+      this.phoneQuestComplete = true;
+      this.phoneInDialogue = true;
+      this.phoneChoices = getEpisodeChoices(2);
+    }
+
+    // Quest guide hanya tampil jika HP belum diperiksa
+    if (!this.phoneQuestComplete) {
       this.setQuestGuide('○ ── Periksa HP di meja ──');
+    } else {
+      this.clearQuestGuide();
+      this.setChatButtonVisible(true);
     }
 
     // ============================================================
@@ -407,9 +429,7 @@ export default class Episode2Scene extends BasePlayerScene {
 
         this.phoneY - DESK_PHONE_STYLE.promptOffsetY,
 
-        this.phoneQuestComplete
-          ? '[E] Buka kembali HP (Klik)'
-          : '[E] Buka HP (Klik)',
+        '[E] Buka HP (Klik)',
 
         {
           fontFamily: '"Pixelify Sans", monospace',
@@ -456,12 +476,27 @@ export default class Episode2Scene extends BasePlayerScene {
     this.dialogueBox = new DialogueBox(this);
   }
 
+  _setPhoneVisible(visible) {
+    this.phoneBody?.setVisible(visible);
+    this.phoneHalo?.setVisible(visible);
+    if (!visible) {
+      this.phonePrompt?.setVisible(false);
+      this.phoneHitArea?.disableInteractive();
+    } else {
+      if (!this.phoneQuestComplete && !this.phoneInDialogue) {
+        this.phoneHitArea?.setInteractive({ useHandCursor: true });
+      } else {
+        this.phoneHitArea?.disableInteractive();
+      }
+    }
+  }
+
   // ==============================================================
   // TRY OPEN PHONE
   // ==============================================================
 
   _tryOpenPhone() {
-    if (this.phoneInDialogue) {
+    if (this.phoneInDialogue || this.phoneQuestComplete) {
       return;
     }
 
@@ -1071,6 +1106,7 @@ _handlePhoneVisuals(node) {
         this.phoneChoices = collectedChoices;
 
         this.phoneQuestComplete = true;
+        this.phoneInDialogue = false;
 
         markNpcTalked(2, collectedChoices);
 
@@ -1097,32 +1133,15 @@ _handlePhoneVisuals(node) {
           return;
         }
 
+        // Untuk pilihan A: HP di kamar tidak bisa diinteraksikan lagi
+        this.phoneInDialogue = true;
+        this.phonePrompt?.setVisible(false);
+
         // ======================================================
         // COUNSELING
         // ======================================================
 
-        const ui = window.__nawasenadaraUI;
-
-        if (ui?.offerCounseling) {
-          await ui.offerCounseling({
-            episodeId: 2,
-
-            npcName: 'Rafi',
-
-            autoContext: this.getCounselingAutoContext(),
-
-            waitForEpisodeContinue: true,
-          });
-        }
-
-        if (!this.scene.isActive()) {
-          return;
-        }
-
-        // Pilih "Lanjut Main" langsung menuju hasil episode. Jika
-        // pemain memilih Kak Dara, Promise di atas baru selesai setelah
-        // tombol "Lanjut ke Episode Selanjutnya" di chat ditekan.
-        this._finishEpisode2();
+        this._offerCounselingAndFinish();
       },
     });
   }
@@ -1134,6 +1153,16 @@ _handlePhoneVisuals(node) {
   _beginBranchSequence(choiceId) {
     this._branchSequenceActive = true;
     this._kiranaChoiceId = choiceId;
+
+    // Sembunyikan HP dan player kamar selama seluruh cutscene
+    // Pastikan HP benar-benar tersembunyi: sembunyikan semua elemen HP
+    this._setPhoneVisible(false);
+    this.phoneHitArea?.disableInteractive();
+    this.phonePrompt?.setVisible(false);
+    this.phoneBody?.setVisible(false);
+    this.phoneHalo?.setVisible(false);
+    this.player?.setVisible(false);
+    this.clearQuestGuide();
 
     // Dialog dan gambar khusus untuk masing-masing cabang.
     const scenes =
@@ -1155,11 +1184,13 @@ _handlePhoneVisuals(node) {
       this._branchCutsceneSpeaker = null;
       this._branchCutscenePrompt?.destroy();
       this._branchCutscenePrompt = null;
+      this._branchCutscenePanel?.destroy();
+      this._branchCutscenePanel = null;
 
-      // Semua cutscene selesai, masuk gameplay cabang.
+      // Semua cutscene selesai, masuk scene kelas Kirana.
       if (index >= scenes.length) {
         this._branchCutsceneAdvance = null;
-        this._enterKiranaGameplay(choiceId);
+        this._enterKiranaScene(choiceId);
         return;
       }
 
@@ -1218,17 +1249,17 @@ _handlePhoneVisuals(node) {
         .setScrollFactor(0)
         .setDepth(901);
 
-      // Teks dialog: tanpa nama speaker agar tampil seperti screenshot.
+      // Teks dialog
       const dialogue = this.add
         .text(
           panelX - panelWidth / 2 + 24,
           panelTop + 20,
           sceneData.text,
           {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: '16px',
+            fontFamily: '"Pixelify Sans", monospace',
+            fontSize: '18px',
             color: '#f5f3ff',
-            lineSpacing: 10,
+            lineSpacing: 8,
             wordWrap: {
               width: panelWidth - 48,
               useAdvancedWrap: true,
@@ -1243,9 +1274,9 @@ _handlePhoneVisuals(node) {
         .text(
           panelX + panelWidth / 2 - 18,
           panelTop + panelHeight - 12,
-          '▼',
+          '▼ Tekan untuk lanjut',
           {
-            fontFamily: 'monospace',
+            fontFamily: '"Pixelify Sans", monospace',
             fontSize: '15px',
             color: '#d8c16c',
           }
@@ -1271,18 +1302,21 @@ _handlePhoneVisuals(node) {
       };
 
       this._branchCutsceneAdvance = advance;
-      this.input.once('pointerdown', advance);
-      this.input.keyboard?.once('keydown-SPACE', advance);
+      this.time.delayedCall(120, () => {
+        if (!this._branchSequenceActive) return;
+        this.input.once('pointerdown', advance);
+        this.input.keyboard?.once('keydown-SPACE', advance);
+      });
     };
 
     showNextScene();
   }
 
   // ==============================================================
-  // MASUK KE KELAS KIRANA
+  // MASUK KE KELAS KIRANA (CUTSCENE INTERAKTIF)
   // ==============================================================
 
-  _enterKiranaGameplay(choiceId) {
+  _enterKiranaScene(choiceId) {
     if (!this.scene.isActive()) return;
 
     const isChoiceB = choiceId === 'b';
@@ -1297,8 +1331,15 @@ _handlePhoneVisuals(node) {
       return;
     }
 
-    // Background kelas menutupi background kamar Episode 2.
     const { width, height } = this.scale;
+
+    // Pastikan HP kamar dan player kamar disembunyikan sepenuhnya
+    this._setPhoneVisible(false);
+    this.phoneHitArea?.disableInteractive();
+    this.phoneBody?.disableInteractive();
+    this.phonePrompt?.disableInteractive();
+    this.phonePrompt?.setVisible(false);
+    this.player?.setVisible(false);
 
     this._kiranaBackground?.destroy();
 
@@ -1306,98 +1347,46 @@ _handlePhoneVisuals(node) {
       .image(width / 2, height / 2, backgroundKey)
       .setDisplaySize(width, height)
       .setScrollFactor(0)
-      .setDepth(1);
-
-    // Letakkan titik interaksi di depan pemain.
-    const minX = this.walkMinX ?? 50;
-    const maxX = this.walkMaxX ?? width - 50;
-    const groundY = this.groundY ?? height - 120;
-
-    const desiredX = Phaser.Math.Clamp(
-      this.player.x + 240,
-      minX + 30,
-      maxX - 30
-    );
-
-    this.kiranaX = desiredX;
-    this.kiranaY = groundY;
-
-    this.player.x = Phaser.Math.Clamp(
-      desiredX - 200,
-      minX,
-      maxX
-    );
-
-    this.player.setVisible(true);
-    this.player.setDepth(5);
-    this.player.setVelocity(0, 0);
-
-    // Penanda sementara lokasi Kirana.
-    // Bisa diganti sprite Kirana jika aset karakternya sudah tersedia.
-    this._kiranaMarker?.destroy();
-
-    this._kiranaMarker = this.add
-      .container(this.kiranaX, this.kiranaY - 55)
-      .setDepth(6);
-
-    const marker = this.add.ellipse(
-      0, 0, 34, 50, 0xf9a8d4, 0.9
-    );
-
-    const label = this.add.text(
-      0, -42, 'Kirana', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#374151',
-        padding: { x: 7, y: 4 },
-      }
-    ).setOrigin(0.5);
-
-    this._kiranaMarker.add([marker, label]);
-
-    this._kiranaPrompt?.destroy();
-
-    this._kiranaPrompt = this.add
-      .text(width / 2, height - 75, 'Dekati Kirana lalu tekan E', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#1a1a2e',
-        padding: { x: 12, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(100);
+      .setDepth(50); // Menutupi latar kamar dan perabotan kamar
 
     this._kiranaChoiceId = choiceId;
-    this.uiInputLocked = false;
+
+    // Langsung buka dialog percakapan dengan Kirana secara otomatis
+    this._startKiranaDialogue(choiceId);
   }
 
   // ==============================================================
-  // INTERAKSI DENGAN KIRANA
+  // INTERAKSI DENGAN KIRANA (DIALOG CUTSCENE)
   // ==============================================================
 
-
-  _startKiranaDialogue() {
-    if (!this._branchSequenceActive || this._kiranaDialogueOpen) {
+  _startKiranaDialogue(choiceId) {
+    if (this._kiranaDialogueOpen) {
       return;
     }
+
+    const selectedChoice = choiceId || this._kiranaChoiceId;
 
     this._kiranaDialogueOpen = true;
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
     this.player?.anims.stop();
-    this._kiranaPrompt?.setVisible(false);
 
     const dialogueTree =
-      this._kiranaChoiceId === 'b'
+      selectedChoice === 'b'
         ? EPISODE2_KIRANA_DIALOGUE_B
         : EPISODE2_KIRANA_DIALOGUE_C;
+
+    // FIX: DialogueBox mungkin masih berstatus isOpen = true dari dialog HP
+    // yang sebelumnya (onClose callback sudah selesai, tapi flag belum di-reset).
+    // Force-reset agar open() Kirana tidak langsung return.
+    if (this.dialogueBox.isOpen) {
+      this.dialogueBox.isOpen = false;
+    }
 
     this.dialogueBox.open({
       dialogueTree,
       npcName: 'Kirana',
+      npcPortraitKey: 'kirana-portrait',
       playerName: getCharacterName(),
 
       onClose: () => {
@@ -1405,16 +1394,19 @@ _handlePhoneVisuals(node) {
 
         this._kiranaDialogueOpen = false;
 
-        this._kiranaMarker?.destroy();
-        this._kiranaMarker = null;
-
-        this._kiranaPrompt?.destroy();
-        this._kiranaPrompt = null;
-
         this._kiranaBackground?.destroy();
         this._kiranaBackground = null;
 
         this._branchSequenceActive = false;
+
+        // Kembali ke kamar Sekar: tampilkan kembali Sekar
+        this.player?.setVisible(true);
+
+        // Di kamar setelah menyelesaikan cutscene: HP terlihat di meja tapi tidak bisa diinteraksikan lagi
+        this._setPhoneVisible(true);
+        this.phonePrompt?.setVisible(false);
+        this.phoneQuestComplete = true;
+        this.phoneInDialogue = true; // mengunci HP untuk sisa sesi di kamar
 
         this._offerCounselingAndFinish();
       },
@@ -1542,23 +1534,19 @@ onSceneUpdate() {
 
   // Saat cabang Kirana aktif, interaksi HP tidak digunakan.
   if (this._branchSequenceActive) {
-    if (
-      !this._kiranaDialogueOpen &&
-      Math.abs(this.player.x - this.kiranaX) < 100 &&
-      Phaser.Input.Keyboard.JustDown(this.interactKey)
-    ) {
-      this._startKiranaDialogue();
-    }
-
     return;
   }
 
-  // HP tetap dapat dibuka ketika episode dimainkan ulang. Sebelumnya
-  // progres tersimpan membuat seluruh interaksi HP dimatikan, sehingga
-  // ponsel tampak tidak berfungsi setelah satu kali permainan.
+  // Jika HP sudah selesai diperiksa dalam sesi ini (misal setelah menyelesaikan cutscene kembali ke kamar),
+  // jangan tampilkan prompt lagi dan jangan terima input interaksi HP.
+  if (this.phoneQuestComplete || this.phoneInDialogue) {
+    this.phonePrompt?.setVisible(false);
+    return;
+  }
+
   const distance = Math.abs(this.player.x - this.phoneX);
   const inRange = distance <= PHONE_INTERACTION_RADIUS;
-  this.phonePrompt?.setVisible(!this.phoneInDialogue && inRange);
+  this.phonePrompt?.setVisible(inRange);
 
   if (inRange && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
     this._tryOpenPhone();

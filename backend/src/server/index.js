@@ -109,7 +109,6 @@ app.get('/', (req, res) => {
         auth: {
           register: 'POST /api/auth/register',
           login: 'POST /api/auth/login',
-          google: 'POST /api/auth/google',
           refresh: 'POST /api/auth/refresh',
           logout: 'POST /api/auth/logout',
           me: 'GET /api/auth/me',

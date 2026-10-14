@@ -42,18 +42,6 @@ export const loginPayloadSchema = Joi.object({
   expected_role: Joi.string().valid('siswa', 'guru_bk').optional(),
 });
 
-export const googleAuthPayloadSchema = Joi.object({
-  // ID token dari Google Sign-In (bukan access_token) — diverifikasi
-  // signature & audience-nya lewat google-auth-library, jadi server
-  // tidak perlu memanggil endpoint Google lain untuk memastikan
-  // keasliannya.
-  credential: Joi.string().required().messages({
-    'any.required': 'Google credential diperlukan.',
-  }),
-  role: Joi.string().valid('siswa', 'guru_bk').default('siswa'),
-  expected_role: Joi.string().valid('siswa', 'guru_bk').optional(),
-});
-
 export const refreshTokenPayloadSchema = Joi.object({
   // Opsional di body — kalau tidak dikirim di body, akan dicoba baca
   // dari cookie httpOnly `refresh_token` (lihat authentication-controller.js).

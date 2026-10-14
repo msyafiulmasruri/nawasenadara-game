@@ -152,19 +152,6 @@ export function AuthProvider({ children }) {
     [applySession, getAccessToken],
   );
 
-  const googleLogin = useCallback(
-    async ({ credential, role, expected_role }) => {
-      const data = await apiClient.post(
-        '/api/auth/google',
-        { credential, role, expected_role },
-        { getAccessToken },
-      );
-      applySession(data);
-      return data.user;
-    },
-    [applySession, getAccessToken],
-  );
-
   const logout = useCallback(async () => {
     try {
       await apiClient.post('/api/auth/logout', undefined, { getAccessToken });
@@ -200,7 +187,6 @@ export function AuthProvider({ children }) {
       getAccessToken,
       login,
       register,
-      googleLogin,
       logout,
       forgotPassword,
       verifyResetToken,
@@ -212,7 +198,6 @@ export function AuthProvider({ children }) {
       getAccessToken,
       login,
       register,
-      googleLogin,
       logout,
       forgotPassword,
       verifyResetToken,

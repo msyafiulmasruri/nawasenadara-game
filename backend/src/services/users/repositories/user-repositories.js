@@ -44,35 +44,6 @@ class UserRepositories {
     return result.rows[0] || null;
   }
 
-  async getUserByGoogleIdOrEmail(googleId, email) {
-    const result = await this._pool.query(
-      `SELECT ${PUBLIC_FIELDS} FROM users WHERE google_id = $1 OR email = $2`,
-      [googleId, email],
-    );
-    return result.rows[0] || null;
-  }
-
-  async upsertGoogleUser({ googleId, avatarUrl, name, existingId }) {
-    const result = await this._pool.query(
-      `UPDATE users
-       SET google_id = $1, avatar_url = COALESCE($2, avatar_url), name = COALESCE(name, $3), updated_at = NOW()
-       WHERE id = $4
-       RETURNING ${PUBLIC_FIELDS}`,
-      [googleId, avatarUrl, name, existingId],
-    );
-    return result.rows[0];
-  }
-
-  async insertGoogleUser({ name, email, googleId, avatarUrl, role }) {
-    const result = await this._pool.query(
-      `INSERT INTO users (name, email, google_id, avatar_url, provider, role, is_verified)
-       VALUES ($1, $2, $3, $4, 'google', $5, true)
-       RETURNING ${PUBLIC_FIELDS}`,
-      [name, email, googleId, avatarUrl, role || 'siswa'],
-    );
-    return result.rows[0];
-  }
-
   async updateName({ id, name }) {
     const result = await this._pool.query(
       `UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2

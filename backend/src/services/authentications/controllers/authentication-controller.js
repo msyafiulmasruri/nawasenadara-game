@@ -1,4 +1,4 @@
-import { OAuth2Client } from 'google-auth-library';
+
 import TokenManager from '../../../security/token-manager.js';
 import UserRepositories from '../../users/repositories/user-repositories.js';
 import AuthenticationRepositories from '../repositories/authentication-repositories.js';
@@ -10,9 +10,7 @@ import AuthenticationError from '../../../exceptions/authentication-error.js';
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
-const googleClient = process.env.GOOGLE_CLIENT_ID
-  ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-  : null;
+
 
 // Refresh token dikirim lewat cookie httpOnly supaya tidak bisa dibaca
 // JavaScript di browser (mitigasi XSS) — beda dari access token yang
@@ -134,78 +132,6 @@ export const login = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/google
-// Menerima ID token (`credential`) dari Google Sign-In di sisi client
-// (mis. @react-oauth/google flow 'login', bukan 'implicit'). ID token
-// diverifikasi tanda tangan & audience-nya langsung oleh
-// google-auth-library, TANPA perlu memanggil endpoint Google lain —
-// lebih cepat dan lebih aman dibanding memvalidasi access_token manual.
-export const googleAuth = async (req, res, next) => {
-  try {
-    const { credential, role, expected_role: expectedRole } = req.validated;
-
-    if (!googleClient) {
-      return error(res, 'Google OAuth belum dikonfigurasi di server.', 503);
-    }
-
-    let payload;
-    try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
-    } catch {
-      return error(
-        res,
-        'Google credential tidak valid atau sudah kedaluwarsa.',
-        401,
-      );
-    }
-
-    const { sub: googleId, email, name, picture: avatarUrl } = payload;
-
-    if (!email) {
-      return next(
-        new InvariantError('Tidak dapat mengambil email dari akun Google.'),
-      );
-    }
-
-    let user = await UserRepositories.getUserByGoogleIdOrEmail(googleId, email);
-
-    if (user) {
-      user = await UserRepositories.upsertGoogleUser({
-        googleId,
-        avatarUrl,
-        name,
-        existingId: user.id,
-      });
-    } else {
-      user = await UserRepositories.insertGoogleUser({
-        name,
-        email,
-        googleId,
-        avatarUrl,
-        role,
-      });
-    }
-
-    if (expectedRole && user.role !== expectedRole) {
-      const portalLabel = expectedRole === 'guru_bk' ? 'guru BK' : 'siswa';
-      return next(
-        new InvariantError(
-          `Akun ini bukan akun ${portalLabel}. Gunakan halaman login yang sesuai dengan perananmu.`,
-        ),
-      );
-    }
-
-    const authData = await issueTokenPair(req, res, user);
-
-    return success(res, authData, 'Login dengan Google berhasil!');
-  } catch (err) {
-    next(err);
-  }
-};
 
 // POST /api/auth/refresh
 // Menukar refresh token (dari cookie httpOnly, atau body sebagai

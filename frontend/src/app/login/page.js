@@ -7,7 +7,6 @@ import AuthShell from '@/features/auth/components/AuthShell';
 import AuthInput from '@/features/auth/components/AuthInput';
 import AuthButton from '@/features/auth/components/AuthButton';
 import AuthMessage from '@/features/auth/components/AuthMessage';
-import GoogleAuthButton from '@/features/auth/components/GoogleAuthButton';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { requestAppFullscreen } from '@/lib/fullscreen';
 import {
@@ -17,7 +16,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -56,20 +55,6 @@ export default function LoginPage() {
       router.push('/game');
     } catch (err) {
       setError(err.message || 'Gagal login. Coba lagi.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async ({ credential }) => {
-    requestAppFullscreen();
-    setError('');
-    setLoading(true);
-    try {
-      await googleLogin({ credential });
-      router.push('/game');
-    } catch (err) {
-      setError(err.message || 'Gagal login dengan Google.');
     } finally {
       setLoading(false);
     }
@@ -122,10 +107,6 @@ export default function LoginPage() {
         <AuthButton type="submit" loading={loading}>
           Masuk
         </AuthButton>
-
-        <div className="auth-divider">atau</div>
-
-        <GoogleAuthButton role="siswa" onSuccess={handleGoogle} onError={setError} />
       </form>
     </AuthShell>
   );

@@ -2,7 +2,6 @@ import { Router } from 'express';
 import {
   register,
   login,
-  googleAuth,
   refresh,
   logout,
   forgotPassword,
@@ -15,7 +14,6 @@ import validate, { validateQuery } from '../../../middlewares/validate.js';
 import {
   registerPayloadSchema,
   loginPayloadSchema,
-  googleAuthPayloadSchema,
   forgotPasswordPayloadSchema,
   resetPasswordPayloadSchema,
   verifyResetTokenQuerySchema,
@@ -29,9 +27,6 @@ router.post('/register', validate(registerPayloadSchema), register);
 
 // POST /api/auth/login
 router.post('/login', validate(loginPayloadSchema), login);
-
-// POST /api/auth/google
-router.post('/google', validate(googleAuthPayloadSchema), googleAuth);
 
 // POST /api/auth/refresh
 router.post('/refresh', refresh);

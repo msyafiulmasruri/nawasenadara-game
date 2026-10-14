@@ -10,8 +10,7 @@ const errorHandler = (err, req, res, _next) => {
     return error(res, err.details[0].message, 400);
   }
 
-  // Kode error unique constraint PostgreSQL (mis. email/google_id sudah
-  // terdaftar).
+  // Kode error unique constraint PostgreSQL (mis. email sudah terdaftar).
   if (err.code === '23505') {
     const field = err.detail?.match(/\(([^)]+)\)/)?.[1] || 'field';
     return error(res, `${field} sudah terdaftar.`, 409);

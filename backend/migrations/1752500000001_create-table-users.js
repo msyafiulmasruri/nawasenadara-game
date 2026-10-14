@@ -27,10 +27,6 @@ export const up = (pgm) => {
     password_hash: {
       type: 'VARCHAR(255)',
     },
-    google_id: {
-      type: 'VARCHAR(255)',
-      unique: true,
-    },
     avatar_url: {
       type: 'TEXT',
     },
@@ -74,7 +70,7 @@ export const up = (pgm) => {
   });
 
   pgm.addConstraint('users', 'chk_users_provider', {
-    check: "provider IN ('local', 'google')",
+    check: "provider IN ('local')",
   });
 };
 
