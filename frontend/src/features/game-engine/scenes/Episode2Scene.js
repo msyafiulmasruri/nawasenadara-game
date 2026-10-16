@@ -564,7 +564,7 @@ export default class Episode2Scene extends BasePlayerScene {
 
     this.tweens.add({
       targets: this._povContainer,
-      y: height + 20,
+      y: height + 39,
       duration: 650,
       ease: 'Back.easeOut',
       onUpdate: () => this._updatePovChatMask(),
@@ -1172,120 +1172,50 @@ _handlePhoneVisuals(node) {
       this._branchCutsceneImage = this.add
         .image(width / 2, height / 2, sceneData.image)
         .setScrollFactor(0)
-        .setDepth(900)
+        .setDepth(20)
         .setDisplaySize(width, height);
 
-      // Panel dialog.
-      const panelHeight = 150;
-      const panelY = height - panelHeight / 2 - 18;
-      const panelWidth = width - 48;
-      const panelX = width / 2;
-      const panelTop = height - panelHeight - 18;
+      // Gunakan DialogueBox standar agar dialog muncul di bagian atas.
+      const nodeId = `branch_cutscene_${index}`;
 
-      const fadeOverlay = this.add
-        .rectangle(
-          this.scale.width / 2,
-          this.scale.height / 2,
-          this.scale.width,
-          this.scale.height,
-          0x000000,
-          1
-        )
-        .setScrollFactor(0)
-        .setDepth(950);
+      this.dialogueBox.open({
+        dialogueTree: {
+          startNode: nodeId,
+          nodes: {
+            [nodeId]: {
+              id: nodeId,
+              speaker: 'narration',
+              text: sceneData.text,
+            },
+          },
+        },
 
-      this.tweens.add({
-        targets: fadeOverlay,
-        alpha: 0,
-        duration: 650,
-        ease: 'Sine.easeInOut',
-        onComplete: () => {
-          fadeOverlay.destroy();
+        npcName: 'Narasi',
+        playerName: getCharacterName(),
+
+        // Setelah pemain menyelesaikan narasi ini,
+        // lanjut ke cutscene berikutnya.
+        onClose: () => {
+          if (!this.scene.isActive()) return;
+          if (!this._branchSequenceActive) return;
+
+          showNextScene();
         },
       });
-
-      // Panel navy dengan border emas, mirip dialog utama.
-      const panel = this.add
-        .rectangle(
-          panelX,
-          panelY,
-          panelWidth,
-          panelHeight,
-          0x101020,
-          0.97
-        )
-        .setStrokeStyle(2, 0xc8ad55, 1)
-        .setScrollFactor(0)
-        .setDepth(901);
-
-      // Teks dialog: tanpa nama speaker agar tampil seperti screenshot.
-      const dialogue = this.add
-        .text(
-          panelX - panelWidth / 2 + 24,
-          panelTop + 20,
-          sceneData.text,
-          {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: '16px',
-            color: '#f5f3ff',
-            lineSpacing: 10,
-            wordWrap: {
-              width: panelWidth - 48,
-              useAdvancedWrap: true,
-            },
-          }
-        )
-        .setScrollFactor(0)
-        .setDepth(902);
-
-      // Petunjuk kecil di pojok kanan bawah panel.
-      const prompt = this.add
-        .text(
-          panelX + panelWidth / 2 - 18,
-          panelTop + panelHeight - 12,
-          '▼',
-          {
-            fontFamily: 'monospace',
-            fontSize: '15px',
-            color: '#d8c16c',
-          }
-        )
-        .setOrigin(1, 1)
-        .setScrollFactor(0)
-        .setDepth(902);
-
-      this._branchCutscenePanel = panel;
-      this._branchCutsceneSpeaker = null;
-      this._branchCutsceneText = dialogue;
-      this._branchCutscenePrompt = prompt;
-
-      // Lanjut hanya setelah pemain melakukan input.
-      const advance = () => {
-        if (!this._branchSequenceActive) return;
-
-        this.input.off('pointerdown', advance);
-        this.input.keyboard?.off('keydown-SPACE', advance);
-
-        this._branchCutsceneAdvance = null;
-        showNextScene();
-      };
-
-      this._branchCutsceneAdvance = advance;
-      this.input.once('pointerdown', advance);
-      this.input.keyboard?.once('keydown-SPACE', advance);
     };
 
     showNextScene();
   }
 
   // ==============================================================
-  // MASUK KE KELAS KIRANA
+  // INTERAKSI DI CUTSCENE DENGAN KIRANA
   // ==============================================================
-
+  
   _enterKiranaGameplay(choiceId) {
     if (!this.scene.isActive()) return;
 
     const isChoiceB = choiceId === 'b';
+
     const backgroundKey = isChoiceB
       ? 'ep2-kelas-kirana-sendirian'
       : 'ep2-kelas-kirana-ditertawakan';
@@ -1297,87 +1227,41 @@ _handlePhoneVisuals(node) {
       return;
     }
 
-    // Background kelas menutupi background kamar Episode 2.
     const { width, height } = this.scale;
 
+    // Tampilkan gambar kelas sebagai background cutscene.
     this._kiranaBackground?.destroy();
 
     this._kiranaBackground = this.add
       .image(width / 2, height / 2, backgroundKey)
       .setDisplaySize(width, height)
       .setScrollFactor(0)
-      .setDepth(1);
+      .setDepth(20);
 
-    // Letakkan titik interaksi di depan pemain.
-    const minX = this.walkMinX ?? 50;
-    const maxX = this.walkMaxX ?? width - 50;
-    const groundY = this.groundY ?? height - 120;
+    // Sembunyikan karakter pemain.
+    if (this.player) {
+      this.player.setVelocity(0, 0);
+      this.player.anims.stop();
+      this.player.setVisible(false);
+    }
 
-    const desiredX = Phaser.Math.Clamp(
-      this.player.x + 240,
-      minX + 30,
-      maxX - 30
-    );
+    // Sembunyikan elemen HP di meja.
+    this.phoneHalo?.setVisible(false);
+    this.phoneBody?.setVisible(false);
+    this.phoneHitArea?.setVisible(false);
+    this.phonePrompt?.setVisible(false);
+    this.phoneScreen?.setVisible(false);
 
-    this.kiranaX = desiredX;
-    this.kiranaY = groundY;
-
-    this.player.x = Phaser.Math.Clamp(
-      desiredX - 200,
-      minX,
-      maxX
-    );
-
-    this.player.setVisible(true);
-    this.player.setDepth(5);
-    this.player.setVelocity(0, 0);
-
-    // Penanda sementara lokasi Kirana.
-    // Bisa diganti sprite Kirana jika aset karakternya sudah tersedia.
-    this._kiranaMarker?.destroy();
-
-    this._kiranaMarker = this.add
-      .container(this.kiranaX, this.kiranaY - 55)
-      .setDepth(6);
-
-    const marker = this.add.ellipse(
-      0, 0, 34, 50, 0xf9a8d4, 0.9
-    );
-
-    const label = this.add.text(
-      0, -42, 'Kirana', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#374151',
-        padding: { x: 7, y: 4 },
-      }
-    ).setOrigin(0.5);
-
-    this._kiranaMarker.add([marker, label]);
-
-    this._kiranaPrompt?.destroy();
-
-    this._kiranaPrompt = this.add
-      .text(width / 2, height - 75, 'Dekati Kirana lalu tekan E', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#1a1a2e',
-        padding: { x: 12, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(100);
-
+    // Simpan cabang yang dipilih dan langsung buka dialog.
     this._kiranaChoiceId = choiceId;
-    this.uiInputLocked = false;
+    this.uiInputLocked = true;
+
+    this._startKiranaDialogue();
   }
 
   // ==============================================================
   // INTERAKSI DENGAN KIRANA
   // ==============================================================
-
 
   _startKiranaDialogue() {
     if (!this._branchSequenceActive || this._kiranaDialogueOpen) {
@@ -1410,9 +1294,6 @@ _handlePhoneVisuals(node) {
 
         this._kiranaPrompt?.destroy();
         this._kiranaPrompt = null;
-
-        this._kiranaBackground?.destroy();
-        this._kiranaBackground = null;
 
         this._branchSequenceActive = false;
 
@@ -1547,6 +1428,7 @@ onSceneUpdate() {
       Math.abs(this.player.x - this.kiranaX) < 100 &&
       Phaser.Input.Keyboard.JustDown(this.interactKey)
     ) {
+      this.dialogueBox?.setTextBoxBackgroundVisible(false);
       this._startKiranaDialogue();
     }
 

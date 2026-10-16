@@ -586,12 +586,12 @@ export const EPISODE2_CUTSCENES_C = [
   {
     image: 'ep2-hp-grup-ketawa',
     speaker: 'Narasi',
-    text: 'Malam itu, grup kelas kembali ramai. Kamu melihat teman-teman menjadikan Kirana bahan candaan. Kamu memilih untuk tidak ikut campur dan membiarkan percakapan itu berlalu.',
+    text: 'Malam itu, grup kelas kembali ramai. Kamu melihat teman-teman menjadikan Kirana bahan candaan. Kamu memilih untuk tetap berada di dalam arus candaan dan membiarkan percakapan itu berlalu.',
   },
   {
     image: 'ep2-kelas-closeup-kirana',
     speaker: 'Narasi',
-    text: 'Candaan tentang Kirana terus berlanjut. Sebagian teman menganggapnya lucu, tetapi kamu tidak benar-benar tahu bagaimana perasaan Kirana saat membaca semua itu.',
+    text: 'Keesokan harinya, candaan tentang Kirana terus berlanjut di kelas. Sebagian teman menganggapnya lucu, sambil menertawakan Kirana yang terlihat sedih.',
   },
 ];
 
@@ -605,39 +605,39 @@ export const EPISODE2_KIRANA_DIALOGUE_B = {
       text: 'Kamu menghampiri Kirana yang duduk sendirian. Ia menatap meja dan buru-buru mengusap matanya.',
       next: 'kb2',
     },
+
     kb2: {
       id: 'kb2',
       speaker: 'kirana',
       text: 'Kamu... tadi lihat grup kelas juga, ya?',
-      choices: [
-        {
-          id: 'support',
-          label: '"Iya. Aku ikut nggak nyaman bacanya. Maaf aku belum berani ngomong di grup."',
-          next: 'kb3',
-        },
-        {
-          id: 'listen',
-          label: '"Aku belum tahu harus gimana, tapi kalau kamu mau cerita, aku mau dengerin."',
-          next: 'kb4',
-        },
-      ],
+      next: 'kb3',
     },
+
     kb3: {
       id: 'kb3',
+      speaker: 'player',
+      text: 'Iya. Aku ikut nggak nyaman bacanya. Maaf aku belum berani ngomong di grup.',
+      next: 'kb4',
+    },
+
+    kb4: {
+      id: 'kb4',
       speaker: 'kirana',
       text: 'Makasih udah jujur. Aku cuma capek merasa semua orang menganggap aku aneh.',
       next: 'kb5',
     },
-    kb4: {
-      id: 'kb4',
-      speaker: 'kirana',
-      text: 'Aku cuma pengen bisa sekolah dengan tenang tanpa takut jadi bahan candaan lagi.',
-      next: 'kb5',
-    },
+
     kb5: {
       id: 'kb5',
-      speaker: 'narration',
-      text: 'Kamu menyadari bahwa mendengarkan dan menunjukkan kepedulian bisa menjadi langkah awal, meski kamu belum tahu cara menyelesaikan semuanya.',
+      speaker: 'player',
+      text: 'Aku belum tahu harus gimana, tapi kalau kamu mau cerita, aku mau dengerin.',
+      next: 'kb6',
+    },
+
+    kb6: {
+      id: 'kb6',
+      speaker: 'kirana',
+      text: 'Iyaa, makasih ya. Aku cuma pengen bisa sekolah dengan tenang tanpa takut jadi bahan candaan lagi.',
     },
   },
 };
@@ -656,35 +656,24 @@ export const EPISODE2_KIRANA_DIALOGUE_C = {
       id: 'kc2',
       speaker: 'kirana',
       text: 'Kamu juga ikut ketawa waktu mereka ngomongin aku?',
-      choices: [
-        {
-          id: 'apologize',
-          label: '"Aku salah karena menganggapnya lucu. Maaf, Kirana."',
-          next: 'kc3',
-        },
-        {
-          id: 'deflect',
-          label: '"Aku cuma ikut-ikutan. Aku nggak bermaksud bikin kamu sakit hati."',
-          next: 'kc4',
-        },
-      ],
+      next: 'kc3',
     },
     kc3: {
       id: 'kc3',
-      speaker: 'kirana',
-      text: 'Aku nggak bisa langsung melupakan itu. Tapi setidaknya kamu mau mengakui kesalahanmu.',
-      next: 'kc5',
+      speaker: 'player',
+      text: 'Aku salah karena menganggapnya lucu dan aku cuma ikut-ikutan. Maaf, Kirana.',
+      next: 'kc4',
     },
     kc4: {
       id: 'kc4',
       speaker: 'kirana',
-      text: 'Walaupun cuma ikut-ikutan, tetap aja rasanya menyakitkan kalau banyak orang menertawakan aku.',
+      text: 'Walaupun cuma ikut-ikutan, tetap aja rasanya menyakitkan kalau banyak orang menertawakan aku. Aku nggak bisa langsung melupakan itu. Tapi setidaknya kamu mau mengakui kesalahanmu.',
       next: 'kc5',
     },
     kc5: {
       id: 'kc5',
       speaker: 'narration',
-      text: 'Kamu mulai memahami bahwa sesuatu yang dianggap lucu oleh banyak orang tetap bisa melukai orang yang menjadi sasaran.',
+      text: 'Kamu mulai memahami bahwa sesuatu yang dianggap lucu oleh banyak orang tetap bisa melukai orang yang menjadi sasaran candaan.',
     },
   },
 };

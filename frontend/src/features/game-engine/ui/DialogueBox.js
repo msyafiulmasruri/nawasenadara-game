@@ -61,6 +61,8 @@ export default class DialogueBox {
 
     this._nodeReadyAt = 0;
 
+    this._hideTextBoxBackground = false;
+
     // ============================================================
     // DYNAMIC NPC DIALOGUE
     // ============================================================
@@ -86,6 +88,12 @@ export default class DialogueBox {
     //
     this._dynamicRequestSeq = 0;
     this._onDynamicLine = null;
+  }
+
+  setTextBoxBackgroundVisible(visible) {
+  this._hideTextBoxBackground = !visible;
+
+  this._textBoxBg?.setVisible(visible);
   }
 
   // ==============================================================
@@ -332,6 +340,10 @@ export default class DialogueBox {
       .setStrokeStyle(2, 0xffdd57, 0.6);
 
     this._container.add(this._textBoxBg);
+
+    if (this._hideTextBoxBackground) {
+      this._textBoxBg.setVisible(false);
+    } 
 
     // ============================================================
     // DIALOGUE TEXT
