@@ -13,6 +13,7 @@ import {
   getCompletedEpisodes,
   completeEpisode,
   getStoryChoices,
+  resetEpisodeProgress,
 } from '../utils/progressStore';
 
 // Enam label ini berasal langsung dari id2label model IndoBERT.
@@ -42,6 +43,16 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this.episodeId = data?.episodeId ?? 1;
     this.isLastEpisode = Boolean(data?.isLastEpisode);
     this.choices = Array.isArray(data?.choices) ? data.choices : [];
+
+    const episode2Branch = this.choices.find(
+      (choice) => choice?.nodeId === 'n3'
+    )?.choiceId;
+
+    this.showLearningMenu =
+      this.episodeId === 2 &&
+      (episode2Branch === 'b' || episode2Branch === 'c');
+
+    this.learningChoice = episode2Branch;
 
     const endingChoices = this.isLastEpisode
       ? getStoryChoices(this.episodeId, this.choices)
@@ -447,13 +458,138 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   async _goToJournal() {
-    const alreadyCompleted = getCompletedEpisodes().includes(this.episodeId);
+    const alreadyCompleted = getCompletedEpisodes().includes(
+      this.episodeId
+    );
+
     const ui = window.__nawasenadaraUI;
+
     if (ui?.openJournal) {
-      await ui.openJournal(this.episodeId, { allowSkip: alreadyCompleted });
+      await ui.openJournal(this.episodeId, {
+        allowSkip: alreadyCompleted,
+      });
     }
 
+    // EPISODE 2 Ending
+    // Khusus pilihan B/C di Episode 2, tampilkan refleksi dahulu.
+    if (this.showLearningMenu) {
+      this._showLearningMenu();
+      return;
+    }
+
+    this._completeAndContinue();
+  }
+
+  _showLearningMenu() {
+    if (!this.scene.isActive()) return;
+
+    this._stage = 'learning';
+    this._readyToAdvance = false;
+    this._teardownInput();
+
+    this.endingObjects.forEach((object) => object.setVisible(false));
+    this.emotionObjects.forEach((object) => object.setVisible(false));
+    this.emotionLoadingText.setVisible(false);
+    this.promptText.setVisible(false);
+
+    const bounds = getVisibleBounds(this);
+    const centerX = bounds.centerX;
+
+    const learningText = this.learningChoice === 'c'
+      ? 'Candaan tidak selalu terasa lucu bagi semua orang. Sesuatu yang dianggap lelucon bisa menyakiti orang yang menjadi sasaran. Tawa dan pesan dapat memperbesar dampak perundungan. Kamu masih bisa memilih untuk berhenti, tidak ikut menyebarkan ejekan, dan memperbaiki sikapmu.'
+      : 'Diam juga bisa berdampak. Saat seseorang menjadi korban perundungan, diam mungkin terasa paling aman. Namun, tanpa dukungan, korban bisa merasa sendirian. Kamu bisa membantu dengan tidak ikut menyebarkan ejekan, mendukung korban, atau meminta bantuan orang dewasa tepercaya.';
+
+    this._learningActionTaken = false;
+    this.learningObjects = [];
+
+    const title = this.add.text(
+      centerX,
+      bounds.top + bounds.height * 0.17,
+      'YUK, BELAJAR DARI PILIHANMU',
+      {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontStyle: '700',
+        color: '#ffdd57',
+        align: 'center',
+        fontSize: `${pxToWorld(this, 34)}px`,
+        wordWrap: { width: bounds.width * 0.86 },
+      }
+    ).setOrigin(0.5).setDepth(10);
+
+    const body = this.add.text(
+      centerX,
+      bounds.top + bounds.height * 0.42,
+      learningText,
+      {
+        fontFamily: '"Pixelify Sans", monospace',
+        color: '#ffffff',
+        align: 'center',
+        fontSize: `${pxToWorld(this, 23)}px`,
+        lineSpacing: 8,
+        wordWrap: { width: bounds.width * 0.78 },
+      }
+    ).setOrigin(0.5).setDepth(10);
+
+    this.learningObjects.push(title, body);
+
+    const makeButton = (y, label, callback, fill) => {
+      const button = this.add.rectangle(
+        centerX,
+        y,
+        Math.min(bounds.width * 0.66, pxToWorld(this, 520)),
+        pxToWorld(this, 58),
+        fill,
+        1
+      )
+        .setDepth(10)
+        .setInteractive({ useHandCursor: true });
+
+      const text = this.add.text(centerX, y, label, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontStyle: '700',
+        color: '#ffffff',
+        align: 'center',
+        fontSize: `${pxToWorld(this, 22)}px`,
+      }).setOrigin(0.5).setDepth(11);
+
+      button.on('pointerover', () => button.setAlpha(0.8));
+      button.on('pointerout', () => button.setAlpha(1));
+
+      button.on('pointerdown', () => {
+        if (this._learningActionTaken) return;
+
+        this._learningActionTaken = true;
+        callback();
+      });
+
+      this.learningObjects.push(button, text);
+    };
+
+    // Tombol pertama: hapus progres Episode 2, lalu mulai ulang.
+    makeButton(
+      bounds.top + bounds.height * 0.72,
+      'MULAI ULANG EPISODE',
+      () => {
+        resetEpisodeProgress(2);
+        this.scene.start('Episode2Scene');
+      },
+      0x2563eb
+    );
+
+    // Tombol kedua: tetap sediakan jalan ke episode berikutnya.
+    makeButton(
+      bounds.top + bounds.height * 0.83,
+      'LANJUT KE EPISODE BERIKUTNYA',
+      () => {
+        this._completeAndContinue();
+      },
+      0x15803d
+    );
+  }
+
+  _completeAndContinue() {
     completeEpisode(this.episodeId, this.choices);
+
     if (this.isLastEpisode) {
       this.scene.start('EpisodeSelectScene');
     } else {
@@ -462,4 +598,5 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       });
     }
   }
+
 }

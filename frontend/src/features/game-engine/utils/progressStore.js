@@ -213,6 +213,48 @@ export function getStoryChoices(lastEpisodeId, currentEpisodeChoices = []) {
   return collected;
 }
 
+// Reset progres satu episode aja agar episode lain tetap aman.
+export function resetEpisodeProgress(episodeId) {
+  if (typeof window === 'undefined') return;
+
+  // Hapus progres episode ini dari penyimpanan lokal.
+  const data = readLocalRaw();
+  data.completed = (data.completed || []).filter(
+    (id) => id !== episodeId
+  );
+
+  data.choicesByEpisode = data.choicesByEpisode || {};
+  delete data.choicesByEpisode[episodeId];
+
+  writeLocalRaw(data);
+
+  // Bersihkan cache agar quest NPC muncul lagi saat scene dibuka.
+  if (Array.isArray(window.__nawasenadaraProgressCache)) {
+    const cache = window.__nawasenadaraProgressCache;
+    const existing = cache.find(
+      (row) => row.episode_id === episodeId
+    );
+
+    if (existing) {
+      existing.status = 'in_progress';
+      existing.choices = [];
+    } else {
+      cache.push({
+        episode_id: episodeId,
+        status: 'in_progress',
+        choices: [],
+      });
+    }
+  }
+
+  // Sinkronkan status melalui bridge yang sudah dipakai game.
+  window.__nawasenadaraProgress?.updateStatus(
+    episodeId,
+    'in_progress',
+    []
+  );
+}
+
 export function resetProgress() {
   writeLocalRaw({ completed: [], choicesByEpisode: {} });
   if (typeof window !== 'undefined' && Array.isArray(window.__nawasenadaraProgressCache)) {
