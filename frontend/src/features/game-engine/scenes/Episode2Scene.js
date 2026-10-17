@@ -71,6 +71,7 @@ const EPISODE2_PLAYER_SCALE_MULTIPLIER = 1.0;
 
 // Jarak interaksi luas agar prompt HP dan klik selalu responsif dari depan meja
 const PHONE_INTERACTION_RADIUS = 220;
+const BRANCH_CUTSCENE_FADE_DURATION = 350;
 
 // ================================================================
 // SCENE
@@ -153,7 +154,7 @@ export default class Episode2Scene extends BasePlayerScene {
       // Posisi X spawn: tempatkan karakter berdiri di area lantai depan meja (bukan di atas kasur)
       if (!data?.preservePlayer) {
         const naturalWidth = this._backgroundNaturalWidth || this.levelWidth;
-        this.player.setX(Math.round(naturalWidth * 0.42));
+        this.player.setX(Math.round(naturalWidth * 0.20));
       }
     }
 
@@ -170,7 +171,7 @@ export default class Episode2Scene extends BasePlayerScene {
     if (this.phoneQuestComplete) {
       this.clearQuestGuide();
     } else {
-      this.setQuestGuide('○ ── Periksa HP di meja ──');
+      this.setQuestGuide('○ ── Cek HP di atas meja ──');
     }
 
     // ============================================================
@@ -473,20 +474,12 @@ export default class Episode2Scene extends BasePlayerScene {
       return;
     }
 
-    const distance = Math.abs((this.player?.x ?? 0) - this.phoneX);
-    if (distance > PHONE_INTERACTION_RADIUS + 60) {
-      // Jika pemain masih agak jauh, geser pemain mendekat ke depan meja lalu buka dialog
-      if (this.player) {
-        this.tweens.add({
-          targets: this.player,
-          x: Phaser.Math.Clamp(this.phoneX - 80, this.walkMinX, this.walkMaxX),
-          duration: 350,
-          ease: 'Sine.easeOut',
-          onComplete: () => {
-            this._startPhoneDialogue();
-          },
-        });
-      }
+    if (!this.player) {
+      return;
+    }
+
+    const distance = Math.abs(this.player.x - this.phoneX);
+    if (distance > PHONE_INTERACTION_RADIUS) {
       return;
     }
 
@@ -1146,62 +1139,98 @@ _handlePhoneVisuals(node) {
     const showNextScene = () => {
       if (!this.scene.isActive()) return;
 
-      // Bersihkan tampilan cutscene sebelumnya.
-      this._branchCutsceneImage?.destroy();
-      this._branchCutsceneImage = null;
-      this._branchCutsceneText?.destroy();
-      this._branchCutsceneText = null;
-      this._branchCutsceneSpeaker?.destroy();
-      this._branchCutsceneSpeaker = null;
-      this._branchCutscenePrompt?.destroy();
-      this._branchCutscenePrompt = null;
+      const camera = this.cameras.main;
 
-      // Semua cutscene selesai, masuk gameplay cabang.
-      if (index >= scenes.length) {
-        this._branchCutsceneAdvance = null;
-        this._enterKiranaGameplay(choiceId);
-        return;
-      }
-
-      const sceneData = scenes[index];
-      index++;
-
-      const { width, height } = this.scale;
-
-      // Gambar cutscene memenuhi layar.
-      this._branchCutsceneImage = this.add
-        .image(width / 2, height / 2, sceneData.image)
-        .setScrollFactor(0)
-        .setDepth(20)
-        .setDisplaySize(width, height);
-
-      // Gunakan DialogueBox standar agar dialog muncul di bagian atas.
-      const nodeId = `branch_cutscene_${index}`;
-
-      this.dialogueBox.open({
-        dialogueTree: {
-          startNode: nodeId,
-          nodes: {
-            [nodeId]: {
-              id: nodeId,
-              speaker: 'narration',
-              text: sceneData.text,
-            },
-          },
-        },
-
-        npcName: 'Narasi',
-        playerName: getCharacterName(),
-
-        // Setelah pemain menyelesaikan narasi ini,
-        // lanjut ke cutscene berikutnya.
-        onClose: () => {
+      camera.once(
+        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+        () => {
           if (!this.scene.isActive()) return;
-          if (!this._branchSequenceActive) return;
 
-          showNextScene();
+          // Bersihkan tampilan cutscene sebelumnya saat layar hitam.
+          this._branchCutsceneImage?.destroy();
+          this._branchCutsceneImage = null;
+          this._branchCutsceneText?.destroy();
+          this._branchCutsceneText = null;
+          this._branchCutsceneSpeaker?.destroy();
+          this._branchCutsceneSpeaker = null;
+          this._branchCutscenePrompt?.destroy();
+          this._branchCutscenePrompt = null;
+
+          // Semua cutscene selesai, masuk gameplay cabang.
+          if (index >= scenes.length) {
+            this._branchCutsceneAdvance = null;
+            this._enterKiranaGameplay(choiceId);
+            camera.fadeIn(
+              BRANCH_CUTSCENE_FADE_DURATION,
+              0,
+              0,
+              0,
+            );
+            return;
+          }
+
+          const sceneData = scenes[index];
+          index++;
+
+          const { width, height } = this.scale;
+
+          // Gambar cutscene memenuhi layar.
+          this._branchCutsceneImage = this.add
+            .image(width / 2, height / 2, sceneData.image)
+            .setScrollFactor(0)
+            .setDepth(13)
+            .setDisplaySize(width, height);
+
+          const nodeId = `branch_cutscene_${index}`;
+
+          camera.once(
+            Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
+            () => {
+              if (!this.scene.isActive()) return;
+
+              // Gunakan DialogueBox standar agar dialog muncul di bagian atas.
+              this.dialogueBox.open({
+                dialogueTree: {
+                  startNode: nodeId,
+                  nodes: {
+                    [nodeId]: {
+                      id: nodeId,
+                      speaker: 'narration',
+                      text: sceneData.text,
+                    },
+                  },
+                },
+
+                npcName: 'Narasi',
+                playerName: getCharacterName(),
+
+                // Setelah pemain menyelesaikan narasi ini,
+                // lanjut ke cutscene berikutnya.
+                onClose: () => {
+                  if (!this.scene.isActive()) return;
+                  if (!this._branchSequenceActive) return;
+
+                  showNextScene();
+                },
+              });
+            },
+          );
+
+          camera.fadeIn(
+            BRANCH_CUTSCENE_FADE_DURATION,
+            0,
+            0,
+            0,
+          );
         },
-      });
+      );
+
+      camera.fadeOut(
+        BRANCH_CUTSCENE_FADE_DURATION,
+        0,
+        0,
+        0,
+      );
     };
 
     showNextScene();
@@ -1236,7 +1265,7 @@ _handlePhoneVisuals(node) {
       .image(width / 2, height / 2, backgroundKey)
       .setDisplaySize(width, height)
       .setScrollFactor(0)
-      .setDepth(20);
+      .setDepth(13);
 
     // Sembunyikan karakter pemain.
     if (this.player) {
