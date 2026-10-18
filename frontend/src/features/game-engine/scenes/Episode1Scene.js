@@ -18,6 +18,7 @@ import { getEpisodeById } from '../config/episodes';
 export default class Episode1Scene extends BasePlayerScene {
   constructor() {
     super('Episode1Scene');
+    this._branchCutsceneImage = null;
   }
 
   // Override create() BasePlayerScene supaya bisa menumpuk satu langkah
@@ -327,6 +328,74 @@ export default class Episode1Scene extends BasePlayerScene {
     });
   }
 
+  _handleEpisode1CutsceneNode(node) {
+    const textureByNode = {
+      cutsceneA1: 'ep1-corridor-choice-a',
+      cutsceneB1: 'ep1-corridor-choice-b',
+      cutsceneC1: 'ep1-corridor-choice-c',
+    };
+
+    const textureKey = textureByNode[node?.id];
+
+    if (textureKey) {
+      this._showEpisode1CutsceneBackground(textureKey);
+      return;
+    }
+
+    // Cutscene selesai saat masuk ke dialog akhir cabang.
+    if (['n6a', 'n6b', 'n6c'].includes(node?.id)) {
+      this._hideEpisode1CutsceneBackground();
+    }
+  }
+
+  _showEpisode1CutsceneBackground(textureKey) {
+    const camera = this.cameras.main;
+
+    // Bersihkan gambar sebelumnya jika ada.
+    if (this._branchCutsceneImage) {
+      this.tweens.killTweensOf(this._branchCutsceneImage);
+      this._branchCutsceneImage.destroy();
+      this._branchCutsceneImage = null;
+    }
+
+    const image = this.add
+      .image(camera.width / 2, camera.height / 2, textureKey)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDisplaySize(camera.width, camera.height)
+      .setDepth(400)
+      .setAlpha(0);
+
+    this._branchCutsceneImage = image;
+
+    this.tweens.add({
+      targets: image,
+      alpha: 1,
+      duration: 350,
+      ease: 'Sine.easeInOut',
+    });
+  }
+
+  _hideEpisode1CutsceneBackground() {
+    const image = this._branchCutsceneImage;
+    if (!image) return;
+
+    this.tweens.killTweensOf(image);
+
+    this.tweens.add({
+      targets: image,
+      alpha: 0,
+      duration: 350,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        if (this._branchCutsceneImage === image) {
+          image.destroy();
+          this._branchCutsceneImage = null;
+        }
+      },
+    });
+  }
+
   _startNpcDialogue() {
     if (this.npcInDialogue) return;
     this.npcInDialogue = true;
@@ -340,11 +409,11 @@ export default class Episode1Scene extends BasePlayerScene {
       npcPortraitKey: this.npcConfig.portraitKey,
       npcName: this.npcConfig.name,
       playerName: getCharacterName(),
-      // FIX #1: tawaran "ngobrol dengan Kak Dara atau lanjut main"
-      // sekarang muncul di SINI — tepat setelah dialog dengan Rafi
-      // selesai — bukan lagi menempel di alur pindah-episode
-      // (finishEpisode/jurnal refleksi tetap jalan seperti biasa nanti
-      // di ujung level, itu proses terpisah).
+
+      onNodeChange: (node) => {
+        this._handleEpisode1CutsceneNode(node);
+      },
+      
       onClose: async (collectedChoices) => {
         this.npcTalked = true;
         this.npcChoices = collectedChoices;

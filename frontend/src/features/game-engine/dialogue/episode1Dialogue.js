@@ -205,22 +205,97 @@ export const EPISODE1_DIALOGUE = {
           id: 'a',
           label: '"Bukan soal gampang tersinggung, tapi ini soal saling menghargai aja kali."',
           emotion: 'aman',
-          next: 'n6a',
+          next: 'cutsceneA1',
         },
         {
           id: 'b',
           label: '"Terserah kalian mau bilang apa, aku gak mau ambil pusing."',
           emotion: 'netral',
-          next: 'n6b',
+          next: 'cutsceneB1',
         },
         {
           id: 'c',
           label: '"Udah, diemin aja, males ribut." (diucapkan pelan, menahan diri)',
           emotion: 'sedih',
-          next: 'n6c',
+          next: 'cutsceneC1',
         },
       ],
     },
+
+
+    // --- Branch A: berani menyampaikan batasan ---
+    cutsceneA1: {
+      id: 'cutsceneA1',
+      speaker: 'narration',
+      text: 'Ucapanmu membuat Rafi berhenti tertawa. Beberapa detik berlalu di koridor depan kelas. Rafi yang tadi bercanda mulai terdiam.',
+      next: 'cutsceneA2',
+    },
+
+    cutsceneA2: {
+      id: 'cutsceneA2',
+      speaker: 'rafi',
+      text: 'Lah, gue kan cuma bercanda. Tapi... ya, mungkin cara gue ngomong tadi emang kelewatan.',
+      next: 'cutsceneA3',
+    },
+
+    cutsceneA3: {
+      id: 'cutsceneA3',
+      speaker: 'narration',
+      text: 'Rafi menggaruk belakang kepalanya, terlihat sedikit salah tingkah. Kamu tetap berdiri di sana, memberi kesempatan kepadanya untuk memahami maksudmu.',
+      next: 'cutsceneA4',
+    },
+
+    cutsceneA4: {
+      id: 'cutsceneA4',
+      speaker: 'rafi',
+      text: 'Oke deh, gue paham. Harusnya gue nggak asal ngomong begitu. Ya udah, nggak usah dibahas panjang-panjang juga.',
+      next: 'n6a',
+    },
+
+    // --- Branch B: memilih tidak ambil pusing ---
+    cutsceneB1: {
+      id: 'cutsceneB1',
+      speaker: 'narration',
+      text: 'Kamu mengalihkan pandangan dan memilih untuk tidak ikut memperpanjang perdebatan. Suara siswa lain yang berlalu-lalang kembali terdengar memenuhi koridor.',
+      next: 'cutsceneB2',
+    },
+
+    cutsceneB2: {
+      id: 'cutsceneB2',
+      speaker: 'rafi',
+      text: 'Nah, gitu dong. Nggak usah dibawa serius. Santai aja kali, kita juga cuma ngobrol.',
+      next: 'cutsceneB3',
+    },
+
+    cutsceneB3: {
+      id: 'cutsceneB3',
+      speaker: 'narration',
+      text: 'Kamu tidak membalas. Percakapan itu memang berhenti, tetapi bukan berarti kamu sepenuhnya setuju. Kamu hanya merasa tidak ingin menghabiskan tenaga untuk berdebat sekarang.',
+      next: 'n6b',
+    },
+
+    // --- Branch C: memilih diam karena tidak nyaman ---
+    cutsceneC1: {
+      id: 'cutsceneC1',
+      speaker: 'narration',
+      text: 'Kamu menunduk dan melihat tali sepatumu perlahan. Kamu ingin mengatakan sesuatu, tetapi kata-katanya terasa sulit keluar. Koridor yang ramai mendadak terasa tidak nyaman.',
+      next: 'cutsceneC2',
+    },
+
+    cutsceneC2: {
+      id: 'cutsceneC2',
+      speaker: 'rafi',
+      text: 'Loh, kok diem? Ya udah deh, kalau lo gamau ikut ngomong juga gapapa.',
+      next: 'cutsceneC3',
+    },
+
+    cutsceneC3: {
+      id: 'cutsceneC3',
+      speaker: 'narration',
+      text: 'Rafi kembali disapa oleh temannya yang lewat. Tidak ada yang bertanya apakah kamu baik-baik saja. Kamu masih berdiri di depan kelas, berusaha mengabaikan perasaan mengganjal yang tertinggal.',
+      next: 'n6c',
+    },
+
     n6a: {
       id: 'n6a',
       speaker: 'rafi',

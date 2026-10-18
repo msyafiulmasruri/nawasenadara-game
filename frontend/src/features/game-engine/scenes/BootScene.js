@@ -109,6 +109,11 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
+    // Aset cutscene bercabang Episode 1 — koridor depan kelas
+    this.load.image('ep1-corridor-choice-a', '/scenes/ep1-corridor-choice-a.jpg');
+    this.load.image('ep1-corridor-choice-b', '/scenes/ep1-corridor-choice-b.jpg');
+    this.load.image('ep1-corridor-choice-c', '/scenes/ep1-corridor-choice-c.jpg');
+
     // Aset khusus Episode 2: cutscene cabang B/C dan background kelas Kirana
     this.load.image('ep2-hp-grup-diam', '/scenes/ep2-hp-grup-diam.jpg');
     this.load.image('ep2-koridor-sekolah-hp', '/scenes/ep2-koridor-sekolah-hp.jpg');

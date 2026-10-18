@@ -46,6 +46,17 @@ function shouldShowEpisodeLearning(episodeId, choices = []) {
   return false;
 }
 
+function shouldShowEpisode1Learning(choices = []) {
+  const riskyChoices = {
+    n3: ['a', 'c'],
+    n5: ['c'],
+  };
+
+  return choices.some((choice) =>
+    riskyChoices[choice?.nodeId]?.includes(choice?.choiceId)
+  );
+}
+
 function shouldShowEpisode5Learning(choices = []) {
   const riskyChoices = {
     n_icebreak: ['c', 'd'],
@@ -82,11 +93,16 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       this.choices,
     );
 
+    const episode1NeedsLearning =
+      this.episodeId === 1 &&
+      shouldShowEpisode1Learning(this.choices); 
+
     const episode5NeedsLearning =
       this.episodeId === 5 &&
       shouldShowEpisode5Learning(this.choices);
 
     this.showLearningMenu =
+      episode1NeedsLearning ||
       episode2NeedsLearning ||
       episode3NeedsLearning ||
       episode5NeedsLearning;
@@ -537,7 +553,10 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     let learningText;
 
-    if (this.episodeId === 2) {
+    if (this.episodeId === 1) {
+      learningText =
+        'Candaan tentang gender bisa menyakiti orang lain meskipun dianggap sepele. Kamu berhak menyampaikan keberatan dengan tegas dan tetap menghargai orang lain. Kalau ejekan terus berlanjut, jangan ragu mencari bantuan dari orang yang kamu percaya.';
+    } else if (this.episodeId === 2) {
       learningText = this.learningChoice === 'c'
         ? 'Candaan tidak selalu terasa lucu bagi semua orang. Sesuatu yang dianggap lelucon bisa menyakiti orang yang menjadi sasaran. Tawa dan pesan dapat memperbesar dampak perundungan. Kamu masih bisa memilih untuk berhenti, tidak ikut menyebarkan ejekan, dan memperbaiki sikapmu.'
         : 'Diam juga bisa berdampak. Saat seseorang menjadi korban perundungan, diam mungkin terasa paling aman. Namun, tanpa dukungan, korban bisa merasa sendirian. Kamu bisa membantu dengan tidak ikut menyebarkan ejekan, mendukung korban, atau meminta bantuan orang dewasa tepercaya.';
@@ -626,6 +645,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         resetEpisodeProgress(this.episodeId);
 
         const episodeSceneKey = {
+          1: 'Episode1Scene',
           2: 'Episode2Scene',
           3: 'Episode3Scene',
           5: 'Episode5Scene',
