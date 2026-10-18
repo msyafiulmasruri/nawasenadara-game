@@ -34,6 +34,31 @@ const ENDING_SUMMARIES = {
   bad: 'Beberapa pilihanmu masih berisiko, tetapi kamu bisa mencoba lagi.',
 };
 
+function shouldShowEpisodeLearning(episodeId, choices = []) {
+  if (episodeId === 3) {
+    const finalChoice = choices.find(
+      (choice) => choice?.nodeId === 'n_cb4'
+    )?.choiceId;
+
+    return ['b', 'c'].includes(finalChoice);
+  }
+
+  return false;
+}
+
+function shouldShowEpisode5Learning(choices = []) {
+  const riskyChoices = {
+    n_icebreak: ['c', 'd'],
+    n_threat: ['b', 'c', 'd'],
+    n_confession: ['c', 'd'],
+    n_action: ['c', 'd'],
+  };
+
+  return choices.some((choice) =>
+    riskyChoices[choice?.nodeId]?.includes(choice?.choiceId)
+  );
+}
+
 export default class EpisodeEndingScene extends Phaser.Scene {
   constructor() {
     super('EpisodeEndingScene');
@@ -48,11 +73,26 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       (choice) => choice?.nodeId === 'n3'
     )?.choiceId;
 
-    this.showLearningMenu =
+    const episode2NeedsLearning =
       this.episodeId === 2 &&
       (episode2Branch === 'b' || episode2Branch === 'c');
 
-    this.learningChoice = episode2Branch;
+    const episode3NeedsLearning = shouldShowEpisodeLearning(
+      this.episodeId,
+      this.choices,
+    );
+
+    const episode5NeedsLearning =
+      this.episodeId === 5 &&
+      shouldShowEpisode5Learning(this.choices);
+
+    this.showLearningMenu =
+      episode2NeedsLearning ||
+      episode3NeedsLearning ||
+      episode5NeedsLearning;
+
+    this.learningChoice =
+      this.episodeId === 2 ? episode2Branch : null;
 
     const endingChoices = this.isLastEpisode
       ? getStoryChoices(this.episodeId, this.choices)
@@ -495,9 +535,22 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     const bounds = getVisibleBounds(this);
     const centerX = bounds.centerX;
 
-    const learningText = this.learningChoice === 'c'
-      ? 'Candaan tidak selalu terasa lucu bagi semua orang. Sesuatu yang dianggap lelucon bisa menyakiti orang yang menjadi sasaran. Tawa dan pesan dapat memperbesar dampak perundungan. Kamu masih bisa memilih untuk berhenti, tidak ikut menyebarkan ejekan, dan memperbaiki sikapmu.'
-      : 'Diam juga bisa berdampak. Saat seseorang menjadi korban perundungan, diam mungkin terasa paling aman. Namun, tanpa dukungan, korban bisa merasa sendirian. Kamu bisa membantu dengan tidak ikut menyebarkan ejekan, mendukung korban, atau meminta bantuan orang dewasa tepercaya.';
+    let learningText;
+
+    if (this.episodeId === 2) {
+      learningText = this.learningChoice === 'c'
+        ? 'Candaan tidak selalu terasa lucu bagi semua orang. Sesuatu yang dianggap lelucon bisa menyakiti orang yang menjadi sasaran. Tawa dan pesan dapat memperbesar dampak perundungan. Kamu masih bisa memilih untuk berhenti, tidak ikut menyebarkan ejekan, dan memperbaiki sikapmu.'
+        : 'Diam juga bisa berdampak. Saat seseorang menjadi korban perundungan, diam mungkin terasa paling aman. Namun, tanpa dukungan, korban bisa merasa sendirian. Kamu bisa membantu dengan tidak ikut menyebarkan ejekan, mendukung korban, atau meminta bantuan orang dewasa tepercaya.';
+    } else if (this.episodeId === 3) {
+      learningText =
+        'Pesan dari orang yang tidak dikenal bisa mengandung manipulasi atau ancaman. Kamu tidak perlu menuruti permintaan mereka atau menghadapi situasi berbahaya sendirian. Simpan bukti pesan, hentikan komunikasi, blokir dan laporkan akun tersebut, lalu beri tahu orang tua atau orang dewasa tepercaya. Jika merasa terancam, utamakan keselamatan dan jangan mendekati sumber bahaya.';
+    } else if (this.episodeId === 5) {
+      learningText =
+        'Menjadi sahabat berarti mendengarkan tanpa menghakimi. Kekerasan bukan salah korban. Utamakan keselamatan, jangan menghadapi pelaku sendirian, dan dampingi teman mencari bantuan dari orang dewasa tepercaya.';
+    } else {
+      learningText =
+        'Setiap pilihan memiliki konsekuensi. Luangkan waktu untuk memahami situasi, mempertimbangkan risiko, dan meminta bantuan orang yang tepercaya sebelum mengambil keputusan.';
+    }
 
     this._learningActionTaken = false;
     this.learningObjects = [];
@@ -565,13 +618,22 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       this.learningObjects.push(button, text);
     };
 
-    // Tombol pertama: hapus progres Episode 2, lalu mulai ulang.
+    // Tombol pertama: restart episode yang sedang dimainkan.
     makeButton(
       bounds.top + bounds.height * 0.72,
       'MULAI ULANG EPISODE',
       () => {
-        resetEpisodeProgress(2);
-        this.scene.start('Episode2Scene');
+        resetEpisodeProgress(this.episodeId);
+
+        const episodeSceneKey = {
+          2: 'Episode2Scene',
+          3: 'Episode3Scene',
+          5: 'Episode5Scene',
+        }[this.episodeId];
+
+        if (episodeSceneKey) {
+          this.scene.start(episodeSceneKey);
+        }
       },
       0x2563eb
     );
