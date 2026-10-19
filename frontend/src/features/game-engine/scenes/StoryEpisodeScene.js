@@ -147,8 +147,8 @@ export default class StoryEpisodeScene extends BasePlayerScene {
 
     this.npcConfig = npcConfig;
     this.npcInDialogue = false;
-    this.npcTalked = hasTalkedToNpc(this.episodeId);
-    this.npcChoices = getEpisodeChoices(this.episodeId);
+    this.npcTalked = false;
+    this.npcChoices = [];
 
     const npcX = this.levelWidth * npcConfig.xRatio;
     const hasPortrait =
@@ -238,7 +238,7 @@ export default class StoryEpisodeScene extends BasePlayerScene {
     this.interactKey = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.E,
     );
-    this.setChatButtonVisible(Boolean(this.npcTalked));
+    this.setChatButtonVisible(Boolean(this.npcTalked || hasTalkedToNpc(this.episodeId)));
     this._updateQuestGuide();
   }
 

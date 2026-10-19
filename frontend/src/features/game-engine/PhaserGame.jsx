@@ -11,6 +11,7 @@ import EpisodeEndingScene from './scenes/EpisodeEndingScene';
 import Episode1Scene from './scenes/Episode1Scene';
 import Episode2Scene from './scenes/Episode2Scene';
 import Episode3Scene from './scenes/Episode3Scene';
+import Episode4Scene from './scenes/Episode4Scene';
 import Episode5Scene from './scenes/Episode5Scene';
 import Episode6Scene from './scenes/Episode6Scene';
 import StoryEpisodeScene from './scenes/StoryEpisodeScene';
@@ -98,10 +99,14 @@ export default function PhaserGame() {
           Episode1Scene,
           Episode2Scene,
           Episode3Scene,
+          Episode4Scene,
           Episode5Scene,
           Episode6Scene,
           StoryEpisodeScene,
         ],
+        audio: {
+          noAudio: true,
+        },
         physics: {
           default: 'arcade',
           arcade: { gravity: { x: 0, y: 0 }, debug: false },

@@ -57,12 +57,34 @@ function shouldShowEpisode1Learning(choices = []) {
   );
 }
 
+function shouldShowEpisode4Learning(choices = []) {
+  const riskyChoices = {
+    n3: ['c'],
+    n6: ['b', 'c'],
+  };
+
+  return choices.some((choice) =>
+    riskyChoices[choice?.nodeId]?.includes(choice?.choiceId)
+  );
+}
+
 function shouldShowEpisode5Learning(choices = []) {
   const riskyChoices = {
-    n_icebreak: ['c', 'd'],
-    n_threat: ['b', 'c', 'd'],
-    n_confession: ['c', 'd'],
-    n_action: ['c', 'd'],
+    n_icebreak: ['c'],
+    n_action: ['c'],
+    n3: ['c'],
+    n6: ['c'],
+  };
+
+  return choices.some((choice) =>
+    riskyChoices[choice?.nodeId]?.includes(choice?.choiceId)
+  );
+}
+
+function shouldShowEpisode6Learning(choices = []) {
+  const riskyChoices = {
+    n3: ['c'],
+    n6: ['c'],
   };
 
   return choices.some((choice) =>
@@ -77,7 +99,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
   init(data) {
     this.episodeId = data?.episodeId ?? 1;
-    this.isLastEpisode = Boolean(data?.isLastEpisode);
+    this.isLastEpisode = Boolean(data?.isLastEpisode || this.episodeId === 6);
     this.choices = Array.isArray(data?.choices) ? data.choices : [];
 
     const episode2Branch = this.choices.find(
@@ -97,23 +119,38 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       this.episodeId === 1 &&
       shouldShowEpisode1Learning(this.choices); 
 
+    const episode4NeedsLearning =
+      this.episodeId === 4 &&
+      shouldShowEpisode4Learning(this.choices);
+
     const episode5NeedsLearning =
       this.episodeId === 5 &&
       shouldShowEpisode5Learning(this.choices);
 
-    this.showLearningMenu =
-      episode1NeedsLearning ||
-      episode2NeedsLearning ||
-      episode3NeedsLearning ||
-      episode5NeedsLearning;
-
-    this.learningChoice =
-      this.episodeId === 2 ? episode2Branch : null;
+    const episode6NeedsLearning =
+      this.episodeId === 6 &&
+      shouldShowEpisode6Learning(this.choices);
 
     const endingChoices = this.isLastEpisode
       ? getStoryChoices(this.episodeId, this.choices)
       : this.choices;
     const endingResult = computeEnding(this.episodeId, endingChoices);
+
+    this.endingKey = endingResult.endingKey;
+    this.ending = endingResult.ending;
+    this.isBadEnding = this.endingKey === 'bad';
+
+    this.showLearningMenu =
+      this.isBadEnding ||
+      episode1NeedsLearning ||
+      episode2NeedsLearning ||
+      episode3NeedsLearning ||
+      episode4NeedsLearning ||
+      episode5NeedsLearning ||
+      episode6NeedsLearning;
+
+    this.learningChoice =
+      this.episodeId === 2 ? episode2Branch : null;
 
     // Fallback hanya dipakai ketika layanan NLP benar-benar tidak dapat
     // dihubungi. Jalur normal akan menimpa nilai ini dengan hasil model.
@@ -124,8 +161,6 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     );
     const fallbackCount = fallback.tally[fallback.dominant] || 0;
 
-    this.endingKey = endingResult.endingKey;
-    this.ending = endingResult.ending;
     this.responseTexts = getEpisodeChoiceTexts(this.episodeId, this.choices);
     this.dominantEmotion = fallback.dominant;
     this.emotionConfidence = totalResponses > 0 ? fallbackCount / totalResponses : 0;
@@ -174,7 +209,16 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._handleAdvance = () => {
       if (!this._readyToAdvance || this._transitioning || this._advancing) return;
       if (this._stage === 'ending') {
-        this._showEmotionStage();
+        // Mood bar hanya ditampilkan pada ending buruk.
+        // Jika mendapatkan ending baik / ending sejati, lewati mood bar langsung ke jurnal.
+        if (this.isBadEnding) {
+          this._showEmotionStage();
+          return;
+        }
+
+        this._advancing = true;
+        this._teardownInput();
+        void this._goToJournal();
         return;
       }
 
@@ -286,7 +330,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setVisible(false);
 
-    this.promptText = hiddenText('TEKAN UNTUK LIHAT EMOSI', {
+    const initialPrompt = this.isBadEnding
+      ? 'TEKAN UNTUK LIHAT EMOSI'
+      : 'TEKAN UNTUK ISI JURNAL';
+
+    this.promptText = hiddenText(initialPrompt, {
       fontFamily: '"Pixelify Sans", monospace',
       color: '#ffffff',
       align: 'center',
@@ -315,6 +363,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     if (!nlp?.classifyEpisodeMood || this.responseTexts.length === 0) {
       this._moodReady = true;
       this._applyEmotionResult(fallbackResult);
+      if (this.isBadEnding) {
+        setMood(fallbackResult.label, fallbackResult.confidence);
+      } else {
+        setMood('aman', 0.85);
+      }
       return fallbackResult;
     }
 
@@ -345,7 +398,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       };
       this._moodReady = true;
       if (this.scene.isActive()) this._applyEmotionResult(classified);
-      setMood(classified.label, classified.confidence);
+      if (this.isBadEnding) {
+        setMood(classified.label, classified.confidence);
+      } else {
+        setMood('aman', Math.max(0.85, classified.confidence));
+      }
       return classified;
     } catch (error) {
       console.warn(
@@ -354,6 +411,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       );
       this._moodReady = true;
       if (this.scene.isActive()) this._applyEmotionResult(fallbackResult);
+      if (this.isBadEnding) {
+        setMood(fallbackResult.label, fallbackResult.confidence);
+      } else {
+        setMood('aman', 0.85);
+      }
       return fallbackResult;
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
@@ -563,9 +625,15 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     } else if (this.episodeId === 3) {
       learningText =
         'Pesan dari orang yang tidak dikenal bisa mengandung manipulasi atau ancaman. Kamu tidak perlu menuruti permintaan mereka atau menghadapi situasi berbahaya sendirian. Simpan bukti pesan, hentikan komunikasi, blokir dan laporkan akun tersebut, lalu beri tahu orang tua atau orang dewasa tepercaya. Jika merasa terancam, utamakan keselamatan dan jangan mendekati sumber bahaya.';
+    } else if (this.episodeId === 4) {
+      learningText =
+        'Komentar fisik yang dibungkus sebagai candaan bukanlah hal sepele dan tidak boleh dinormalisasi. Kamu berhak merasa tidak nyaman, menyatakan batasan diri dengan jelas dan tegas, menjaga jarak aman, serta meminta bantuan guru atau orang dewasa tepercaya bila perilaku tersebut terus berlanjut. Kamu tidak pernah bersalah atas batasan tubuh dan kenyamanan dirimu.';
     } else if (this.episodeId === 5) {
       learningText =
         'Menjadi sahabat berarti mendengarkan tanpa menghakimi. Kekerasan bukan salah korban. Utamakan keselamatan, jangan menghadapi pelaku sendirian, dan dampingi teman mencari bantuan dari orang dewasa tepercaya.';
+    } else if (this.episodeId === 6) {
+      learningText =
+        'Menghadapi intimidasi atau desakan yang melanggar batasan diri membutuhkan ketegasan dan kehati-hatian. Jangan membeku atau membalas dengan amarah di area yang sepi. Segera tetapkan batasan, bergerak ke tempat aman yang ramai, kumpulkan kronologi bukti, serta libatkan pihak berwenang tepercaya seperti guru BK, satpam, dan orang tua. Bersama solidaritas teman sebaya, kita tidak perlu takut bersuara.';
     } else {
       learningText =
         'Setiap pilihan memiliki konsekuensi. Luangkan waktu untuk memahami situasi, mempertimbangkan risiko, dan meminta bantuan orang yang tepercaya sebelum mengambil keputusan.';
@@ -648,7 +716,9 @@ export default class EpisodeEndingScene extends Phaser.Scene {
           1: 'Episode1Scene',
           2: 'Episode2Scene',
           3: 'Episode3Scene',
+          4: 'Episode4Scene',
           5: 'Episode5Scene',
+          6: 'Episode6Scene',
         }[this.episodeId];
 
         if (episodeSceneKey) {
@@ -658,10 +728,12 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       0x2563eb
     );
 
-    // Tombol kedua: tetap sediakan jalan ke episode berikutnya.
+    // Tombol kedua: tetap sediakan jalan ke episode berikutnya atau selesaikan perjalanan jika episode terakhir.
     makeButton(
       bounds.top + bounds.height * 0.83,
-      'LANJUT KE EPISODE BERIKUTNYA',
+      this.isLastEpisode || this.episodeId === 6
+        ? 'SELESAIKAN PERJALANAN'
+        : 'LANJUT KE EPISODE BERIKUTNYA',
       () => {
         this._completeAndContinue();
       },
@@ -672,7 +744,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   _completeAndContinue() {
     completeEpisode(this.episodeId, this.choices);
 
-    if (this.isLastEpisode) {
+    if (this.isLastEpisode || this.episodeId === 6) {
       this.scene.start('EpisodeSelectScene');
     } else {
       this.scene.start('EpisodeIntroScene', {

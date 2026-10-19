@@ -128,6 +128,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('phone-ep3-pov', '/scenes/ep3-phone-pov.png');
     this.load.image('ep3-window-cg', '/scenes/ep3-window-cg.jpg');
 
+    // Aset cutscene bercabang Episode 4 — area kantin sekolah
+    this.load.image('ep4-canteen-choice-a', '/scenes/ep4-canteen-choice-a.jpg');
+    this.load.image('ep4-canteen-choice-b', '/scenes/ep4-canteen-choice-b.jpg');
+    this.load.image('ep4-canteen-choice-c', '/scenes/ep4-canteen-choice-c.jpg');
+
     // Aset khusus Episode 5: Sprite Kirana, Potret, Background & 5 Cutscene CG Layar Penuh
     this.load.image('kirana', '/characters/kirana.png');
     this.load.image('kirana-portrait', '/characters/kirana-portrait.png');

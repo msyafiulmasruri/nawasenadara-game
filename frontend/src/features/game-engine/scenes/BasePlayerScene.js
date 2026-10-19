@@ -6,7 +6,7 @@ import {
   LEVEL_EDGE_MARGIN,
   PLAYER_DISPLAY_HEIGHT,
 } from '../config/gameConfig';
-import { markEpisodeInProgress } from '../utils/progressStore';
+import { markEpisodeInProgress, resetEpisodeProgress } from '../utils/progressStore';
 import { getSettings, setMuted } from '../utils/settingsStore';
 import {
   getVisibleBounds,
@@ -17,6 +17,8 @@ import {
 import AudioManager from '../audio/AudioManager';
 import { stopMenuBGM } from '../audio/menuAudio';
 import { getCharacterName } from '../utils/characterName';
+import { getEpisodeById } from '../config/episodes';
+import ObjectiveBriefing from '../ui/ObjectiveBriefing';
 
 const WALK_SPEED = 150;
 const RUN_SPEED = 260;
@@ -282,27 +284,33 @@ export default class BasePlayerScene extends Phaser.Scene {
     // saat pindah scene (episode lain / balik ke menu), supaya tidak ada
     // BGM dobel menumpuk dan tidak menyisakan AudioContext yang terus
     // hidup di background.
-    this.events.once('shutdown', () => {
+    const cleanupScene = () => {
       this.audioManager?.destroy();
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
-      this.scale.off('resize', this._onResize);
-      document.removeEventListener(
-        'fullscreenchange',
-        this._onFullscreenChange,
-      );
-      document.removeEventListener(
-        'webkitfullscreenchange',
-        this._onFullscreenChange,
-      );
+      this.scale?.off('resize', this._onResize);
+      if (this._onFullscreenChange) {
+        document.removeEventListener(
+          'fullscreenchange',
+          this._onFullscreenChange,
+        );
+        document.removeEventListener(
+          'webkitfullscreenchange',
+          this._onFullscreenChange,
+        );
+      }
       // Pastikan keyboard game tidak "nyangkut" mati kalau scene ini
       // hancur persis saat overlay masih terbuka (edge case), dan hapus
       // bridge-nya supaya scene berikutnya yang bikin ulang dari nol.
-      this.input.keyboard.enabled = true;
-      this.input.keyboard.enableGlobalCapture();
+      if (this.input?.keyboard) {
+        this.input.keyboard.enabled = true;
+        this.input.keyboard.enableGlobalCapture();
+      }
       if (window.__nawasenadaraInput?.disableGameKeyboard) {
         delete window.__nawasenadaraInput;
       }
-    });
+    };
+    this.events.once('shutdown', cleanupScene);
+    this.events.once('destroy', cleanupScene);
 
     // --- Input keyboard: Arrow keys + WASD + Space untuk lompat ---
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -384,17 +392,19 @@ export default class BasePlayerScene extends Phaser.Scene {
     );
     this.createPauseButton(width, height);
     this.createFullscreenButton(width, height);
+    this.createObjectiveHintButton(width, height);
     this.createChatButton(width, height);
     this.createPauseMenu();
 
     // Update ikon tombol fullscreen setiap kali status fullscreen browser
     // berubah — baik lewat tombol ini, tombol Esc browser, atau gesture lain.
     this._onFullscreenChange = () => {
+      if (!this.scene?.isActive() || !this.sys?.game) return;
       this._updateFullscreenIcon();
       // Tunggu jeda singkat agar browser selesai reflow viewport fullscreen
       setTimeout(() => {
-        if (!this.scene?.isActive()) return;
-        this.scale.refresh();
+        if (!this.scene?.isActive() || !this.sys?.game) return;
+        this.scale?.refresh();
         this._repositionUI();
       }, 100);
     };
@@ -1224,13 +1234,101 @@ export default class BasePlayerScene extends Phaser.Scene {
 
   /** Ganti ikon & warna tombol fullscreen sesuai status saat ini. */
   _updateFullscreenIcon() {
-    if (!this._fsBtn || !this._fsBtnText) return;
-    const isFs = !!(
-      document.fullscreenElement || document.webkitFullscreenElement
+    if (!this.scene?.isActive() || !this.sys?.game) return;
+    if (!this._fsBtn || !this._fsBtn.active || !this._fsBtnText || !this._fsBtnText.active) return;
+    try {
+      const isFs = !!(
+        document.fullscreenElement || document.webkitFullscreenElement
+      );
+      this._fsBtnText.setText(isFs ? '⤢' : '⛶');
+      this._fsBtn.setFillStyle(isFs ? 0xffdd57 : 0x1a1a2e, isFs ? 0.85 : 0.6);
+      this._fsBtnText.setColor(isFs ? '#1a1a2e' : '#ffffff');
+    } catch (e) {
+      // Abaikan jika texture/canvas text sudah dibersihkan browser/Phaser
+    }
+  }
+
+  /**
+   * Tombol petunjuk / tujuan episode di sebelah kiri tombol fullscreen.
+   * Memungkinkan pemain membuka kembali ringkasan objektif/hint episode kapan saja.
+   */
+  createObjectiveHintButton(width) {
+    const wPx = 52;
+    const hPx = 40;
+    const fontPx = 18;
+    this._hintBtnSize = {
+      w: pxToWorld(this, wPx),
+      h: pxToWorld(this, hPx),
+      font: pxToWorld(this, fontPx),
+    };
+
+    this._hintBtn = this.add.rectangle(
+      width - 160,
+      36,
+      this._hintBtnSize.w,
+      this._hintBtnSize.h,
+      0x1a1a2e,
+      0.6,
     );
-    this._fsBtnText.setText(isFs ? '⤢' : '⛶');
-    this._fsBtn.setFillStyle(isFs ? 0xffdd57 : 0x1a1a2e, isFs ? 0.85 : 0.6);
-    this._fsBtnText.setColor(isFs ? '#1a1a2e' : '#ffffff');
+    this._hintBtn.setStrokeStyle(2, 0xffffff, 0.6);
+    this._hintBtn.setScrollFactor(0);
+    this._hintBtn.setDepth(20);
+    this._hintBtn.setInteractive({ useHandCursor: true });
+
+    this._hintBtnText = this.add
+      .text(width - 160, 36, '🎯', {
+        fontFamily: 'monospace, "Segoe UI Emoji"',
+        fontSize: `${this._hintBtnSize.font}px`,
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(21)
+      .setInteractive({ useHandCursor: true });
+
+    this._hintBtn.on('pointerdown', () => this.toggleObjectiveHint());
+    this._hintBtnText.on('pointerdown', () => this.toggleObjectiveHint());
+
+    this._hintBtn.on('pointerover', () => {
+      this._hintBtn.setFillStyle(0xffdd57, 0.3);
+    });
+    this._hintBtn.on('pointerout', () => {
+      this._hintBtn.setFillStyle(0x1a1a2e, 0.6);
+    });
+
+    this.registerLockable(this._hintBtn);
+  }
+
+  toggleObjectiveHint() {
+    if (!this.scene?.isActive() || !this.sys?.game) return;
+    if (this.isPaused) return;
+
+    if (!this.objectiveBriefing) {
+      this.objectiveBriefing = new ObjectiveBriefing(this);
+    }
+
+    if (this.objectiveBriefing.isOpen) {
+      this.objectiveBriefing.close();
+      return;
+    }
+
+    const episodeData = getEpisodeById(this.episodeId ?? 1);
+    const objectiveText =
+      episodeData?.objective ??
+      'Kenali situasi di sekitarmu, tentukan batasan diri dengan asertif, dan cari bantuan orang tepercaya.';
+
+    this.uiInputLocked = true;
+    this.player?.setVelocity(0, 0);
+    this.player?.anims?.stop?.();
+
+    this.objectiveBriefing.show({
+      title: '🎯 TUJUAN EPISODE',
+      objectiveText,
+      promptLabel: 'TEKAN UNTUK KEMBALI KE GAME',
+      onContinue: () => {
+        this.uiInputLocked = false;
+      },
+    });
   }
 
   createPauseMenu() {
@@ -1314,12 +1412,13 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     const options = [
       { label: 'Lanjutkan', action: () => this.togglePause() },
+      { label: 'Mulai Ulang Episode', action: () => this.restartEpisode() },
       { label: 'Pilih Episode', action: () => this.goToEpisodeSelect() },
       { label: 'Menu Utama (Lobby)', action: () => this.goToMainMenu() },
     ];
 
-    const optionsTop = cy - panelHeight * 0.225;
-    const optionGap = panelHeight * 0.125;
+    const optionsTop = cy - panelHeight * 0.24;
+    const optionGap = panelHeight * 0.11;
 
     options.forEach((opt, i) => {
       const y = optionsTop + i * optionGap;
@@ -1461,6 +1560,24 @@ export default class BasePlayerScene extends Phaser.Scene {
       this._fsBtnText.setFontSize(fsFont);
     }
 
+    // Tombol petunjuk / tujuan episode: di samping kiri tombol fullscreen
+    const hintW = pxToWorld(this, pauseWPx);
+    const hintH = pxToWorld(this, pauseHPx);
+    const hintFont = pxToWorld(this, 19);
+    const hintX = fsX - fsW / 2 - gapWorld - hintW / 2;
+    const hintY = pauseY;
+
+    if (this._hintBtn) {
+      this._hintBtn.setPosition(hintX, hintY);
+      this._hintBtn.setSize(hintW, hintH);
+      this._hintBtn.disableInteractive();
+      this._hintBtn.setInteractive({ useHandCursor: true });
+    }
+    if (this._hintBtnText) {
+      this._hintBtnText.setPosition(hintX, hintY);
+      this._hintBtnText.setFontSize(hintFont);
+    }
+
     this._repositionPauseMenu();
 
     // Tombol chat: kembalikan ke posisi FRAKSI yang tersimpan (kalau
@@ -1541,6 +1658,15 @@ export default class BasePlayerScene extends Phaser.Scene {
     } else {
       this.physics.world.resume();
     }
+  }
+
+  restartEpisode() {
+    this.isPaused = false;
+    const epId = this.episodeId ?? this.episodeData?.id;
+    if (epId) {
+      resetEpisodeProgress(epId);
+    }
+    this.scene.restart();
   }
 
   goToEpisodeSelect() {

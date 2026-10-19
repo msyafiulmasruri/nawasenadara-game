@@ -95,9 +95,9 @@ export default class Episode2Scene extends BasePlayerScene {
 
     this.phoneInDialogue = false;
 
-    this.phoneQuestComplete = hasTalkedToNpc(2);
+    this.phoneQuestComplete = false;
 
-    this.phoneChoices = getEpisodeChoices(2);
+    this.phoneChoices = [];
 
     this._phoneInteractCooldownUntil = 0;
 
@@ -162,7 +162,7 @@ export default class Episode2Scene extends BasePlayerScene {
     // CHATBOT
     // ============================================================
 
-    this.setChatButtonVisible(Boolean(this.phoneQuestComplete));
+    this.setChatButtonVisible(Boolean(this.phoneQuestComplete || hasTalkedToNpc(2)));
 
     // ============================================================
     // QUEST GUIDE
@@ -351,12 +351,12 @@ export default class Episode2Scene extends BasePlayerScene {
         0x38bdf8,
         0.3,
       )
-      .setDepth(2);
+      .setDepth(1);
 
     this.phoneBody = scene.add
       .image(this.phoneX, this.phoneY, 'phone-ep3')
       .setScale(DESK_PHONE_STYLE.scale)
-      .setDepth(6)
+      .setDepth(2)
       .setAngle(DESK_PHONE_STYLE.angle)
       .setInteractive({
         useHandCursor: true,

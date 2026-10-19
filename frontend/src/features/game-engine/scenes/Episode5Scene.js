@@ -229,7 +229,7 @@ export default class Episode5Scene extends BasePlayerScene {
     this.dialogueBox = new DialogueBox(this);
     this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
-    this.setChatButtonVisible(Boolean(this.npcTalked));
+    this.setChatButtonVisible(Boolean(this.npcTalked || hasTalkedToNpc(this.episodeId ?? 5)));
     this.updateQuestGuide();
   }
 
@@ -333,7 +333,9 @@ export default class Episode5Scene extends BasePlayerScene {
   }
 
   /**
-   * Menentukan tampilan cutscene visual penuh sesuai alur 5 babak Episode 5
+   * Menentukan tampilan cutscene visual penuh sesuai alur cabang pilihan Episode 5.
+   * Cutscene hanya muncul setelah pemain menentukan pilihan di n_action,
+   * dan di dalam cutscene murni naratif tanpa opsi pilihan dialog (selaras dengan Episode 1 & 4).
    */
   _updateCutsceneForNode(node) {
     if (!node || !node.id) {
@@ -343,97 +345,41 @@ export default class Episode5Scene extends BasePlayerScene {
 
     const id = node.id;
 
-    // Babak 1: Bangku Taman Sekolah (Obrolan santai, sapaan awal, & berbagi minuman)
-    if (
-      id === 'n1' ||
-      id === 'n1_approach' ||
-      id === 'n1b' ||
-      id === 'n1c' ||
-      id === 'n_icebreak' ||
-      id.startsWith('n_icebreak_res') ||
-      id === 'n2_shift' ||
-      id === 'n2' ||
-      id === 'n3' ||
-      id === 'n4a' ||
-      id === 'n4b' ||
-      id === 'n4c'
-    ) {
-      this._showCutscene(
-        'ep5-garden-bench-cg',
-        '✦ Bangku Taman Sekolah — Obrolan Santai & Berbagi Minuman ✦'
-      );
-    }
-    // Babak 2: Ancaman Notifikasi Ponsel & Tanda Kekerasan (Tetap duduk di bangku, Kirana panik pegang HP)
-    else if (
-      id === 'n2_threat_intro' ||
-      id === 'n2_threat' ||
-      id === 'n_threat' ||
-      id.startsWith('n_threat_res') ||
-      id === 'n3_memory_narr' ||
-      id === 'n3_memory_intro' ||
-      id === 'n5' ||
-      id === 'n2_whisper_intro' ||
-      id === 'n2_whisper' ||
-      id === 'n_whisper'
-    ) {
-      this._showCutscene(
-        'ep5-phone-threat-cg',
-        '✦ Ancaman Notifikasi Ponsel — Ketakutan di Bawah Bayang-Bayang Kontrol ✦'
-      );
-    }
-    // Babak 3: Flashback Memori Perpustakaan & Pengakuan Curahan Hati
-    else if (
-      id === 'n3_memory' ||
-      id === 'n3_confession_narr' ||
-      id === 'n3_confession' ||
-      id === 'n_confession' ||
-      id.startsWith('n_confession_res') ||
-      id === 'n_friendship' ||
-      id === 'n5_bridge' ||
-      id === 'n5_bridge2' ||
-      id === 'n6'
-    ) {
-      this._showCutscene(
-        'ep5-library-cg',
-        '✦ Flashback: Memori Hangat di Perpustakaan Sekolah Sebelum Badai Datang ✦'
-      );
-    }
-    // Babak 4: Ruang Bimbingan Konseling / Ruang BK bersama Bu Ratih
-    else if (
-      id === 'n4_bell' ||
-      id === 'n4_kirana_plea' ||
-      id === 'n4_bk_intro' ||
-      id === 'n_action' ||
-      id.startsWith('n_action_res') ||
-      id === 'n7a' ||
-      id === 'n7b' ||
-      id === 'n7c'
-    ) {
+    // Cutscene Cabang A: Ruang BK Bu Ratih (cutsceneA1..A3) lalu Halte Bus Senja (cutsceneA4..A5)
+    if (id === 'cutsceneA1' || id === 'cutsceneA2' || id === 'cutsceneA3') {
       this._showCutscene(
         'ep5-bk-room-cg',
         '✦ Ruang Bimbingan Konseling (BK) — Ruang Aman Bersama Bu Ratih ✦'
       );
-    }
-    // Babak 5: Halte Bus Senja (Puncak kehangatan persahabatan di ujung sore)
-    else if (
-      id === 'n5_halte' ||
-      id === 'n5_halte_narr' ||
-      id === 'n5_outro' ||
-      id === 'n5_halte_neutral' ||
-      id === 'n5_halte_neutral_narr' ||
-      id === 'n5_outro_neutral' ||
-      id === 'n5_outro_confront' ||
-      id === 'n5_outro_passive' ||
-      id === 'n5_outro_sad' ||
-      id === 'n8a' ||
-      id === 'n8b' ||
-      id === 'n8c'
-    ) {
+    } else if (id === 'cutsceneA4' || id === 'cutsceneA5') {
       this._showCutscene(
         'ep5-halte-cg',
         '✦ Menanti di Halte Sepulang Sekolah — Berdua di Ujung Senja ✦'
       );
-    } else {
+    }
+    // Cutscene Cabang B: Halte Bus Senja (cutsceneB1..B4)
+    else if (id.startsWith('cutsceneB')) {
+      this._showCutscene(
+        'ep5-halte-cg',
+        '✦ Menanti di Halte Sepulang Sekolah — Ruang Bernapas yang Teduh ✦'
+      );
+    }
+    // Cutscene Cabang C: Ancaman & Bahaya Melabrak (cutsceneC1..C4)
+    else if (id.startsWith('cutsceneC')) {
+      this._showCutscene(
+        'ep5-phone-threat-cg',
+        '✦ Bahaya Konfrontasi Gegabah — Mengutamakan Keselamatan Korban ✦'
+      );
+    }
+    // Cutscene Cabang D: Kepasrahan di Bangku Taman (cutsceneD1..D4)
+    else if (id.startsWith('cutsceneD')) {
+      this._showCutscene(
+        'ep5-garden-bench-cg',
+        '✦ Bayang-Bayang Ketakutan — Bahaya Membiarkan Kekerasan ✦'
+      );
+    }
+    // Di luar node cutscene (dialog gameplay taman n1..n_action maupun kartu penutup n8a..n8d), sembunyikan cutscene
+    else {
       this._hideCutscene();
     }
   }

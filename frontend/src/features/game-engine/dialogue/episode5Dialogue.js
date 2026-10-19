@@ -1,6 +1,6 @@
 // Naskah dialog quest NPC Kirana (Episode 5 — "Ketika Sahabat Berubah").
 //
-// TEMA (Berdasarkan Proposal & Alur Resmi GitHub):
+// TEMA:
 // Mengidentifikasi tanda-tanda kekerasan dalam relasi/pacaran atau kontrol toxic
 // pada sahabat (ponsel diperiksa, pergaulan dibatasi, dibentak, tangan dicengkeram,
 // dan ancaman agar tetap diam).
@@ -12,11 +12,11 @@
 // 4. TIDAK melakukan konfrontasi gegabah/melabrak pelaku sendirian, karena konfrontasi
 //    tanpa rencana justru membahayakan keselamatan korban dan merampas kendali korban.
 //
-// EMPAT TITIK CABANG PILIHAN DENGAN LABEL INDOBERT:
-//   1. n_icebreak: Cara Dara membuka obrolan santai & mencairkan suasana di bangku taman.
-//   2. n_threat: Respons Dara saat ponsel Kirana bergetar oleh pesan ancaman yang mengintimidasi.
-//   3. n_confession: Merespons pengakuan perlakuan kasar dan ketakutan Kirana akan disalahkan.
-//   4. n_action: Menentukan tindakan aman (ke Ruang BK Bu Ratih vs bahaya melabrak pelaku).
+// ALUR GAMEPLAY & CUTSCENE:
+// - Dialog interaksi terjadi di taman sekolah (gameplay scene) dengan pilihan respons pembuka (n_icebreak)
+//   dan penentuan tindakan (n_action).
+// - Pilihan penentuan tindakan (n_action) langsung mengarahkan ke CUTSCENE sinematik (cutsceneA, cutsceneB,
+//   cutsceneC, cutsceneD) yang MURNI NARATIF & DIALOG tanpa opsi pilihan jawaban, selaras dengan Episode 1 dan 4.
 
 // --- Dialog kunjungan ULANG (revisit) --------------------------------
 const EPISODE5_REVISIT_LINES = [
@@ -69,11 +69,11 @@ export function buildEpisode5RevisitDialogue() {
 // Deskripsi situasi di tiap titik cabang untuk dirangkum ke sesi konseling Kak Dara
 const CHOICE_SITUATION_TEXT = {
   n_icebreak: 'aku mendekati Kirana yang menyendiri di bangku taman dan mengajaknya mengobrol santai untuk membuka ruang aman',
+  n_action: 'Kirana menceritakan kekerasan yang dialaminya dan bingung harus melangkah ke mana',
   n_threat: 'ponsel Kirana bergetar bertubi-tubi oleh pesan teks ancaman dan kontrol yang membuatnya panik gemetar',
   n_confession: 'Kirana mencurahkan bahwa orang dekatnya sering mengontrol, membentak, dan mencengkeram tangannya jika menolak',
-  n_action: 'Kirana bingung harus melangkah ke mana dan takut situasinya memburuk jika mencari bantuan',
-  // Backward compatibility dengan versi GitHub:
-  n3: 'Kirana terlihat menarik diri dan menyangkal ada masalah',
+  // Backward compatibility:
+  n3: 'aku mendekati Kirana yang menyendiri di bangku taman dan mengajaknya mengobrol santai untuk membuka ruang aman',
   n6: 'Kirana menceritakan perlakuan kasar dan ancaman dari orang yang dekat dengannya',
 };
 
@@ -108,33 +108,38 @@ export const EPISODE5_DIALOGUE = {
   startNode: 'n1',
 
   nodes: {
-    // --- BABAK 1: PENCAIR SUASANA & OBROLAN RINGAN DI BANGKU TAMAN ---
+    // ================================================================
+    // BAGIAN 1: PERCAKAPAN DI TAMAN SEKOLAH (GAMEPLAY SCENE)
+    // ================================================================
     n1: {
       id: 'n1',
       speaker: 'narration',
-      text: 'Sepulang kelas, angin sore berhembus sejuk menerpa dedaunan pohon beringin tua. Di bangku kayu taman sekolah yang sepi, kamu melihat Kirana duduk sendirian sambil menunduk lesu.',
+      text: 'Sepulang kelas, kamu menemukan Kirana duduk sendiri di bangku taman sekolah yang teduh. Angin sore berhembus lembut menggugurkan beberapa helai dedaunan pohon beringin.',
       next: 'n1_approach',
     },
     n1_approach: {
       id: 'n1_approach',
       speaker: 'narration',
-      text: 'Mendengar langkah kakimu mendekat, Kirana buru-buru memasukkan ponselnya ke dalam saku roknya.',
+      text: 'Mendengar langkah kakimu mendekat, Kirana buru-buru menyembunyikan ponselnya ke dalam saku roknya dan menundukkan kepalanya.',
       next: 'n1b',
     },
     n1b: {
       id: 'n1b',
       speaker: 'kirana',
-      text: '"E-eh, kamu nyari aku, {PLAYER_NAME}? Aku cuma lagi capek aja kok... Tidak ada apa-apa."',
+      text: '"E-eh, kamu mencariku, {PLAYER_NAME}? Aku cuma lagi capek saja kok... Tidak ada apa-apa."',
+      dynamic: true,
+      situationHint:
+        'Aku Kirana, sahabat Sekar. Belakangan aku menarik diri dan cemas. Sekar menemuiku di taman. Aku belum siap bercerita sehingga bilang hanya lelah.',
       next: 'n1c',
     },
     n1c: {
       id: 'n1c',
       speaker: 'narration',
-      text: 'Kamu duduk di samping Kirana di bangku taman yang teduh, lalu menyodorkan kotak susu dingin dan sepotong roti manis ke hadapannya untuk mencairkan ketegangan.',
+      text: 'Kamu duduk di samping Kirana di bangku kayu taman, lalu menyodorkan sekotak susu dingin dan sepotong roti manis untuk mencairkan ketegangan.',
       next: 'n_icebreak',
     },
 
-    // --- TITIK CABANG 1: MEMBUKA RUANG AMAN TANPA MEMAKSA ---
+    // --- TITIK CABANG 1: MEMBUKA RUANG AMAN DI TAMAN SEKOLAH ---
     n_icebreak: {
       id: 'n_icebreak',
       speaker: 'narration',
@@ -142,37 +147,25 @@ export const EPISODE5_DIALOGUE = {
       choices: [
         {
           id: 'a',
-          label: '"Hai Ran, duduk santai yuk. Ini susu buat kamu."',
+          label: '"Hai Ran, duduk santai yuk. Ini susu buat kamu. Aku selalu ada kalau kamu mau cerita."',
           emotion: 'aman',
-          next: 'n_icebreak_res_a_narr',
+          next: 'n_icebreak_res_a',
         },
         {
           id: 'b',
-          label: '"Belakangan ini sering melamun, ada masalah kah?"',
+          label: '"Belakangan ini sering melamun, ada masalah kah? Kalau butuh teman cerita, kabari ya."',
           emotion: 'netral',
-          next: 'n_icebreak_res_b_narr',
+          next: 'n_icebreak_res_b',
         },
         {
           id: 'c',
-          label: '"Kamu bohong ya? Kenapa rahasia-rahasiaan gini?"',
+          label: '"Kamu jelas menyembunyikan sesuatu. Kenapa rahasia-rahasiaan dan menjauh dariku gini?"',
           emotion: 'menyinggung',
-          next: 'n_icebreak_res_c_narr',
-        },
-        {
-          id: 'd',
-          label: '"Kamu ngejauhin aku ya? Tiap disamperin buang muka."',
-          emotion: 'sedih',
-          next: 'n_icebreak_res_d_narr',
+          next: 'n_icebreak_res_c',
         },
       ],
     },
 
-    n_icebreak_res_a_narr: {
-      id: 'n_icebreak_res_a_narr',
-      speaker: 'narration',
-      text: 'Kirana menerima kotak susu itu dengan kedua tangannya. Senyum tipis yang tulus terbit di wajahnya yang letih.',
-      next: 'n_icebreak_res_a',
-    },
     n_icebreak_res_a: {
       id: 'n_icebreak_res_a',
       speaker: 'kirana',
@@ -181,440 +174,260 @@ export const EPISODE5_DIALOGUE = {
       situationHint: 'Aku menawarkan ruang santai tanpa memaksa, membuat Kirana merasa aman dan dihargai.',
       next: 'n2_shift',
     },
-    n_icebreak_res_b_narr: {
-      id: 'n_icebreak_res_b_narr',
-      speaker: 'narration',
-      text: 'Kirana menunduk, memainkan sedotan di tangannya.',
-      next: 'n_icebreak_res_b',
-    },
     n_icebreak_res_b: {
       id: 'n_icebreak_res_b',
       speaker: 'kirana',
-      text: '"A-aku cuma lagi banyak pikiran soal ujian aja kok... makasih udah nanyain, {PLAYER_NAME}."',
+      text: '"Makasih sudah peduli... Aku belum tahu harus mulai cerita dari mana, tapi jangan pergi dulu ya."',
       dynamic: true,
-      situationHint: 'Aku bertanya secara umum, Kirana menjawab sopan namun masih menutup diri.',
+      situationHint: 'Aku bertanya secara umum, Kirana menjawab sopan namun meminta ditemani sebentar.',
       next: 'n2_shift',
-    },
-    n_icebreak_res_c_narr: {
-      id: 'n_icebreak_res_c_narr',
-      speaker: 'narration',
-      text: 'Bahu Kirana seketika menegang. Matanya berkaca-kaca menatap tanah.',
-      next: 'n_icebreak_res_c',
     },
     n_icebreak_res_c: {
       id: 'n_icebreak_res_c',
       speaker: 'kirana',
-      text: '"Aku gak bohong... aku cuma takut kamu bakal ikutan repot dan nyalahin aku kalau tahu semuanya."',
+      text: '"Aku tidak bermaksud begitu... Aku cuma takut kalau kamu tahu, kamu juga bakal menyalahkanku."',
       dynamic: true,
-      situationHint: 'Aku menuduh Kirana berbohong, membuatnya merasa tersudut dan tertekan.',
+      situationHint: 'Aku mendesak Kirana, membuatnya merasa tersudut dan takut disalahkan.',
       next: 'n2_shift',
-    },
-    n_icebreak_res_d_narr: {
-      id: 'n_icebreak_res_d_narr',
-      speaker: 'narration',
-      text: 'Kirana menatapmu dengan sorot mata bersalah.',
-      next: 'n_icebreak_res_d',
     },
     n_icebreak_res_d: {
       id: 'n_icebreak_res_d',
       speaker: 'kirana',
-      text: '"Maaf ya, {PLAYER_NAME}... aku sama sekali gak bermaksud ngejauhin kamu. Aku cuma lagi takut banget sama diriku sendiri."',
+      text: '"Maaf ya, {PLAYER_NAME}... Aku sama sekali tidak bermaksud menjauhimu. Aku cuma lagi takut banget sama diriku sendiri."',
       dynamic: true,
       situationHint: 'Aku mengeluhkan sikapnya yang menjauh, membuat Kirana merasa menjadi beban teman.',
       next: 'n2_shift',
     },
 
-    // --- BABAK 2: TEKANAN NOTIFIKASI PONSEL & TANDA KEKERASAN ---
+    // --- ESKALASI SITUASI & CURAHAN HATI DI TAMAN SEKOLAH ---
     n2_shift: {
       id: 'n2_shift',
       speaker: 'narration',
-      text: 'Suasana taman kembali hening sejenak, ditemani gemerisik dedaunan tertiup angin sore. Namun ketenangan itu mendadak pecah...',
-      next: 'n2_threat_intro',
-    },
-    n2_threat_intro: {
-      id: 'n2_threat_intro',
-      speaker: 'narration',
-      text: 'Bzzzt! Bzzzt! Bzzzt! Ponsel di saku Kirana bergetar keras tanpa henti. Di layar yang menyala, rentetan pesan teks masuk bertubi-tubi dengan kata-kata penuh amarah, tuntutan posesif, dan ancaman.',
+      text: 'Suasana taman kembali hening sejenak, ditemani desau angin sore di dedaunan. Namun ketenangan itu mendadak pecah...',
       next: 'n2_threat',
     },
     n2_threat: {
       id: 'n2_threat',
       speaker: 'narration',
-      text: 'Napas Kirana tercekat. Seluruh tubuhnya gemetar hebat sampai kotak susunya terjatuh ke tanah. Saat tangannya bergerak panik mencoba mematikan layar, lengan seragamnya tersingkap—kamu melihat bekas cengkeraman kemerahan yang membekas di pergelangan tangannya!',
-      next: 'n_threat',
+      text: 'Bzzzt! Bzzzt! Bzzzt! Ponsel di saku Kirana bergetar keras tanpa henti. Di layar yang menyala, rentetan pesan teks masuk bertubi-tubi dengan kata-kata penuh amarah, tuntutan posesif, dan ancaman. Kirana panik gemetar hebat sampai kotak susunya terjatuh ke tanah.',
+      next: 'n2_mark',
     },
-
-    // --- TITIK CABANG 2: MERESPONS KEPANIKAN & ANCAMAN PESAN ---
-    n_threat: {
-      id: 'n_threat',
+    n2_mark: {
+      id: 'n2_mark',
       speaker: 'narration',
-      text: 'Kirana dilanda serangan cemas hebat (panic spike) melihat rentetan pesan itu. Apa yang dilakukan {PLAYER_NAME}?',
-      choices: [
-        {
-          id: 'a',
-          label: '"Tarik napas, Ran. Matikan HP-nya, kamu aman di sini."',
-          emotion: 'aman',
-          next: 'n_threat_res_a_narr',
-        },
-        {
-          id: 'b',
-          label: '"Kurang ajar! Siniin HP-nya biar kubalas maki-maki!"',
-          emotion: 'marah',
-          next: 'n_threat_res_b_narr',
-        },
-        {
-          id: 'c',
-          label: '"Ngeri banget kata-katanya, aku ikut merinding..."',
-          emotion: 'takut',
-          next: 'n_threat_res_c_narr',
-        },
-        {
-          id: 'd',
-          label: '"Kenapa gak diblokir aja? Jangan lebay gitu dong."',
-          emotion: 'menyinggung',
-          next: 'n_threat_res_d_narr',
-        },
-      ],
-    },
-
-    n_threat_res_a_narr: {
-      id: 'n_threat_res_a_narr',
-      speaker: 'narration',
-      text: 'Kamu menggenggam tangannya yang dingin dan meletakkan tanganmu di pundaknya. Kirana menatap matamu yang teduh, perlahan mengikuti ritme napasmu hingga debaran jantungnya mereda.',
-      next: 'n_threat_res_a',
-    },
-    n_threat_res_a: {
-      id: 'n_threat_res_a',
-      speaker: 'kirana',
-      text: '"...Makasih, {PLAYER_NAME}. Tadi duniaku rasanya runtuh seketika."',
-      dynamic: true,
-      situationHint: 'Aku menerapkan teknik grounding dan menenangkan kepanikan Kirana dengan rasa aman.',
-      next: 'n3_memory_narr',
-    },
-    n_threat_res_b_narr: {
-      id: 'n_threat_res_b_narr',
-      speaker: 'narration',
-      text: 'Kirana cepat-cepat menarik ponselnya ke dadanya dengan wajah pucat ketakutan.',
-      next: 'n_threat_res_b',
-    },
-    n_threat_res_b: {
-      id: 'n_threat_res_b',
-      speaker: 'kirana',
-      text: '"Jangan, tolong jangan! Kalau kamu balas kasar, dia bakal makin marah dan nekat datangin aku ke sini!"',
-      dynamic: true,
-      situationHint: 'Aku bereaksi agresif ingin membalas pelaku, membuat Kirana semakin panik dan ketakutan.',
-      next: 'n3_memory_narr',
-    },
-    n_threat_res_c_narr: {
-      id: 'n_threat_res_c_narr',
-      speaker: 'narration',
-      text: 'Kirana memeluk lututnya sendiri, menggigil di bangku taman.',
-      next: 'n_threat_res_c',
-    },
-    n_threat_res_c: {
-      id: 'n_threat_res_c',
-      speaker: 'kirana',
-      text: '"Iya... tiap dengar getaran HP ini, rasanya tenggorokanku tercekik..."',
-      dynamic: true,
-      situationHint: 'Aku menunjukkan rasa takut yang sama, membuat Kirana semakin larut dalam kecemasannya.',
-      next: 'n3_memory_narr',
-    },
-    n_threat_res_d_narr: {
-      id: 'n_threat_res_d_narr',
-      speaker: 'narration',
-      text: 'Air mata Kirana menetes deras ke pipinya.',
-      next: 'n_threat_res_d',
-    },
-    n_threat_res_d: {
-      id: 'n_threat_res_d',
-      speaker: 'kirana',
-      text: '"Kalau semudah itu memblokirnya, aku udah lakuin dari dulu, {PLAYER_NAME}... Kamu gak tahu seberapa menakutkannya ancaman dia..."',
-      dynamic: true,
-      situationHint: 'Aku meremehkan ketakutan korban, membuat Kirana merasa tidak dipahami.',
-      next: 'n3_memory_narr',
-    },
-
-    // --- BABAK 3: FLASHBACK MEMORI & CURAHAN HATI KEJURUAN ---
-    n3_memory_narr: {
-      id: 'n3_memory_narr',
-      speaker: 'narration',
-      text: 'Kirana menyeka air matanya dengan ujung lengan seragam. Matanya menatap sayu ke arah jendela perpustakaan sekolah di seberang lapangan.',
-      next: 'n3_memory_intro',
-    },
-    n3_memory_intro: {
-      id: 'n3_memory_intro',
-      speaker: 'kirana',
-      text: '"Aku kangen masa-masa dulu, {PLAYER_NAME}... waktu kita masih sering ketawa bareng tanpa ada beban."',
-      next: 'n3_memory',
-    },
-    n3_memory: {
-      id: 'n3_memory',
-      speaker: 'narration',
-      text: 'Kilas balik memori terlintas di benak kalian berdua: Duduk berdua di meja kayu perpustakaan yang hangat, membaca komik, belajar bersama, dan saling melempar lelucon konyol di bawah sinar matahari sore. Sebelum sosok itu datang merenggut semua kebebasan dan senyum Kirana.',
-      next: 'n3_confession_narr',
-    },
-    n3_confession_narr: {
-      id: 'n3_confession_narr',
-      speaker: 'narration',
-      text: 'Dengan suara bergetar menahan tangis, Kirana akhirnya memberanikan diri membuka suara.',
+      text: 'Saat tangannya bergerak panik mencoba mematikan layar ponsel, lengan seragam Kirana tersingkap—tampak jelas bekas cengkeraman kemerahan yang membiru di pergelangan tangannya!',
       next: 'n3_confession',
     },
     n3_confession: {
       id: 'n3_confession',
       speaker: 'kirana',
-      text: '"Orang yang dekat denganku sering memeriksa isi ponselku, melarangku berteman sama siapa pun, dan membentakku di tempat umum. Kemarin tanganku dicengkeram kuat banget waktu aku menolak permintaannya... Dia bilang aku bakal menyesal seumur hidup kalau berani cerita ke siapa pun. Aku harus bagaimana, {PLAYER_NAME}?"',
-      next: 'n_confession',
-    },
-
-    // --- TITIK CABANG 3: MERESPONS PENGAKUAN KEKERASAN ---
-    n_confession: {
-      id: 'n_confession',
-      speaker: 'narration',
-      text: 'Kirana telah memberanikan diri mengungkap kekerasan relasi yang dialaminya. Bagaimana {PLAYER_NAME} merespons curahan hatinya?',
-      choices: [
-        {
-          id: 'a',
-          label: '"Ini bukan salahmu, Ran. Gak ada yang berhak kasar ke kamu."',
-          emotion: 'aman',
-          next: 'n_confession_res_a_narr',
-        },
-        {
-          id: 'b',
-          label: '"Makasih udah berani cerita, rahasia ini aman di aku."',
-          emotion: 'netral',
-          next: 'n_confession_res_b_narr',
-        },
-        {
-          id: 'c',
-          label: '"Sedih banget dengarnya, kenapa kamu tanggung sendiri?"',
-          emotion: 'sedih',
-          next: 'n_confession_res_c_narr',
-        },
-        {
-          id: 'd',
-          label: '"Kok tahan sama orang toksik? Harusnya diputusin!"',
-          emotion: 'menyinggung',
-          next: 'n_confession_res_d_narr',
-        },
-      ],
-    },
-
-    n_confession_res_a_narr: {
-      id: 'n_confession_res_a_narr',
-      speaker: 'narration',
-      text: 'Kirana menatap matamu lama, lalu tangisnya pecah di pundakmu. Kata-katamu membebaskannya dari belenggu rasa bersalah yang selama ini mengurung jiwanya.',
-      next: 'n_confession_res_a',
-    },
-    n_confession_res_a: {
-      id: 'n_confession_res_a',
-      speaker: 'kirana',
-      text: '"Makasih, {PLAYER_NAME}... Selama ini dia selalu bilang kalau semua ini salahku karena gak bisa jadi pacar yang penurut..."',
+      text: '"Orang yang dekat denganku sering memeriksa isi ponselku, melarangku berteman sama siapa pun, dan membentakku di depan umum. Kemarin tanganku dicengkeram saat aku menolak permintaannya... Dia mengancam aku bakal menyesal seumur hidup kalau berani cerita ke siapa pun."',
       dynamic: true,
-      situationHint: 'Aku menegaskan bahwa kekerasan ini bukan salah korban, memulihkan harga diri Kirana.',
-      next: 'n4_bell',
+      situationHint:
+        'Aku akhirnya memberanikan diri membuka tanda kekerasan dan kontrol posesif dari seseorang yang dekat denganku: ponsel diperiksa, dibentak, tangan dicengkeram, dan diancam agar diam.',
+      next: 'n4_plea',
     },
-    n_confession_res_b_narr: {
-      id: 'n_confession_res_b_narr',
-      speaker: 'narration',
-      text: 'Kirana mengangguk pelan.',
-      next: 'n_confession_res_b',
-    },
-    n_confession_res_b: {
-      id: 'n_confession_res_b',
+    n4_plea: {
+      id: 'n4_plea',
       speaker: 'kirana',
-      text: '"Makasih sudah mau mendengarkan, {PLAYER_NAME}... Beban di dadaku rasanya sedikit terangkat."',
+      text: '"Bel sekolah sudah berbunyi... Koridor mulai sepi. Aku bingung harus melangkah ke mana, {PLAYER_NAME}... Aku takut kalau melapor, dia makin nekat mencelakaiku. Aku harus bagaimana?"',
       dynamic: true,
-      situationHint: 'Aku menerima ceritanya secara netral dan menjaga kerahasiaannya.',
-      next: 'n4_bell',
-    },
-    n_confession_res_c_narr: {
-      id: 'n_confession_res_c_narr',
-      speaker: 'narration',
-      text: 'Kirana meremas roknya erat-erat.',
-      next: 'n_confession_res_c',
-    },
-    n_confession_res_c: {
-      id: 'n_confession_res_c',
-      speaker: 'kirana',
-      text: '"Aku takut banget bikin orang lain ikut cemas... makanya aku tahan semuanya sendirian..."',
-      dynamic: true,
-      situationHint: 'Aku merespons dengan kesedihan mendalam, Kirana merasa telah menyusahkan sahabatnya.',
-      next: 'n4_bell',
-    },
-    n_confession_res_d_narr: {
-      id: 'n_confession_res_d_narr',
-      speaker: 'narration',
-      text: 'Kirana tersentak dan menarik dirinya mundur. Sorot matanya terluka.',
-      next: 'n_confession_res_d',
-    },
-    n_confession_res_d: {
-      id: 'n_confession_res_d',
-      speaker: 'kirana',
-      text: '"Kamu pikir aku mau hidup kayak gini? Dia mengancam akan menghancurkan reputasiku dan keluargaku kalau aku pergi..."',
-      dynamic: true,
-      situationHint: 'Aku menyalahkan korban kenapa tidak pergi dari dulu, membuat Kirana merasa dihakimi.',
-      next: 'n4_bell',
-    },
-
-    // --- BABAK 4: TITIK BALIK — RUANG BK BU RATIH VS BAHAYA MELABRAK ---
-    n4_bell: {
-      id: 'n4_bell',
-      speaker: 'narration',
-      text: 'Teng... nong... teng... Suara bel sekolah berbunyi dari pengeras suara, menandakan jam kepulangan telah tiba dan koridor mulai sepi.',
-      next: 'n4_kirana_plea',
-    },
-    n4_kirana_plea: {
-      id: 'n4_kirana_plea',
-      speaker: 'kirana',
-      text: '"Aku bingung harus melangkah ke mana, {PLAYER_NAME}... Aku takut kalau melapor, dia makin nekat."',
-      next: 'n4_bk_intro',
-    },
-    n4_bk_intro: {
-      id: 'n4_bk_intro',
-      speaker: 'narration',
-      text: 'Di lantai dasar gedung sekolah, ada Ruang Bimbingan Konseling (BK). Di sana ada Bu Ratih, guru BK yang selalu mendengarkan tanpa menghakimi, menjaga kerahasiaan siswa, dan punya wewenang untuk memberi perlindungan nyata.',
+      situationHint:
+        'Aku bingung dan ketakutan akan keselamatan diriku. Aku meminta pendapat dan perlindungan dari sahabatku Sekar.',
       next: 'n_action',
     },
 
-    // --- TITIK CABANG 4: MENGAMBIL TINDAKAN AMAN ---
+    // --- TITIK CABANG 2: PENENTUAN TINDAKAN DUKUNGAN (MENGARAH KE CUTSCENE) ---
     n_action: {
       id: 'n_action',
       speaker: 'narration',
-      text: 'Langkah apa yang ditawarkan {PLAYER_NAME} untuk melindungi dan mendampingi Kirana?',
+      text: 'Kirana dilanda ketakutan mendalam dan kebingungan. Langkah apa yang ditawarkan {PLAYER_NAME} untuk mendampingi dan melindungi sahabatmu?',
       choices: [
         {
           id: 'a',
-          label: '"Ayo temui Bu Ratih di BK sekarang, aku dampingi."',
+          label: '"Ini bukan salahmu, Ran. Ayo temui Bu Ratih di ruang BK sekarang, aku dampingi kamu."',
           emotion: 'aman',
-          next: 'n_action_res_a_narr',
+          next: 'cutsceneA1',
         },
         {
           id: 'b',
-          label: '"Kita istirahat di halte dulu, kalau siap baru ke Bu Ratih."',
+          label: '"Tarik napas dulu, Ran. Kita istirahat di halte sore ini. Besok kalau sudah siap, kita temui Bu Ratih bareng-bareng."',
           emotion: 'netral',
-          next: 'n_action_res_b_narr',
+          next: 'cutsceneB1',
         },
         {
           id: 'c',
-          label: '"Siapa namanya?! Biar kulabrak sekarang juga!"',
+          label: '"Kurang ajar! Kasih tahu siapa namanya, biar kulabrak dan kuhajar dia sekarang juga!"',
           emotion: 'marah',
-          next: 'n_action_res_c_narr',
-        },
-        {
-          id: 'd',
-          label: '"Mending jangan cari masalah, turuti aja maunya..."',
-          emotion: 'takut',
-          next: 'n_action_res_d_narr',
+          next: 'cutsceneC1',
         },
       ],
     },
 
-    n_action_res_a_narr: {
-      id: 'n_action_res_a_narr',
+    // ================================================================
+    // BAGIAN 2: CUTSCENE SINEMATIK LAYAR PENUH (TANPA OPSI PILIHAN JAWABAN)
+    // ================================================================
+
+    // --- CABANG A: ASENTIF & DUKUNGAN AMAN (RUANG BK BU RATIH & HALTE SENJA) ---
+    cutsceneA1: {
+      id: 'cutsceneA1',
       speaker: 'narration',
-      text: 'Kirana menatap matamu lekat-lekat. Ketakutan di wajahnya perlahan berganti menjadi secercah keberanian yang kokoh.',
-      next: 'n_action_res_a',
+      text: 'Kata-katamu yang mantap menembus kabut kepanikan di dada Kirana. Kamu menggenggam tangannya yang dingin, lalu bersama-sama melangkah menuju Ruang Bimbingan Konseling (BK) di lantai dasar.',
+      next: 'cutsceneA2',
     },
-    n_action_res_a: {
-      id: 'n_action_res_a',
-      speaker: 'kirana',
-      text: '"Iya, {PLAYER_NAME}... temani aku ya. Bu Ratih orang baik, aku percaya sama beliau. Selama ada kamu di sampingku, aku siap melangkah."',
-      dynamic: true,
-      situationHint: 'Aku menawarkan pendampingan aman ke Bu Ratih di Ruang BK. Kirana merasa berani dan terlindungi.',
-      next: 'n5_halte',
-    },
-    n_action_res_b_narr: {
-      id: 'n_action_res_b_narr',
+    cutsceneA2: {
+      id: 'cutsceneA2',
       speaker: 'narration',
-      text: 'Kirana menghela napas lega.',
-      next: 'n_action_res_b',
+      text: 'Di dalam Ruang BK yang teduh dan tenang, Bu Ratih menyambut kalian berdua dengan pelukan hangat. Beliau mendengarkan setiap rincian cerita Kirana dengan penuh empati tanpa sedikit pun menyalahkan korban.',
+      next: 'cutsceneA3',
     },
-    n_action_res_b: {
-      id: 'n_action_res_b',
+    cutsceneA3: {
+      id: 'cutsceneA3',
       speaker: 'kirana',
-      text: '"Makasih banyak ya, {PLAYER_NAME}... Duduk di halte sore bareng kamu sampai jemputanku datang kayaknya bakal bikin kepalaku lebih tenang."',
+      text: '"Terima kasih banyak sudah mendampingiku, {PLAYER_NAME}... Bu Ratih berjanji akan menjamin keamananku di sekolah dan memanggil orang tuaku dengan cara yang aman. Beban berat di dadaku rasanya terangkat."',
       dynamic: true,
-      situationHint: 'Aku menemani Kirana beristirahat ke halte tanpa memaksanya langsung melapor hari ini.',
-      next: 'n5_halte_neutral',
+      situationHint: 'Sekar mendampingiku menemui Bu Ratih di Ruang BK. Aku merasa sangat lega dan terlindungi.',
+      next: 'cutsceneA4',
     },
-    n_action_res_c_narr: {
-      id: 'n_action_res_c_narr',
+    cutsceneA4: {
+      id: 'cutsceneA4',
       speaker: 'narration',
-      text: 'Kirana panik dan memegang erat pergelangan tanganmu.',
-      next: 'n_action_res_c',
+      text: 'Sepulang dari Ruang BK, langit barat berubah menjadi lembayung senja yang memesona. Duduk berdua di halte bus sekolah, Kirana menyandarkan kepalanya ke bahumu dalam kehangatan persahabatan yang aman.',
+      next: 'cutsceneA5',
     },
-    n_action_res_c: {
-      id: 'n_action_res_c',
+    cutsceneA5: {
+      id: 'cutsceneA5',
       speaker: 'kirana',
-      text: '"Jangan, kumohon jangan! Kalau kamu labrak dia, dia bakal makin gelap mata dan dendam ke aku! Masalah ini gak bisa diselesaikan pakai kekerasan baru!"',
+      text: '"Berada di dekatmu bikin duniaku tidak menakutkan lagi. Aku bangga dan bersyukur punya sahabat sebaik kamu, {PLAYER_NAME}."',
       dynamic: true,
-      situationHint: 'Aku ingin melabrak pelaku sendirian, Kirana panik mengingatkan bahwa konfrontasi gegabah justru membahayakan korban.',
-      next: 'n5_outro_confront',
+      situationHint: 'Kami duduk berdua di halte senja dalam rasa aman dan ikatan persahabatan sejati.',
+      next: 'n8a',
     },
-    n_action_res_d_narr: {
-      id: 'n_action_res_d_narr',
+    n8a: {
+      id: 'n8a',
       speaker: 'narration',
-      text: 'Kirana tertunduk lesu menatap sepatunya.',
-      next: 'n_action_res_d',
-    },
-    n_action_res_d: {
-      id: 'n_action_res_d',
-      speaker: 'kirana',
-      text: '"Iya... mungkin memang nasibku harus terus pasrah dan takut kayak gini seumur hidup..."',
-      dynamic: true,
-      situationHint: 'Aku menyuruh Kirana pasrah pada pelaku, membuatnya kehilangan harapan untuk lepas dari jeratan kekerasan.',
-      next: 'n5_outro_passive',
+      text: 'Kamu berhasil menjadi teman sebaya yang suportif: tidak membiarkan korban sendirian, tidak melakukan konfrontasi gegabah, dan menghubungkannya dengan pihak tepercaya yang mampu memberi perlindungan nyata.',
     },
 
-    // --- BABAK 5: HALTE SEPULANG SEKOLAH DI UJUNG SENJA ---
-    n5_halte: {
-      id: 'n5_halte',
+    // --- CABANG B: NETRAL (ISTIRAHAT DI HALTE BUS & BERI WAKTU SEBELUM MELAPOR) ---
+    cutsceneB1: {
+      id: 'cutsceneB1',
       speaker: 'narration',
-      text: 'Setelah pembicaraan yang menghangatkan hati bersama Bu Ratih di Ruang BK—di mana pihak sekolah berjanji akan menjamin keamanan Kirana dan memanggil pihak terkait—kalian berdua melangkah keluar gerbang menuju halte bus di tepi jalan raya.',
-      next: 'n5_halte_narr',
+      text: 'Kamu menepuk lembut pundak Kirana dan mengajaknya berjalan keluar gerbang sekolah menuju halte bus di tepi jalan raya.',
+      next: 'cutsceneB2',
     },
-    n5_halte_narr: {
-      id: 'n5_halte_narr',
+    cutsceneB2: {
+      id: 'cutsceneB2',
       speaker: 'narration',
-      text: 'Duduk berdua di bangku kayu halte di bawah sinar temaram lampu jalan dan langit lembayung senja yang memesona, Kirana menyandarkan kepalanya pelan ke bahumu.',
-      next: 'n5_outro',
+      text: 'Angin sore berhembus menyejukkan. Kalian berdua duduk di bangku kayu halte di bawah sinar temaram senja, memberi Kirana ruang aman untuk menenangkan debaran jantungnya.',
+      next: 'cutsceneB3',
     },
-    n5_outro: {
-      id: 'n5_outro',
+    cutsceneB3: {
+      id: 'cutsceneB3',
       speaker: 'kirana',
-      text: '"Makasih banyak ya, {PLAYER_NAME}... untuk pertama kalinya setelah sekian lama, aku merasa duniaku gak menakutkan lagi. Aku punya sahabat terbaik di dunia."',
+      text: '"Makasih banyak ya sudah mau mengerti dan tidak memaksaku buru-buru, {PLAYER_NAME}. Duduk di sini bikin kepalaku lebih tenang. Besok... temani aku ke ruang Bu Ratih ya."',
       dynamic: true,
-      situationHint: 'Kami duduk bersama di halte senja dalam kehangatan persahabatan sejati setelah berhasil mencari perlindungan ke Ruang BK.',
+      situationHint: 'Sekar memberiku waktu menenangkan diri di halte bus senja. Aku berjanji akan ke Ruang BK besok jika ditemani.',
+      next: 'cutsceneB4',
+    },
+    cutsceneB4: {
+      id: 'cutsceneB4',
+      speaker: 'narration',
+      text: 'Memberikan ruang bernapas dan validasi emosi adalah langkah awal yang baik. Namun pendampingan kepada orang dewasa tepercaya tetap harus segera diwujudkan agar keselamatan korban terjamin.',
+      next: 'n8b',
+    },
+    n8b: {
+      id: 'n8b',
+      speaker: 'narration',
+      text: 'Mendengarkan kesiapan korban penting, tetapi jangan tunda mencari bantuan aman ketika ada tanda-tanda ancaman fisik yang membahayakan sahabatmu.',
     },
 
-    n5_halte_neutral: {
-      id: 'n5_halte_neutral',
+    // --- CABANG C: AGRESIF / MARAH (BAHAYA MELABRAK PELAKU SENDIRIAN) ---
+    cutsceneC1: {
+      id: 'cutsceneC1',
       speaker: 'narration',
-      text: 'Kalian berdua berjalan keluar sekolah menuju halte bus. Senja membentang indah di langit barat, menemani obrolan kalian berdua menunggu jemputan tiba.',
-      next: 'n5_halte_neutral_narr',
+      text: 'Mendengar kamu tersulut emosi dan hendak melabrak pelaku, Kirana seketika panik luar biasa. Ia mencengkeram lenganmu erat-erat dengan mata membelalak ketakutan.',
+      next: 'cutsceneC2',
     },
-    n5_halte_neutral_narr: {
-      id: 'n5_halte_neutral_narr',
-      speaker: 'narration',
-      text: 'Kirana tersenyum tipis sambil melambaikan tangan saat mobil jemputannya tiba di halte.',
-      next: 'n5_outro_neutral',
-    },
-    n5_outro_neutral: {
-      id: 'n5_outro_neutral',
+    cutsceneC2: {
+      id: 'cutsceneC2',
       speaker: 'kirana',
-      text: '"Makasih sudah nemenin aku sore ini ya, {PLAYER_NAME}. Besok... temani aku ke ruang Bu Ratih ya."',
+      text: '"Jangan, kumohon jangan, {PLAYER_NAME}! Kalau kamu labrak dia tanpa rencana, dia bakal makin gelap mata dan melampiaskan dendamnya ke aku! Kamu gak tahu seberapa berbahayanya dia!"',
+      dynamic: true,
+      situationHint: 'Sekar berniat melabrak pelaku. Aku panik luar biasa dan memohonnya berhenti karena konfrontasi gegabah justru membahayakan korban.',
+      next: 'cutsceneC3',
+    },
+    cutsceneC3: {
+      id: 'cutsceneC3',
+      speaker: 'narration',
+      text: 'Kamu tertegun dan menarik napas panjang. Kemarahanmu datang dari rasa peduli, tetapi konfrontasi gegabah justru menempatkan korban dalam risiko bahaya yang jauh lebih besar dan merampas kendali dirinya.',
+      next: 'cutsceneC4',
+    },
+    cutsceneC4: {
+      id: 'cutsceneC4',
+      speaker: 'narration',
+      text: 'Melindungi sahabat bukan dengan cara menjadi pahlawan yang main hakim sendiri, melainkan mendengarkan kebutuhan korban dan mencari perlindungan bersama pihak berwenang tepercaya.',
+      next: 'n8c',
+    },
+    n8c: {
+      id: 'n8c',
+      speaker: 'narration',
+      text: 'Konfrontasi tanpa rencana pengamanan dapat memperburuk eskalasi kekerasan. Utamakan selalu keselamatan dan persetujuan korban sebelum mengambil tindakan.',
     },
 
-    n5_outro_confront: {
-      id: 'n5_outro_confront',
+    // --- CABANG D: PASIF / MENYERAH (BAHAYA MEMBIARKAN KEKERASAN) ---
+    cutsceneD1: {
+      id: 'cutsceneD1',
       speaker: 'narration',
-      text: 'Kamu menyadari bahwa kepedulian yang diungkapkan dengan emosi melabrak tanpa rencana justru bisa menempatkan korban dalam bahaya yang lebih besar. Melibatkan orang dewasa tepercaya dan mendengarkan kesiapan korban adalah langkah paling bijak.',
+      text: 'Kirana tertunduk lesu di bangku taman. Air matanya menetes perlahan membasahi ujung rok seragamnya, kehilangan secercah harapan yang sempat menyala.',
+      next: 'cutsceneD2',
+    },
+    cutsceneD2: {
+      id: 'cutsceneD2',
+      speaker: 'kirana',
+      text: '"Iya... mungkin memang nasibku harus terus pasrah dan takut seperti ini seumur hidup..."',
+      dynamic: true,
+      situationHint: 'Sekar menyarankanku untuk pasrah dan menuruti pelaku. Aku merasa kehilangan harapan dan putus asa.',
+      next: 'cutsceneD3',
+    },
+    cutsceneD3: {
+      id: 'cutsceneD3',
+      speaker: 'narration',
+      text: 'Menatap sahabatmu yang putus asa membuat hatimu sesak. Kamu menyadari bahwa menyuruh korban bersabar dan pasrah pada kekerasan hanya akan memperdalam trauma batin.',
+      next: 'cutsceneD4',
+    },
+    cutsceneD4: {
+      id: 'cutsceneD4',
+      speaker: 'narration',
+      text: 'Membiarkan kekerasan terus berlanjut tanpa perlawanan dan bantuan aman akan membiarkan pelaku terus berkuasa. Memutus rantai ketakutan membutuhkan keberanian mencari uluran tangan yang aman.',
+      next: 'n8d',
+    },
+    n8d: {
+      id: 'n8d',
+      speaker: 'narration',
+      text: 'Jangan biarkan sahabatmu menanggung kekerasan seorang diri. Selalu ada pintu bantuan yang aman di sekolah seperti guru BK dan pihak konseling.',
     },
 
-    n5_outro_passive: {
-      id: 'n5_outro_passive',
+    // --- ALIASES UNTUK BACKWARD COMPATIBILITY ---
+    n3: {
+      get choices() {
+        return EPISODE5_DIALOGUE.nodes.n_icebreak.choices;
+      },
+      get text() {
+        return EPISODE5_DIALOGUE.nodes.n_icebreak.text;
+      },
+      id: 'n3',
       speaker: 'narration',
-      text: 'Membiarkan kekerasan terus berlanjut tanpa perlawanan dan bantuan aman hanya akan memperdalam luka batin. Kirana membutuhkan uluran tangan yang berani untuk memutus rantai ketakutan ini.',
+    },
+    n6: {
+      get choices() {
+        return EPISODE5_DIALOGUE.nodes.n_action.choices;
+      },
+      get text() {
+        return EPISODE5_DIALOGUE.nodes.n_action.text;
+      },
+      id: 'n6',
+      speaker: 'narration',
     },
   },
 };

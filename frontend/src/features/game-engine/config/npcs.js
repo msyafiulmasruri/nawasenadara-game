@@ -52,14 +52,14 @@ export const NPCS = {
     id: 'senior_kantin',
     name: 'Senior Kantin',
     episodeId: 4,
-    // Slot aset final. Selama file belum ada, StoryEpisodeScene
-    // menggambar karakter dummy yang tetap bisa diajak berinteraksi.
     portraitKey: 'npc-senior-kantin-portrait',
     portraitPath: '/characters/senior-kantin.png',
     xRatio: 0.43,
     interactionRadius: 105,
-    dummyColor: 0xb55f54,
-    dummyAccent: 0x3d2636,
+    // Metadata bounding-box konten asli senior-kantin.png (1024x1024)
+    // agar pijakan kaki dan proporsi tinggi badan selaras dengan karakter utama
+    contentHeight: 851, // 938 - 87 (tinggi konten sesungguhnya dalam px)
+    bottomPadding: 86,  // 1024 - 938 (ruang kosong di bawah kaki dalam px)
   },
   5: {
     id: 'kirana',

@@ -43,7 +43,7 @@ export const EPISODES = [
   {
     id: 4,
     title: 'Candaan yang Tidak Nyaman',
-    sceneKey: 'StoryEpisodeScene',
+    sceneKey: 'Episode4Scene',
     placeholderColor: 0x3a2e2e,
     bgKey: 'episode4-bg',
     bgImagePath: '/scenes/episode-4-bg.jpeg',

@@ -135,8 +135,9 @@ export default class Episode1Scene extends BasePlayerScene {
     // riwayat `choices` yang disimpan SEGERA setelah dialog Rafi
     // selesai (lihat markNpcTalked() di onClose bawah), jadi status ini
     // tetap benar walau episode 1 belum dituntaskan.
-    this.npcTalked = hasTalkedToNpc(this.episodeId ?? 1);
-    this.npcChoices = getEpisodeChoices(this.episodeId ?? 1);
+    // Pemain selalu bisa memulai dialog quest utama saat memasuki / mengulang episode.
+    this.npcTalked = false;
+    this.npcChoices = [];
 
     // FIX #4 (revisi): Rafi diposisikan tepat di this.groundY, sama
     // seperti player berpijak. Skala & offset sekarang dihitung dari
@@ -258,7 +259,7 @@ export default class Episode1Scene extends BasePlayerScene {
     // onClose di _startNpcDialogue()). Kalau quest ini sudah pernah
     // dituntaskan sebelumnya (this.npcTalked true dari cache progres),
     // langsung tampilkan sejak awal, tidak perlu menunggu lagi.
-    this.setChatButtonVisible(Boolean(this.npcTalked));
+    this.setChatButtonVisible(Boolean(this.npcTalked || hasTalkedToNpc(this.episodeId ?? 1)));
 
     // Quest guide "○ ── Ajak bicara Rafi ──" di bawah HUD profil —
     // tersembunyi begitu quest ini selesai (lihat updateQuestGuide()).

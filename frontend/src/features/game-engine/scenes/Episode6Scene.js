@@ -242,7 +242,7 @@ export default class Episode6Scene extends BasePlayerScene {
     this.dialogueBox = new DialogueBox(this);
     this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
-    this.setChatButtonVisible(Boolean(this.npcTalked));
+    this.setChatButtonVisible(Boolean(this.npcTalked || hasTalkedToNpc(this.episodeId ?? 6)));
     this.updateQuestGuide();
   }
 
@@ -334,9 +334,9 @@ export default class Episode6Scene extends BasePlayerScene {
         // Sinkronisasi alur cerita: Naya kembali masuk ke gedung di Babak 2 saat Dara sendirian
         if (
           node.id === 'n2' ||
-          node.id.startsWith('n2_') ||
+          node.id === 'n2_senior' ||
           node.id === 'n3' ||
-          (node.id.startsWith('n4') && !node.id.startsWith('n4_rescue') && !node.id.startsWith('n4_senior_flee'))
+          node.id.startsWith('n4')
         ) {
           this.npcSprite?.setVisible(false);
           this.npcPrompt?.setVisible(false);
@@ -371,7 +371,7 @@ export default class Episode6Scene extends BasePlayerScene {
   }
 
   /**
-   * Menentukan tampilan cutscene sinematik visual penuh sesuai alur 5 babak Episode 6
+   * Menentukan tampilan cutscene sinematik visual penuh sesuai alur 4 babak Episode 6
    */
   _updateCutsceneForNode(node) {
     if (!node || !node.id) {
@@ -381,51 +381,47 @@ export default class Episode6Scene extends BasePlayerScene {
 
     const id = node.id;
 
-    // Babak 1: Kilas Sore (Obrolan Santai & Hangat Sepulang Ekskul Bersama Naya di Depan Mading)
+    // Babak 1: Mading Sekolah (Persiapan Pulang & Pengingat Saling Jaga)
     if (
       id === 'n1' ||
-      id.startsWith('n1_') ||
-      id === 'n_chat_icebreak'
+      id.startsWith('n1_')
     ) {
       this._showCutscene(
         'ep6-corridor-chat-cg',
-        '✦ Babak 1: Obrolan Hangat di Koridor Mading Lantai Dua ✦'
+        '✦ Babak 1: Mading Sekolah — Batasan Diri dan Berani Bersuara ✦'
       );
     }
     // Babak 2: Halaman Dekat Gerbang Sekolah (Tekanan Senior & Batasan Asertif)
     else if (
       id === 'n2' ||
-      id.startsWith('n2_') ||
+      id === 'n2_senior' ||
       id === 'n3' ||
-      (id.startsWith('n4') && !id.startsWith('n4_rescue') && !id.startsWith('n4_senior_flee'))
+      id.startsWith('n4')
     ) {
       this._showCutscene(
         'ep6-gate-pressure-cg',
         '✦ Babak 2: Gerbang Depan Sekolah — Batasan Asertif "Ini Batasan Saya!" ✦'
       );
     }
-    // Babak 3 & 4: Pos Satpam (Perlindungan Aman & Perencanaan Bersama)
+    // Babak 3: Pos Satpam (Perlindungan Aman & Perencanaan Bersama)
     else if (
-      id === 'n4_rescue_narr' ||
-      id === 'n4_rescue_shout' ||
-      id === 'n4_senior_flee' ||
       id.startsWith('n5') ||
       id === 'n6' ||
       id.startsWith('n7')
     ) {
       this._showCutscene(
         'ep6-safety-haven-cg',
-        '✦ Babak 3 & 4: Pos Satpam SMA Negeri 1 — Ruang Aman & Rencana Perlindungan ✦'
+        '✦ Babak 3: Pos Satpam SMA Negeri 1 — Ruang Aman & Rencana Perlindungan ✦'
       );
     }
-    // Babak 5: Aula Sekolah (Puncak Epik: Deklarasi "Teman Aman")
+    // Babak 4: Aula Sekolah (Puncak Epik: Deklarasi "Teman Aman")
     else if (
-      id.startsWith('n8_') ||
+      id.startsWith('n8') ||
       id.startsWith('rev_')
     ) {
       this._showCutscene(
         'ep6-teman-aman-cg',
-        '✦ Babak 5: Aula SMA Negeri 1 — Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
+        '✦ Babak 4: Aula SMA Negeri 1 — Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
       );
     } else {
       this._hideCutscene();

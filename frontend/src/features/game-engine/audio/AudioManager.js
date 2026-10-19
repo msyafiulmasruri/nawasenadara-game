@@ -32,9 +32,14 @@ export default class AudioManager {
    * (klik/tap) karena kebijakan autoplay browser.
    */
   init() {
-    if (this._initialized) return;
+    if (this._initialized && this.ctx && this.ctx.state !== 'closed') return;
 
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('Gagal membuat AudioContext:', e);
+      return;
+    }
 
     // Master -> SFX + BGM gain nodes
     this.masterGain = this.ctx.createGain();
@@ -57,7 +62,11 @@ export default class AudioManager {
    */
   resume() {
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try {
+        this.ctx.resume().catch(() => {});
+      } catch (e) {
+        // Abaikan jika context sudah dalam status tidak valid atau closed
+      }
     }
   }
 
@@ -1175,10 +1184,14 @@ export default class AudioManager {
 
   destroy() {
     this.stopBGM();
-    if (this.ctx) {
-      this.ctx.close();
-      this.ctx = null;
+    if (this.ctx && this.ctx.state !== 'closed') {
+      try {
+        this.ctx.close().catch(() => {});
+      } catch (e) {
+        // Abaikan jika context sudah closed
+      }
     }
+    this.ctx = null;
     this._initialized = false;
   }
 }

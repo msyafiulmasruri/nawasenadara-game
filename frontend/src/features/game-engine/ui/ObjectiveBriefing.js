@@ -20,7 +20,7 @@ export default class ObjectiveBriefing {
     this.isOpen = false;
   }
 
-  show({ title = 'TUJUAN EPISODE', objectiveText, onContinue }) {
+  show({ title = 'TUJUAN EPISODE', objectiveText, promptLabel = 'TEKAN UNTUK MULAI', onContinue }) {
     if (this.isOpen) return;
     this.isOpen = true;
     this._onContinue = onContinue;
@@ -65,7 +65,7 @@ export default class ObjectiveBriefing {
     this._container.add(label);
 
     const promptText = scene.add
-      .text(cardX, promptY, 'TEKAN UNTUK MULAI', {
+      .text(cardX, promptY, promptLabel, {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${promptFont}px`,
         color: '#ffffff',
