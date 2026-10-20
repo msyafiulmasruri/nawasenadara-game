@@ -280,8 +280,19 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     this.promptText?.setText('TEKAN UNTUK MULAI');
   }
 
+  _isSceneValid() {
+    const status = this.sys?.settings?.status;
+    return Boolean(
+      this.sys &&
+      this.sys.game &&
+      status !== undefined &&
+      status !== Phaser.Scenes.SHUTDOWN &&
+      status !== Phaser.Scenes.DESTROYED
+    );
+  }
+
   _reposition() {
-    if (!this.scene?.isActive()) return;
+    if (!this._isSceneValid()) return;
     const { width, height } = syncGameSizeToOrientation(this);
     this.bgRect?.setPosition(0, 0).setSize(width, height).setDisplaySize(width, height).updateDisplayOrigin();
 

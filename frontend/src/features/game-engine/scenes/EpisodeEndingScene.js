@@ -272,6 +272,17 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     });
   }
 
+  _isSceneValid() {
+    const status = this.sys?.settings?.status;
+    return Boolean(
+      this.sys &&
+      this.sys.game &&
+      status !== undefined &&
+      status !== Phaser.Scenes.SHUTDOWN &&
+      status !== Phaser.Scenes.DESTROYED
+    );
+  }
+
   _createStars(width, height) {
     for (let index = 0; index < 70; index += 1) {
       const star = this.add
@@ -294,8 +305,10 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   _createResultObjects() {
-    const hiddenText = (text, style) =>
-      this.add.text(0, 0, text, style).setDepth(4).setAlpha(0);
+    const bounds = getVisibleBounds(this);
+    const cx = bounds.centerX;
+    const hiddenText = (text, style, y = bounds.centerY) =>
+      this.add.text(cx, y, text, style).setDepth(4).setAlpha(0);
     const emotionColor =
       AI_EMOTION_COLORS[this.dominantEmotion] || AI_EMOTION_COLORS.netral;
 
@@ -308,6 +321,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         color: '#ffdd57',
         align: 'center',
       },
+      bounds.top + bounds.height * 0.16,
     ).setOrigin(0.5);
     this.endingTitle = hiddenText(
       this.ending.title,
@@ -318,6 +332,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         align: 'center',
         lineSpacing: 8,
       },
+      bounds.top + bounds.height * 0.31,
     ).setOrigin(0.5);
     this.endingSummary = hiddenText(
       ENDING_SUMMARIES[this.endingKey] || '',
@@ -328,6 +343,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         align: 'center',
         lineSpacing: 8,
       },
+      bounds.top + bounds.height * 0.59,
     ).setOrigin(0.5);
 
     this.emotionHeaderText = hiddenText('GAMBARAN PERASAANMU DI EPISODE INI', {
@@ -376,12 +392,16 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     const initialPrompt = 'TEKAN UNTUK LIHAT GAMBARAN PERASAANMU >';
 
-    this.promptText = hiddenText(initialPrompt, {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontStyle: '700',
-      color: '#ffdd57',
-      align: 'center',
-    }).setOrigin(0.5);
+    this.promptText = hiddenText(
+      initialPrompt,
+      {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontStyle: '700',
+        color: '#ffdd57',
+        align: 'center',
+      },
+      bounds.top + bounds.height * 0.91,
+    ).setOrigin(0.5);
 
     this.endingObjects = [
       this.endingLabel,
@@ -442,7 +462,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         fromAi: true,
       };
       this._moodReady = true;
-      if (this.scene.isActive()) this._applyEmotionResult(classified);
+      if (this._isSceneValid()) this._applyEmotionResult(classified);
       if (this.isBadEnding) {
         setMood(classified.label, classified.confidence);
       } else {
@@ -455,7 +475,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         error,
       );
       this._moodReady = true;
-      if (this.scene.isActive()) this._applyEmotionResult(fallbackResult);
+      if (this._isSceneValid()) this._applyEmotionResult(fallbackResult);
       if (this.isBadEnding) {
         setMood(fallbackResult.label, fallbackResult.confidence);
       } else {
@@ -530,7 +550,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     }
 
     await this._moodPromise;
-    if (!this.scene.isActive()) return;
+    if (!this._isSceneValid()) return;
 
     this.tweens.killTweensOf(this.emotionLoadingText);
     this.emotionLoadingText.setVisible(false).setAlpha(0);
@@ -576,7 +596,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   _revealAspectStage() {
-    if (!this.scene.isActive()) return;
+    if (!this._isSceneValid()) return;
+    if (this._aspectContainer) {
+      this._aspectContainer.destroy();
+      this._aspectContainer = null;
+    }
     this._aspectContainer = this.add.container(0, 0).setDepth(15);
     const bounds = getVisibleBounds(this);
     const centerX = bounds.centerX;
@@ -967,7 +991,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   _reposition() {
-    if (!this.scene?.isActive()) return;
+    if (!this._isSceneValid()) return;
     const { width, height } = syncGameSizeToOrientation(this);
     this.bgRect?.setPosition(0, 0).setSize(width, height).setDisplaySize(width, height).updateDisplayOrigin();
 
@@ -1021,6 +1045,10 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this.promptText
       ?.setFontSize(pxToWorld(this, 22))
       .setPosition(centerX, bounds.top + bounds.height * 0.91);
+
+    if (this._stage === 'aspect' && this._aspectContainer) {
+      this._revealAspectStage();
+    }
   }
 
   _teardownInput() {
@@ -1058,7 +1086,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   _showLearningMenu() {
-    if (!this.scene.isActive()) return;
+    if (!this._isSceneValid()) return;
 
     this._stage = 'learning';
     this._readyToAdvance = false;
