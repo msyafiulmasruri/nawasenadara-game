@@ -164,10 +164,6 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('boss-projectile', '/sprites/boss-projectile.png?v=2');
     this.load.image('shadow-spikes', '/sprites/shadow-spikes.png?v=2');
     this.load.image('shadow-meteor', '/sprites/shadow-meteor.png?v=2');
-    this.load.image('safe-haven', '/sprites/safe-haven.png?v=1');
-    this.load.image('pillar-satpam', '/sprites/pillar-satpam.png?v=1');
-    this.load.image('pillar-bk', '/sprites/pillar-bk.png?v=1');
-    this.load.image('pillar-solidaritas', '/sprites/pillar-solidaritas.png?v=1');
     this.load.image('courage-blast-surge', '/sprites/courage-blast-surge.png?v=1');
     this.load.image('courage-impact-burst', '/sprites/courage-impact-burst.png?v=1');
     this.load.image('courage-crest', '/sprites/courage-crest.png?v=1');
