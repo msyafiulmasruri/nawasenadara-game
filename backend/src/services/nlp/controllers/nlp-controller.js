@@ -2,6 +2,7 @@ import NlpClient, { NlpServiceError } from '../client.js';
 import NlpRepositories from '../repositories/nlp-repositories.js';
 import { success } from '../../../utils/response.js';
 import NotFoundError from '../../../exceptions/not-found-error.js';
+import { getRandomCuratedQuestions } from '../data/smpSmaQuestionsBank.js';
 
 const snippet = (text, max = 160) =>
   text.length > max ? `${text.slice(0, max)}…` : text;
@@ -275,3 +276,53 @@ export const shouldAutoOpenCounseling = async (req, res, next) => {
     next(err);
   }
 };
+
+// POST /api/nlp/quiz-questions
+// Menghasilkan pertanyaan kuis asertif yang dinamis untuk Runner Boss,
+// disesuaikan secara cerdas untuk siswa SMP dan SMA.
+// Prioritas 1: AI (Groq LLM)
+// Prioritas 2 (Fallback): Bank soal terkurasi SMP/SMA (diacak tanpa duplikat)
+export const getRunnerQuizQuestions = async (req, res, next) => {
+  try {
+    const { count = 10, target_audience: targetAudience = 'smp_sma', topics } = req.validated || {};
+
+    // 1. Coba generate dari AI
+    const aiResult = await NlpClient.generateRunnerQuestions({
+      count,
+      targetAudience,
+      topics,
+    });
+
+    if (aiResult && Array.isArray(aiResult.questions) && aiResult.questions.length >= count) {
+      return success(res, {
+        source: 'ai_generated',
+        model: aiResult.model,
+        count: aiResult.questions.length,
+        target_audience: targetAudience,
+        questions: aiResult.questions,
+      });
+    }
+
+    // 2. Fallback: Sajikan dari bank soal terkurasi SMP & SMA yang diacak
+    const fallbackQuestions = getRandomCuratedQuestions(count, targetAudience);
+    return success(res, {
+      source: 'curated_smp_sma',
+      count: fallbackQuestions.length,
+      target_audience: targetAudience,
+      questions: fallbackQuestions,
+    });
+  } catch (err) {
+    try {
+      const safeFallback = getRandomCuratedQuestions(10, 'smp_sma');
+      return success(res, {
+        source: 'curated_smp_sma',
+        count: safeFallback.length,
+        target_audience: 'smp_sma',
+        questions: safeFallback,
+      });
+    } catch {
+      next(err);
+    }
+  }
+};
+

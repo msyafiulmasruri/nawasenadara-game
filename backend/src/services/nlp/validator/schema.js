@@ -84,3 +84,11 @@ export const npcDialogueLinePayloadSchema = Joi.object({
   // untuk ini, tidak wajib divalidasi ketat).
   episode_id: Joi.number().integer().min(1).max(6).optional(),
 });
+
+// Pembangkitan Soal Kuis Interaktif AI untuk Runner Boss (SMP & SMA)
+export const runnerQuizQuestionsPayloadSchema = Joi.object({
+  count: Joi.number().integer().min(1).max(15).default(10),
+  target_audience: Joi.string().valid('smp', 'sma', 'smp_sma').default('smp_sma'),
+  topics: Joi.array().items(Joi.string().trim().max(100)).max(10).optional(),
+});
+

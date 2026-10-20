@@ -156,10 +156,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ep6-teman-aman-cg', '/scenes/ep6-teman-aman-cg.jpg?v=3');
 
     // Aset Final Boss Battle Episode 6 & Standalone Runner
-    this.load.image('final-boss-arena', '/scenes/final-boss-arena.jpg?v=2');
     this.load.image('boss-shadow', '/sprites/boss-shadow.png?v=5');
     this.load.image('boss-shadow-attack', '/sprites/boss-shadow-attack.png?v=2');
     this.load.image('boss-shadow-hurt', '/sprites/boss-shadow-hurt.png?v=2');
+    this.load.image('boss-shadow-roar', '/sprites/boss-shadow-roar.png?v=4');
+    this.load.image('boss-shadow-cast', '/sprites/boss-shadow-cast.png?v=4');
     this.load.image('boss-projectile', '/sprites/boss-projectile.png?v=2');
     this.load.image('shadow-spikes', '/sprites/shadow-spikes.png?v=2');
     this.load.image('shadow-meteor', '/sprites/shadow-meteor.png?v=2');
@@ -167,7 +168,8 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('pillar-satpam', '/sprites/pillar-satpam.png?v=1');
     this.load.image('pillar-bk', '/sprites/pillar-bk.png?v=1');
     this.load.image('pillar-solidaritas', '/sprites/pillar-solidaritas.png?v=1');
-    this.load.image('courage-blast', '/sprites/courage-blast.png?v=1');
+    this.load.image('courage-blast-surge', '/sprites/courage-blast-surge.png?v=1');
+    this.load.image('courage-impact-burst', '/sprites/courage-impact-burst.png?v=1');
     this.load.image('courage-crest', '/sprites/courage-crest.png?v=1');
     this.load.image('runner-spikes', '/sprites/runner-spikes.png?v=2');
     this.load.image('runner-drone', '/sprites/runner-drone.png?v=2');
@@ -217,9 +219,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('player-jump-run-1', '/sprites/player/jump_run/jump_run_1.png');
     this.load.image('player-jump-run-2', '/sprites/player/jump_run/jump_run_2.png');
 
-    // Sprite Animasi Serangan Asertif Dara (Windup & Palm Strike)
+    // Sprite Animasi Serangan Asertif Dara (Windup, Palm Strike, Energy Blast, Recovery)
     this.load.image('player-attack-1', '/sprites/player/attack/attack_1.png');
     this.load.image('player-attack-2', '/sprites/player/attack/attack_2.png');
+    this.load.image('player-attack-3', '/sprites/player/attack/attack_3.png');
+    this.load.image('player-attack-4', '/sprites/player/attack/attack_4.png');
 
     // Catatan: sound effect & BGM TIDAK di-load sebagai file di sini.
     // Sekarang dipakai AudioManager (src/features/game-engine/audio/AudioManager.js)

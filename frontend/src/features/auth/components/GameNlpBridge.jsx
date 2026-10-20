@@ -119,6 +119,21 @@ export default function GameNlpBridge() {
           },
           { getAccessToken },
         ),
+
+      // Mengambil daftar pertanyaan evaluasi assertive boundary untuk
+      // pertarungan Boss Runner di Episode 6. Dihasilkan secara dinamis
+      // oleh AI (Groq LLM) disesuaikan untuk usia SMP dan SMA, dengan
+      // fallback otomatis ke bank soal terkurasi jika offline.
+      getRunnerQuestions: async ({ count = 10, targetAudience = 'smp_sma', topics = [] } = {}) =>
+        apiClient.post(
+          '/api/nlp/quiz-questions',
+          {
+            count,
+            target_audience: targetAudience,
+            ...(topics && topics.length ? { topics } : {}),
+          },
+          { getAccessToken },
+        ),
     };
 
     window.__nawasenadaraNlp = bridge;

@@ -142,6 +142,120 @@ const NlpClient = {
     });
     return { line: result.line };
   },
+
+  // Pembangkitan Soal Kuis Asertif AI untuk Runner Boss (SMP & SMA)
+  async generateRunnerQuestions({ count = 10, targetAudience = 'smp_sma', topics = [] } = {}) {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+
+    if (!groqApiKey) {
+      return null;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 14000);
+
+      const audienceDesc = targetAudience === 'smp'
+        ? 'usia SMP (12-15 tahun)'
+        : targetAudience === 'sma'
+        ? 'usia SMA (15-18 tahun)'
+        : 'usia remaja SMP dan SMA (12-18 tahun)';
+
+      const promptSystem = `Kamu adalah konselor psikologi anak dan remaja ahli pencegahan kekerasan sekolah (SMP & SMA) untuk game edukasi "Nawasena Dara".
+Tugasmu adalah menghasilkan ${count} butir soal kuis pilihan ganda yang cerdas, aplikatif, dan kontekstual untuk remaja ${audienceDesc}.
+
+FOKUS TOPIK EDUKASI:
+1. Batasan Fisik & Privasi Sentuhan (Consent)
+2. Privasi Medsos & Perlindungan Password/Foto Pribadi
+3. Menolak Pelecehan Verbal & Catcalling di Sekolah
+4. Menghadapi Gaslighting & Manipulasi Emosi ("Cuma Canda/Baperan")
+5. Pencegahan Cyberbullying, Doxxing, & Prank Medsos Berbahaya
+6. Menghadapi Tekanan Teman Sebaya (Peer Pressure merokok/nongkrong berisiko)
+7. Tindakan Bystander Aktif (Mendukung & Membela Teman yang Dipojokkan)
+8. Batasan Sehat dalam Relasi & Pertemanan Remaja
+9. Bukti Digital & Penanganan Pesan Intimidasi
+10. Akses Bantuan Resmi: Konseling Guru BK & Satgas TPPK Sekolah
+
+SYARAT FORMAT OUTPUT (WAJIB JSON valid):
+Kembalikan JSON object dengan key "questions" yang berisi array of objects. Setiap object:
+- "topic": string (nama topik singkat)
+- "question": string (skenario kasus konkret 1-2 kalimat yang sangat dekat dengan realita remaja sekolah)
+- "options": array of 3 objects:
+    [
+      { "text": "A. ...", "isCorrect": boolean },
+      { "text": "B. ...", "isCorrect": boolean },
+      { "text": "C. ...", "isCorrect": boolean }
+    ] (HANYA ADA 1 OPSI DENGAN isCorrect: true, 2 LAINNYA false)
+- "explanation": string (ulasan singkat 1 kalimat yang memberdayakan dan menjelaskan mengapa sikap asertif tersebut tepat)
+
+Gunakan bahasa Indonesia yang santai, edukatif, dan empatik bagi remaja. Jangan kaku.`;
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqApiKey}`,
+          'User-Agent': 'NawasenaDara/1.0',
+        },
+        body: JSON.stringify({
+          model: groqModel,
+          messages: [
+            { role: 'system', content: promptSystem },
+            { role: 'user', content: `Buatkan ${count} butir soal kuis skenario konkret asertif untuk ${audienceDesc}. Jawab dalam JSON valid.` },
+          ],
+          temperature: 0.75,
+          response_format: { type: 'json_object' },
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(content);
+          const rawQuestions = parsed.questions || parsed.data || (Array.isArray(parsed) ? parsed : null);
+          if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
+            // Acak letak jawaban benar pada opsi setiap soal
+            const randomized = rawQuestions.slice(0, count).map((q, idx) => {
+              const options = Array.isArray(q.options) ? [...q.options] : [];
+              for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+              }
+              const prefixes = ['A. ', 'B. ', 'C. '];
+              const cleanOptions = options.map((opt, oIdx) => ({
+                text: `${prefixes[oIdx] || ''}${opt.text.replace(/^[A-C]\.\s*/, '')}`,
+                isCorrect: Boolean(opt.isCorrect),
+              }));
+
+              return {
+                id: idx + 1,
+                source: 'ai_generated',
+                topic: q.topic || 'Edukasi Asertif',
+                question: q.question,
+                options: cleanOptions,
+                explanation: q.explanation || 'Tetapkan batasanmu dengan tenang dan tegas.',
+              };
+            });
+
+            return {
+              source: 'ai_generated',
+              model: groqModel,
+              questions: randomized,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[NlpClient] Groq AI quiz question generation warning, falling back to curated bank:', err.message);
+    }
+
+    return null;
+  },
 };
 
 export { NlpServiceError };

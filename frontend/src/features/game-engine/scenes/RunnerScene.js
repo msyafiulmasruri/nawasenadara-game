@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import AudioManager from '../audio/AudioManager';
 import { getVisibleBounds, syncGameSizeToOrientation } from '../utils/visibleBounds';
+import { getRandomCuratedQuestions } from '../data/smpSmaQuestions';
 
 /**
  * RunnerScene.js
@@ -19,125 +20,18 @@ import { getVisibleBounds, syncGameSizeToOrientation } from '../utils/visibleBou
  *     - Rintangan Atas: Drone kamera pengintai ('runner-drone') melayang dengan sorot merah (wajib mengecil).
  * - Lantai koridor neon ('runner-road') scrolling mulus.
  * - 10 Butir Kebenaran (Truth Shards) melayang di sepanjang lintasan.
- * - Modal Kuis Interaktif: 10 soal edukasi batasan diri & perlindungan siber.
+ * - Modal Kuis Interaktif Berdaya AI (Groq LLM):
+ *     - 10 butir soal edukasi batasan diri & cyber safety disesuaikan untuk usia SMP & SMA.
+ *     - Dibuat acak secara dinamis oleh AI agar tidak monoton.
+ *     - Dilengkapi fallback bank soal terkurasi jika mode offline/koneksi lambat.
  * - Boss Bayangan Intimidasi (10 HP):
  *     - Jawaban benar: Proyektil asertif Dara melukai boss (-1 HP).
  *     - Jawaban salah / tabrak rintangan: Hati Dara berkurang (-1 Hati).
  * - Checkpoint: Pos Satpam (3.000m) & Ruang BK (7.200m) memulihkan nyawa penuh.
  */
 
-const QUESTIONS_DATA = [
-  {
-    id: 1,
-    topic: 'Privasi Digital',
-    question: 'Seseorang di grup chat membagikan foto pribadi temanmu tanpa izin untuk bahan lelucon. Tindakan paling tepat adalah...',
-    options: [
-      { text: 'A. Ikut tertawa agar tidak dianggap baperan atau kaku.', isCorrect: false },
-      { text: 'B. Tidak menyebarkannya, ingatkan bahwa itu pelanggaran privasi, dan dampingi melapor.', isCorrect: true },
-      { text: 'C. Menyimpan fotonya diam-diam di galeri ponsel.', isCorrect: false },
-    ],
-    explanation: 'Foto pribadi adalah hak privasi mutlak. Jangan ikut menyebarkan dan jadilah pendukung yang aman.',
-  },
-  {
-    id: 2,
-    topic: 'Batasan Fisik (Boundaries)',
-    question: 'Senior di sekolah merangkul pundakmu dengan cara yang membuatmu risih dan tidak nyaman. Reaksi terbaikmu adalah...',
-    options: [
-      { text: 'A. Membiarkannya karena menganggap itu wajar sesama warga sekolah.', isCorrect: false },
-      { text: 'B. Menghindar dengan tenang dan berkata tegas: "Maaf, tolong jangan sentuh, aku tidak nyaman."', isCorrect: true },
-      { text: 'C. Tersenyum terpaksa karena takut senior merasa tersinggung.', isCorrect: false },
-    ],
-    explanation: 'Tubuhmu adalah otoritasmu. Kamu berhak menetapkan batasan fisik dengan suara tenang dan asertif.',
-  },
-  {
-    id: 3,
-    topic: 'Manipulasi Consent',
-    question: 'Temanmu mendesak meminta password media sosialmu dengan dalih "kalau percaya harus saling terbuka". Sebaiknya...',
-    options: [
-      { text: 'A. Menolak tegas karena password adalah hak privasi dan kunci keamanan pribadi.', isCorrect: true },
-      { text: 'B. Memberikannya asalkan dia berjanji tidak membaca isi pesan pribadi.', isCorrect: false },
-      { text: 'C. Memberikan password akun cadangan saja.', isCorrect: false },
-    ],
-    explanation: 'Kepercayaan tidak diukur dari penyerahan privasi. Menolak membagikan password adalah tanda kewaspadaan sehat.',
-  },
-  {
-    id: 4,
-    topic: 'Pelecehan Verbal',
-    question: 'Saat berjalan di koridor sekolah, sekelompok siswa bersiul dan melontarkan komentar sensual tentang tubuhmu. Ini adalah...',
-    options: [
-      { text: 'A. Pujian spontan yang patut disyukuri.', isCorrect: false },
-      { text: 'B. Candaan wajar anak remaja laki-laki.', isCorrect: false },
-      { text: 'C. Pelecehan verbal (catcalling) yang melanggar rasa aman di ruang publik.', isCorrect: true },
-    ],
-    explanation: 'Komentar bernada seksual tanpa persetujuan adalah bentuk pelecehan verbal (catcalling), bukan sekadar candaan.',
-  },
-  {
-    id: 5,
-    topic: 'Gaslighting',
-    question: 'Saat kamu menegur pelaku pelecehan verbal, dia membalas: "Gitu aja tersinggung, baperan amat!". Taktik ini disebut...',
-    options: [
-      { text: 'A. Gaslighting (memanipulasi agar korban meragukan perasaannya sendiri).', isCorrect: true },
-      { text: 'B. Komunikasi terbuka dan jujur.', isCorrect: false },
-      { text: 'C. Bentuk humor yang membangun mental.', isCorrect: false },
-    ],
-    explanation: 'Pelaku sering memakai label "baperan" untuk mengalihkan rasa bersalah dan membatalkan perasaan tidak nyamanmu.',
-  },
-  {
-    id: 6,
-    topic: 'Bukti Digital',
-    question: 'Jika kamu menerima pesan chat intimidasi atau pelecehan via direct message, langkah pertama yang krusial adalah...',
-    options: [
-      { text: 'A. Langsung menghapus chat dan mematikan ponsel.', isCorrect: false },
-      { text: 'B. Ambil tangkapan layar (screenshot) lengkap dengan waktu & akun pelaku sebagai bukti otentik.', isCorrect: true },
-      { text: 'C. Membalas dengan kata-kata kasar yang sama.', isCorrect: false },
-    ],
-    explanation: 'Tangkapan layar otentik adalah bukti terkuat sebelum pelaku menghapus pesan atau akunnya.',
-  },
-  {
-    id: 7,
-    topic: 'Layanan Bantuan',
-    question: 'Siapakah pihak resmi di sekolah yang memegang kode etik kerahasiaan untuk konseling dan pendampingan siswa?',
-    options: [
-      { text: 'A. Guru Bimbingan dan Konseling (BK) / Tim Pencegahan Kekerasan (TPPK).', isCorrect: true },
-      { text: 'B. Akun anonim menfess media sosial sekolah.', isCorrect: false },
-      { text: 'C. Grup gosip obrolan kelas.', isCorrect: false },
-    ],
-    explanation: 'Guru BK dan Satgas TPPK memiliki kewajiban menjaga kerahasiaan serta mendampingi pemulihan siswa.',
-  },
-  {
-    id: 8,
-    topic: 'Pelecehan Non-Fisik',
-    question: 'Seseorang sengaja memperlihatkan gestur tidak senonoh atau gambar porno kepadamu secara mendadak di kelas. Ini termasuk...',
-    options: [
-      { text: 'A. Keisengan biasa tanpa konsekuensi etis.', isCorrect: false },
-      { text: 'B. Pelecehan seksual non-fisik / visual yang melanggar aturan.', isCorrect: true },
-      { text: 'C. Lelucon seni grafis bebas.', isCorrect: false },
-    ],
-    explanation: 'Memperlihatkan materi pornografi tanpa persetujuan adalah pelanggaran berat dalam perlindungan anak dan siswa.',
-  },
-  {
-    id: 9,
-    topic: 'Solidaritas Teman',
-    question: 'Kamu melihat seorang temanmu sedang dipojokkan dan digoda secara tidak pantas oleh orang lain. Tindakan terbaikmu adalah...',
-    options: [
-      { text: 'A. Diam saja pura-pura tidak melihat agar tidak jadi sasaran berikutnya.', isCorrect: false },
-      { text: 'B. Merekam diam-diam lalu mempostingnya ke media sosial demi konten.', isCorrect: false },
-      { text: 'C. Mendekat, alihkan perhatian situasi (bystander aktif), lalu dampingi temanmu melapor.', isCorrect: true },
-    ],
-    explanation: 'Intervensi pengalihan dari teman sebaya adalah salah satu cara paling efektif untuk memutus rantai intimidasi.',
-  },
-  {
-    id: 10,
-    topic: 'Hak Korban',
-    question: 'Jika kamu atau siapa pun mengalami pelecehan, prinsip utama yang harus selalu dipegang teguh adalah...',
-    options: [
-      { text: 'A. Pakaian atau caramu berbicara adalah penyebab utama kejadian tersebut.', isCorrect: false },
-      { text: 'B. Kejadian itu BUKAN kesalahanmu; tanggung jawab penuh selalu berada pada pelaku.', isCorrect: true },
-      { text: 'C. Sebaiknya bungkam selamanya demi menjaga nama baik lingkungan.', isCorrect: false },
-    ],
-    explanation: 'Korban tidak pernah bersalah atas tindakan pelecehan yang dilakukan orang lain. Kamu berhak didengar dan dilindungi.',
-  },
-];
+// Bank soal fallback awal teracak untuk usia SMP & SMA
+const FALLBACK_QUESTIONS_DATA = getRandomCuratedQuestions(10, 'smp_sma');
 
 // Kalimat Intimidasi & Bullying Psikologis Boss (Sesuai Nilai Edukasi Komunikasi Asertif)
 const BOSS_TAUNTS = [
@@ -185,7 +79,10 @@ export default class RunnerScene extends Phaser.Scene {
 
     // Status Game
     this.gameState = 'PLAYING'; // PLAYING, QUIZ, GAMEOVER, VICTORY
+    this.questionsData = getRandomCuratedQuestions(10, 'smp_sma');
+    this.aiQuestionsLoaded = false;
     this.currentQuestionIndex = 0;
+    this._isResolvingAnswer = false;
     this.nextShardDistance = 350; // Muncul di 350m agar pemain segera menikmati kuis
     this.shardInterval = 750;
     this._isInvulnerable = false;
@@ -225,6 +122,49 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossLightningGraphics = null;
     this.bossEyeGlowL = null;
     this.bossEyeGlowR = null;
+    this.bossNameTag = null;
+    this.bossNameTagText = null;
+
+    // Dara Celestial Combat VFX Graphics
+    this.daraLightningGraphics = null;
+    this.daraBeamGraphics = null;
+
+    // Boss Enrage State (< 50% HP)
+    this.isBossEnraged = false;
+    this.enrageDarknessOverlay = null;
+
+    // Episode & Story Mode State
+    this.episodeId = 6;
+    this.isLastEpisode = true;
+    this.choices = [];
+  }
+
+  init(data = {}) {
+    this.episodeId = data.episodeId || 6;
+    this.isLastEpisode = data.isLastEpisode !== undefined ? Boolean(data.isLastEpisode) : true;
+    this.choices = Array.isArray(data.choices) ? data.choices : [];
+
+    // Reset status perulangan jika scene restart
+    this.distance = 0;
+    this.isJumping = false;
+    this.isShrunk = false;
+    this.isDucking = false;
+    this.playerCourage = 3;
+    this.bossHp = 10;
+    this.currentCheckpointDistance = 0;
+    this.gameState = 'PLAYING';
+    this.runSpeed = this.baseRunSpeed;
+    this.isBossEnraged = false;
+    this.questionsData = getRandomCuratedQuestions(10, 'smp_sma');
+    this.aiQuestionsLoaded = false;
+    this.currentQuestionIndex = 0;
+    this._isResolvingAnswer = false;
+    this.nextShardDistance = 350;
+    this._isInvulnerable = false;
+    this.checkpoints = [
+      { distance: 3000, name: 'Pos Satpam Sekolah', passed: false },
+      { distance: 7200, name: 'Ruang BK & Solidaritas', passed: false },
+    ];
   }
 
   create() {
@@ -305,7 +245,13 @@ export default class RunnerScene extends Phaser.Scene {
       if (this.bossSpeechBubble) this.bossSpeechBubble.destroy();
       if (this.bossLightningGraphics) this.bossLightningGraphics.destroy();
       if (this.bossFloorShadow) this.bossFloorShadow.destroy();
+      if (this.bossNameTag) this.bossNameTag.destroy();
+      if (this.daraLightningGraphics) this.daraLightningGraphics.destroy();
+      if (this.daraBeamGraphics) this.daraBeamGraphics.destroy();
     });
+
+    // 12. Panggil AI Generator di background untuk memuat variasi butir soal SMP/SMA
+    this._fetchAiQuestionsInBackground();
   }
 
   update(time, delta) {
@@ -373,21 +319,37 @@ export default class RunnerScene extends Phaser.Scene {
 
         shard.x -= moveDelta;
 
+        // Magnetis halus ke arah Dara jika dekat (radius 140px)
+        if (this.player && this.player.active && this.gameState === 'PLAYING') {
+          const pDist = Phaser.Math.Distance.Between(shard.x, shard.y, this.player.x, this.player.y - 40);
+          if (pDist < 140) {
+            const pullAngle = Phaser.Math.Angle.Between(shard.x, shard.y, this.player.x, this.player.y - 40);
+            const pullSpeed = 240 * dtSec;
+            shard.x += Math.cos(pullAngle) * pullSpeed;
+            shard.y += Math.sin(pullAngle) * pullSpeed;
+          }
+        }
+
         if (shard.glow) shard.glow.setPosition(shard.x, shard.y);
         if (shard.label) shard.label.setPosition(shard.x, shard.y - 32);
 
+        // Jika terlewat / tidak diambil pemain (keluar dari batas kiri)
         if (shard.x < bounds.left - 120) {
           if (shard.glow) shard.glow.destroy();
           if (shard.label) shard.label.destroy();
           shard.destroy();
+
+          // PENTING: Jangan skip pertanyaan! Segera hadirkan kembali butiran dalam jarak dekat (~160m)
+          this.nextShardDistance = this.distance + 160;
         }
       });
     }
 
-    // Cek Spawn Butir Kebenaran
-    if (this.distance >= this.nextShardDistance && this.currentQuestionIndex < QUESTIONS_DATA.length) {
+    // Cek Spawn Butir Kebenaran (pastikan tidak ada butir aktif lain agar tidak tumpang tindih)
+    const hasActiveShard = this.shardsGroup && this.shardsGroup.getChildren().some((s) => s && s.active);
+    if (!hasActiveShard && this.distance >= this.nextShardDistance && this.currentQuestionIndex < (this.questionsData?.length || 10)) {
       this._spawnTruthShard();
-      this.nextShardDistance += this.shardInterval;
+      this.nextShardDistance = this.distance + this.shardInterval;
     }
 
     // Cek Checkpoint
@@ -464,6 +426,10 @@ export default class RunnerScene extends Phaser.Scene {
           if (layer && layer.active) layer.setPosition(bx, by);
         });
       }
+
+      if (this.bossNameTag && this.bossNameTag.active) {
+        this.bossNameTag.setPosition(bx, by - 146);
+      }
     }
   }
 
@@ -487,6 +453,16 @@ export default class RunnerScene extends Phaser.Scene {
     // Pendaran magis atmosfer di bagian atas koridor
     this.add.ellipse(bounds.centerX, bounds.top + 160, bounds.width * 1.2, 180, 0x1e1b4b, 0.35)
       .setScrollFactor(0).setDepth(3).setBlendMode(Phaser.BlendModes.ADD);
+
+    // Layer Miasma Kegelapan Kemarahan Boss (< 50% HP)
+    this.enrageDarknessOverlay = this.add.rectangle(
+      bounds.centerX,
+      bounds.centerY,
+      bounds.width * 2,
+      bounds.height * 2,
+      0x05000a,
+      0
+    ).setDepth(26).setScrollFactor(0);
   }
 
   _createSolidFloor(bounds) {
@@ -515,6 +491,10 @@ export default class RunnerScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
 
     this.player.play('run');
+
+    // Graphics Efek Petir & Meriam Laser Keberanian Dara
+    this.daraLightningGraphics = this.add.graphics().setDepth(24).setScrollFactor(0);
+    this.daraBeamGraphics = this.add.graphics().setDepth(20).setScrollFactor(0);
   }
 
   _createBossEntity(bounds) {
@@ -561,6 +541,23 @@ export default class RunnerScene extends Phaser.Scene {
       .setDepth(7)
       .setScrollFactor(0);
     this.bossBaseScale = this.bossSprite.scaleX;
+
+    // Overhead Boss Name Badge (Jelas & Tajam di atas kepala Boss)
+    this.bossNameTag = this.add.container(bossX, this.bossBaseY - 146).setDepth(12).setScrollFactor(0);
+    const tagGlow = this.add.rectangle(0, 0, 154, 30, 0xe11d48, 0.28)
+      .setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
+    const tagBg = this.add.rectangle(0, 0, 150, 26, 0x08010f, 0.94)
+      .setStrokeStyle(2, 0xf43f5e);
+    this.bossNameTagText = this.add.text(0, 0, '☠️ MINI BOSS ☠️', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
+      fontSize: '14px',
+      fontStyle: '700',
+      color: '#ffe4e6',
+      stroke: '#000000',
+      strokeThickness: 2,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
+    }).setOrigin(0.5);
+    this.bossNameTag.add([tagGlow, tagBg, this.bossNameTagText]);
 
     // 6. Sorotan Titik Mata Merah Menyala di Balik Tudung
     this.bossEyeGlowL = this.add.circle(bossX - 14, this.bossBaseY - 48, 5, 0xef4444, 0.95)
@@ -716,6 +713,91 @@ export default class RunnerScene extends Phaser.Scene {
     });
   }
 
+  _triggerDaraLightning(dx, dy) {
+    if (!this.daraLightningGraphics) return;
+    this.daraLightningGraphics.clear();
+
+    for (let bolt = 0; bolt < 2; bolt++) {
+      const startX = dx - 35 + Phaser.Math.Between(-15, 15);
+      const startY = dy - 60 + Phaser.Math.Between(-15, 15);
+      const targetX = dx + 35 + Phaser.Math.Between(-15, 15);
+      const targetY = dy + 15 + Phaser.Math.Between(-15, 15);
+
+      // Garis luar cyan/gold bercahaya
+      this.daraLightningGraphics.lineStyle(3.2, Phaser.Utils.Array.GetRandom([0x38bdf8, 0xfacc15, 0x67e8f9]), 0.95);
+      this.daraLightningGraphics.beginPath();
+      this.daraLightningGraphics.moveTo(startX, startY);
+
+      let curX = startX;
+      let curY = startY;
+      const steps = 4;
+      for (let i = 1; i <= steps; i++) {
+        const nextX = startX + ((targetX - startX) / steps) * i + Phaser.Math.Between(-14, 14);
+        const nextY = startY + ((targetY - startY) / steps) * i + Phaser.Math.Between(-14, 14);
+        this.daraLightningGraphics.lineTo(nextX, nextY);
+        curX = nextX;
+        curY = nextY;
+      }
+      this.daraLightningGraphics.strokePath();
+
+      // Inti putih cemerlang
+      this.daraLightningGraphics.lineStyle(1.4, 0xffffff, 1.0);
+      this.daraLightningGraphics.beginPath();
+      this.daraLightningGraphics.moveTo(startX, startY);
+      this.daraLightningGraphics.lineTo(curX, curY);
+      this.daraLightningGraphics.strokePath();
+    }
+
+    this.time.delayedCall(75, () => {
+      this.daraLightningGraphics?.clear();
+    });
+  }
+
+  _drawContinuousLaserBeam(x1, y1, x2, y2, isSustained = false) {
+    if (!this.daraBeamGraphics) return;
+    this.daraBeamGraphics.clear();
+
+    // 1. Lapisan Aura Terluar (Atmospheric Cyan Bloom)
+    this.daraBeamGraphics.lineStyle(isSustained ? 54 : 38, 0x0284c7, 0.42);
+    this.daraBeamGraphics.beginPath();
+    this.daraBeamGraphics.moveTo(x1, y1);
+    this.daraBeamGraphics.lineTo(x2, y2);
+    this.daraBeamGraphics.strokePath();
+
+    // 2. Lapisan Korona Emas Mentari (Solar Flare Ribbon)
+    this.daraBeamGraphics.lineStyle(isSustained ? 32 : 22, 0xfacc15, 0.68);
+    this.daraBeamGraphics.beginPath();
+    this.daraBeamGraphics.moveTo(x1, y1);
+    this.daraBeamGraphics.lineTo(x2, y2);
+    this.daraBeamGraphics.strokePath();
+
+    // 3. Lapisan Plasma Inti (High-Intensity Cyan Laser)
+    this.daraBeamGraphics.lineStyle(isSustained ? 18 : 11, 0x38bdf8, 0.95);
+    this.daraBeamGraphics.beginPath();
+    this.daraBeamGraphics.moveTo(x1, y1);
+    this.daraBeamGraphics.lineTo(x2, y2);
+    this.daraBeamGraphics.strokePath();
+
+    // 4. Inti Hyper-Laser Putih Bersih (Pure White Core)
+    this.daraBeamGraphics.lineStyle(isSustained ? 7 : 4.5, 0xffffff, 1.0);
+    this.daraBeamGraphics.beginPath();
+    this.daraBeamGraphics.moveTo(x1, y1);
+    this.daraBeamGraphics.lineTo(x2, y2);
+    this.daraBeamGraphics.strokePath();
+
+    // 5. Sambaran Kilatan Listrik Dinamis di Sepanjang Jalur Laser
+    for (let j = 0; j < 2; j++) {
+      const midX = (x1 + x2) * 0.5 + Phaser.Math.Between(-18, 18);
+      const midY = (y1 + y2) * 0.5 + Phaser.Math.Between(-14, 14);
+      this.daraBeamGraphics.lineStyle(2.0, 0xfde047, 0.85);
+      this.daraBeamGraphics.beginPath();
+      this.daraBeamGraphics.moveTo(x1, y1);
+      this.daraBeamGraphics.lineTo(midX, midY);
+      this.daraBeamGraphics.lineTo(x2, y2);
+      this.daraBeamGraphics.strokePath();
+    }
+  }
+
   _showBossTaunt(customText = null) {
     if (!this.bossSprite || !this.bossSprite.active) return;
     if (this.gameState !== 'PLAYING') return;
@@ -778,51 +860,56 @@ export default class RunnerScene extends Phaser.Scene {
     });
 
     // 4. Balon Kata Obsidian Cyber Intimidation
-    const bubbleX = bx - 150;
-    const bubbleY = by + 32;
+    const bubbleX = bx - 165;
+    const bubbleY = by + 26;
 
     const container = this.add.container(bubbleX, bubbleY).setDepth(25).setScrollFactor(0);
 
-    const paddingX = 14;
+    const paddingX = 16;
+    const isEnraged = (this.bossHp <= 5) || this.isBossEnraged;
+    const tagText = isEnraged ? '🔥 KEMURKAAN BAYANGAN' : '☠ BISIKAN INTIMIDASI';
+    const tagColor = isEnraged ? '#fca5a5' : '#fda4af';
 
-    // Header Tag Intimidasi
-    const tagObj = this.add.text(0, -18, '☠ BISIKAN INTIMIDASI', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '9px',
+    // Header Tag Intimidasi (Lebar & Jelas)
+    const tagObj = this.add.text(0, -22, tagText, {
+      fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
+      fontSize: '12px',
       fontStyle: '700',
-      color: '#fb7185',
+      color: tagColor,
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5);
 
-    // Teks Intimidasi Utama
-    const textObj = this.add.text(0, 4, `"${text}"`, {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '11px',
+    // Teks Intimidasi Utama (Jelas, Kontras Tinggi & Anti-Blur)
+    const textObj = this.add.text(0, 6, `"${text}"`, {
+      fontFamily: '"Pixelify Sans", -apple-system, sans-serif',
+      fontSize: '13px',
       fontStyle: '700',
-      color: '#fff1f2',
+      color: '#ffffff',
       align: 'center',
-      wordWrap: { width: 230 },
+      wordWrap: { width: 260 },
+      lineSpacing: 4,
       stroke: '#000000',
       strokeThickness: 2,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
     }).setOrigin(0.5);
 
-    const boxW = Math.max(180, Math.max(textObj.width, tagObj.width) + paddingX * 2);
-    const boxH = Math.max(48, textObj.height + 32);
+    const boxW = Math.max(220, Math.max(textObj.width, tagObj.width) + paddingX * 2);
+    const boxH = Math.max(58, textObj.height + 38);
 
-    tagObj.y = -boxH / 2 + 10;
-    textObj.y = 5;
+    tagObj.y = -boxH / 2 + 14;
+    textObj.y = 8;
 
     // Ekor balon dialog mengarah ke boss di kanan atas
-    const tail = this.add.triangle(boxW / 2 - 10, -boxH / 2 + 8, 0, 0, 14, -10, 16, 8, 0x14020f, 0.98)
-      .setStrokeStyle(1.8, 0xf43f5e);
+    const tail = this.add.triangle(boxW / 2 - 10, -boxH / 2 + 10, 0, 0, 16, -12, 18, 10, 0x14020f, 0.98)
+      .setStrokeStyle(2, isEnraged ? 0xef4444 : 0xf43f5e);
 
     // Box gelap obsidian dengan border crimson menyala
     const bg = this.add.rectangle(0, 0, boxW, boxH, 0x11020d, 0.96)
-      .setStrokeStyle(1.8, 0xe11d48);
+      .setStrokeStyle(2, isEnraged ? 0xef4444 : 0xe11d48);
 
     // Aura pendaran tipis ungu/crimson
-    const glow = this.add.rectangle(0, 0, boxW + 4, boxH + 4, 0x9333ea, 0.28)
+    const glow = this.add.rectangle(0, 0, boxW + 6, boxH + 6, isEnraged ? 0xef4444 : 0x9333ea, 0.3)
       .setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
 
     container.add([glow, bg, tail, tagObj, textObj]);
@@ -858,25 +945,92 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossSpeechBubble = container;
   }
 
-  _triggerBossRoar(isAttack = false) {
+  _triggerBossRoar(isAttack = false, isEnrageTransition = false) {
     if (!this.bossSprite || !this.bossSprite.active) return;
-    if (this.bossState !== 'IDLE' && !isAttack) return;
+    if (this.bossState !== 'IDLE' && !isAttack && !isEnrageTransition) return;
 
+    const isEnraged = (this.bossHp <= 5) || isEnrageTransition;
     this.bossState = isAttack ? 'ATTACKING' : 'ROARING';
-    const attackTex = this.textures.exists('boss-shadow-attack') ? 'boss-shadow-attack' : 'boss-shadow';
-    this.bossSprite.setTexture(attackTex);
+
+    // Pastikan memakai pose boss-shadow-roar.png saat meraung
+    const roarTex = this.textures.exists('boss-shadow-roar')
+      ? 'boss-shadow-roar'
+      : (this.textures.exists('boss-shadow-attack') ? 'boss-shadow-attack' : 'boss-shadow');
+    this.bossSprite.setTexture(roarTex);
     this.audioManager?.playBossRoar();
 
-    // Kamera bergetar saat boss meraung
-    this.cameras.main.shake(isAttack ? 250 : 160, isAttack ? 0.009 : 0.005);
+    if (isEnraged) {
+      this.bossNameTagText?.setText('🔥 ENRAGED BOSS 🔥');
+      this.bossNameTagText?.setColor('#fecdd3');
+    }
 
-    // Animasi menerjang ke depan & membesar
+    // 1. GETARAN PADA LAYAR
+    // Jika Enraged (< 50% HP), getaran layar dibuat sangat dahsyat dan bergetar hebat
+    const shakeDuration = isEnraged ? (isEnrageTransition ? 950 : 750) : (isAttack ? 250 : 160);
+    const shakeIntensity = isEnraged ? (isEnrageTransition ? 0.025 : 0.018) : (isAttack ? 0.009 : 0.005);
+    this.cameras.main.shake(shakeDuration, shakeIntensity);
+
+    // 2. EFEK GELAP KARENA KEMARAHAN SI BOS (< 50% HP)
+    if (isEnraged && this.enrageDarknessOverlay) {
+      // Kilatan kegelapan memuncak saat meraung (alpha hingga 0.85)
+      this.tweens.add({
+        targets: this.enrageDarknessOverlay,
+        alpha: 0.82,
+        duration: 350,
+        yoyo: true,
+        hold: 250,
+        onComplete: () => {
+          if (this.enrageDarknessOverlay) {
+            // Settle di ambient kegelapan permanen selama HP < 50%
+            this.tweens.add({
+              targets: this.enrageDarknessOverlay,
+              alpha: 0.58,
+              duration: 400,
+            });
+          }
+        },
+      });
+
+      // Gelombang kejut kegelapan dari mulut boss yang meluas ke seluruh layar
+      const roarShockwave = this.add.circle(this.bossSprite.x - 45, this.bossSprite.y - 20, 25, 0xef4444, 0)
+        .setStrokeStyle(6, 0xdc2626, 0.95).setDepth(28).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: roarShockwave,
+        radius: 400,
+        alpha: 0,
+        duration: 700,
+        ease: 'Quad.easeOut',
+        onComplete: () => roarShockwave.destroy(),
+      });
+
+      // Kilatan petir merah gelap
+      this._triggerBossLightning(this.bossSprite.x - 30, this.bossSprite.y - 10);
+    }
+
+    // 3. MEMPERCEPAT OBSTAKEL YANG ADA (< 50% HP)
+    if (isEnraged) {
+      this.runSpeed = 480; // Kecepatan lari dan rintangan meningkat dari 360 ke 480!
+      if (this.obstacleSpawnTimer) {
+        this.obstacleSpawnTimer.delay = 1200; // Spawn rintangan lebih cepat & rapat!
+      }
+      if (this.obstaclesGroup) {
+        this.obstaclesGroup.setVelocityX(-this.runSpeed);
+      }
+      if (this.shardsGroup) {
+        this.shardsGroup.setVelocityX(-this.runSpeed);
+      }
+    }
+
+    // 4. ANIMASI BOSS MENERJANG KE DEPAN SAAT MERAUNG
+    const forwardOffset = isEnraged ? 75 : (isAttack ? 55 : 35);
+    const scaleUp = isEnraged ? 1.35 : (isAttack ? 1.25 : 1.15);
     this.tweens.add({
       targets: this.bossSprite,
-      x: this.bossBaseX - (isAttack ? 45 : 25),
-      scaleX: this.bossBaseScale * (isAttack ? 1.2 : 1.12),
-      scaleY: this.bossBaseScale * (isAttack ? 1.2 : 1.12),
-      duration: isAttack ? 350 : 450,
+      x: this.bossBaseX - forwardOffset,
+      scaleX: this.bossBaseScale * scaleUp,
+      scaleY: this.bossBaseScale * scaleUp,
+      duration: isEnraged ? 520 : (isAttack ? 480 : 560),
+      hold: isEnraged ? 380 : 260,
       yoyo: true,
       ease: 'Back.easeOut',
       onComplete: () => {
@@ -889,15 +1043,52 @@ export default class RunnerScene extends Phaser.Scene {
       },
     });
 
-    // Hawa miasma gelap bergejolak dahsyat
-    if (this.bossAuraDisc) {
+    // Embers membubung dari raungan boss
+    const emberCount = isEnraged ? 18 : (isAttack ? 12 : 7);
+    for (let i = 0; i < emberCount; i++) {
+      this.time.delayedCall(i * 35, () => {
+        if (this.bossSprite && this.bossSprite.active) {
+          this._emitBossEmbers(this.bossSprite.x - 35, this.bossSprite.y + 10);
+        }
+      });
+    }
+
+    // 5. BANNER PERINGATAN KEMARAHAN SAAT TRANSISI PERTAMA
+    if (isEnrageTransition) {
+      const bounds = getVisibleBounds(this);
+      const enrageBanner = this.add.text(
+        bounds.centerX,
+        bounds.top + 72,
+        '⚠ BOSS ENRAGED (<50% HP) ⚠\n[KEMARAHAN MEMUNCAK • KORIDOR GELAP & OBSTAKEL DIPERCEPAT!]',
+        {
+          fontFamily: '"Pixelify Sans", monospace',
+          fontSize: '12px',
+          fontStyle: '700',
+          color: '#ff2255',
+          align: 'center',
+          backgroundColor: '#1f000d',
+          stroke: '#000000',
+          strokeThickness: 3.5,
+          padding: { x: 18, y: 8 },
+        }
+      ).setOrigin(0.5).setDepth(35).setScrollFactor(0);
+
       this.tweens.add({
-        targets: [this.bossAuraDisc],
-        scaleX: 1.45,
-        scaleY: 1.45,
-        alpha: 0.85,
-        duration: 300,
+        targets: enrageBanner,
+        scale: 1.08,
+        duration: 250,
         yoyo: true,
+        repeat: 3,
+        onComplete: () => {
+          this.time.delayedCall(1600, () => {
+            this.tweens.add({
+              targets: enrageBanner,
+              alpha: 0,
+              duration: 500,
+              onComplete: () => enrageBanner.destroy(),
+            });
+          });
+        },
       });
     }
   }
@@ -1117,7 +1308,14 @@ export default class RunnerScene extends Phaser.Scene {
     const texts = ['BAPERAN!', 'CUMA BERCANDA!', 'LEBAY!', 'GOSIP!'];
     const chosenText = Phaser.Utils.Array.GetRandom(texts);
 
-    const spike = this.physics.add.sprite(x, y, 'runner-spikes');
+    // Spikes dinamis berdasarkan Darah Boss:
+    // Darah Boss > 50% (> 5 HP) -> runner-spikes.png
+    // Darah Boss <= 50% (<= 5 HP) -> shadow-spikes.png
+    const isEnraged = (this.bossHp <= 5 || this.isBossEnraged);
+    const spikeKey = isEnraged ? 'shadow-spikes' : 'runner-spikes';
+    const chosenKey = this.textures.exists(spikeKey) ? spikeKey : 'runner-spikes';
+
+    const spike = this.physics.add.sprite(x, y, chosenKey);
     spike.setOrigin(0.5, 1);
     spike.setDisplaySize(72, 72);
     spike.setDepth(8);
@@ -1129,12 +1327,14 @@ export default class RunnerScene extends Phaser.Scene {
     spike.body.setSize(48, 55);
     spike.body.setOffset(12, 17);
 
-    // Aura pendaran ungu
-    const glow = this.add.sprite(x, y, 'runner-spikes')
+    // Aura pendaran sesuai fase (merah api jika HP <= 50%, ungu jika HP > 50%)
+    const glowTint = isEnraged ? 0xef4444 : 0x7c3aed;
+    const glow = this.add.sprite(x, y, chosenKey)
       .setDisplaySize(72, 72)
       .setOrigin(0.5, 1)
       .setDepth(7)
       .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(glowTint)
       .setAlpha(0.35);
 
     spike.glow = glow;
@@ -1188,14 +1388,15 @@ export default class RunnerScene extends Phaser.Scene {
 
     this.shardsGroup.add(shard);
     shard.body.allowGravity = false;
-    shard.body.setVelocityX(-this.runSpeed);
+    shard.body.setVelocityX(0);
     shard.body.setSize(44, 44);
 
     // Kristal Butir Kebenaran Emas Bersinar
     const glow = this.add.circle(spawnX, spawnY, 28, 0xfacc15, 0.45)
       .setDepth(8).setBlendMode(Phaser.BlendModes.ADD);
 
-    const label = this.add.text(spawnX, spawnY - 32, '✦ BUTIR FAKTA ✦', {
+    const questionNum = this.currentQuestionIndex + 1;
+    const label = this.add.text(spawnX, spawnY - 32, `✦ BUTIR FAKTA ${questionNum} ✦`, {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '10px',
       fontStyle: '700',
@@ -1255,7 +1456,40 @@ export default class RunnerScene extends Phaser.Scene {
     this._isInvulnerable = true;
 
     this.audioManager?.playPlayerHurt();
-    this.cameras.main.shake(220, 0.014);
+    this.cameras.main.shake(240, 0.016);
+
+    // Floating text "-1 NYAWA" di atas kepala Dara
+    if (this.player && this.player.active) {
+      const hurtText = this.add.text(this.player.x, this.player.y - 85, '💔 -1 NYAWA', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '14px',
+        fontStyle: '700',
+        color: '#f87171',
+        stroke: '#450a0a',
+        strokeThickness: 3.5,
+      }).setOrigin(0.5).setDepth(30);
+
+      this.tweens.add({
+        targets: hurtText,
+        y: hurtText.y - 35,
+        alpha: 0,
+        duration: 850,
+        ease: 'Quad.easeOut',
+        onComplete: () => hurtText.destroy(),
+      });
+    }
+
+    // Red horror screen flash
+    const bounds = getVisibleBounds(this);
+    const redFlash = this.add.rectangle(bounds.centerX, bounds.centerY, bounds.width, bounds.height, 0xdc2626, 0.28)
+      .setDepth(29).setScrollFactor(0);
+    this.tweens.add({
+      targets: redFlash,
+      alpha: 0,
+      duration: 350,
+      ease: 'Quad.easeOut',
+      onComplete: () => redFlash.destroy(),
+    });
 
     this._updateHeartsUI();
 
@@ -1281,7 +1515,39 @@ export default class RunnerScene extends Phaser.Scene {
   // E. MODAL KUIS INTERAKTIF & SERANGAN BOSS
   // ==============================================================
 
+  async _fetchAiQuestionsInBackground() {
+    try {
+      const nlp = typeof window !== 'undefined' ? window.__nawasenadaraNlp : null;
+      if (!nlp || typeof nlp.getRunnerQuestions !== 'function') return;
+
+      const res = await nlp.getRunnerQuestions({
+        count: 10,
+        targetAudience: 'smp_sma',
+      });
+
+      const questions = res?.data?.questions || res?.questions;
+      if (Array.isArray(questions) && questions.length > 0) {
+        const nextIdx = this.currentQuestionIndex;
+        if (nextIdx < this.questionsData.length) {
+          const answered = this.questionsData.slice(0, nextIdx);
+          const needed = this.questionsData.length - nextIdx;
+          const aiSlice = questions.slice(0, needed).map((q, i) => ({
+            ...q,
+            id: nextIdx + i + 1,
+            source: res?.data?.source || res?.source || 'ai_generated',
+          }));
+          this.questionsData = [...answered, ...aiSlice];
+          this.aiQuestionsLoaded = true;
+          console.log('[RunnerScene] AI Runner Questions loaded successfully:', this.questionsData.length);
+        }
+      }
+    } catch (err) {
+      console.warn('[RunnerScene] Background AI questions fetch fallback to curated bank:', err);
+    }
+  }
+
   _triggerQuizModal() {
+    this._isResolvingAnswer = false;
     this.gameState = 'QUIZ';
     this.audioManager?.playOrbCollect();
 
@@ -1297,29 +1563,40 @@ export default class RunnerScene extends Phaser.Scene {
     this.player.stop();
     this.player.setTexture('player-idle');
 
-    const q = QUESTIONS_DATA[this.currentQuestionIndex];
+    const q = (this.questionsData && this.questionsData[this.currentQuestionIndex]) || FALLBACK_QUESTIONS_DATA[0];
     const bounds = getVisibleBounds(this);
 
     this.quizModalContainer = this.add.container(bounds.centerX, bounds.centerY).setDepth(45).setScrollFactor(0);
 
     // Kartu Glassmorphism Kuis Cyber-Noir
     const modalW = Math.min(bounds.width * 0.88, 620);
-    const modalH = 380;
-    const modalGlow = this.add.rectangle(0, 0, modalW + 4, modalH + 4, 0x0284c7, 0.22)
+    const modalH = 390;
+    const isAi = q.source === 'ai_generated';
+    const glowColor = isAi ? 0x059669 : 0x0284c7;
+    const borderColor = isAi ? 0x10b981 : 0x06b6d4;
+
+    const modalGlow = this.add.rectangle(0, 0, modalW + 4, modalH + 4, glowColor, 0.25)
       .setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
     const modalBg = this.add.rectangle(0, 0, modalW, modalH, 0x07111a, 0.96)
-      .setStrokeStyle(1.5, 0x06b6d4);
+      .setStrokeStyle(1.5, borderColor);
     this.quizModalContainer.add([modalGlow, modalBg]);
 
-    // Badge Topik
-    const badgeText = this.add.text(0, -152, `✦ BUTIR KEBENARAN ${this.currentQuestionIndex + 1} / 10 • ${q.topic.toUpperCase()} ✦`, {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '11px',
-      fontStyle: '700',
-      color: '#67e8f9',
-      backgroundColor: '#0c2338',
-      padding: { x: 12, y: 5 },
-    }).setOrigin(0.5);
+    // Badge Topik & Indikator AI / Kasus Nyata Remaja SMP/SMA
+    const sourceBadge = isAi ? '🤖 AI-GENERATED' : '✦ KASUS NYATA';
+    const topicStr = (q.topic || 'BATASAN DIRI').toUpperCase();
+    const badgeText = this.add.text(
+      0,
+      -156,
+      `✦ BUTIR ${this.currentQuestionIndex + 1} / 10 • ${topicStr} • ${sourceBadge} (SMP/SMA) ✦`,
+      {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '11px',
+        fontStyle: '700',
+        color: isAi ? '#6ee7b7' : '#67e8f9',
+        backgroundColor: isAi ? '#064e3b' : '#0c2338',
+        padding: { x: 12, y: 5 },
+      }
+    ).setOrigin(0.5);
     this.quizModalContainer.add(badgeText);
 
     // Teks Soal
@@ -1365,9 +1642,15 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _resolveQuizAnswer(selectedOption, questionData, btnBg) {
+    if (this._isResolvingAnswer) return;
+    this._isResolvingAnswer = true;
+
     if (!this.quizModalContainer) return;
 
-    this.quizModalContainer.iterate((child) => child.disableInteractive?.());
+    this.quizModalContainer.iterate((child) => {
+      child.disableInteractive?.();
+      if (child.input) child.input.enabled = false;
+    });
 
     if (selectedOption.isCorrect) {
       // JAWABAN BENAR
@@ -1411,24 +1694,536 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _executePlayerCounterAttack() {
-    this.player.play('attack');
+    if (!this.player || !this.player.active) return;
 
-    // Tembakan proyektil energi asertif Dara ke Boss
-    const blastKey = this.textures.exists('courage-blast') ? 'courage-blast' : 'player-idle';
-    const blast = this.add.sprite(this.player.x + 30, this.player.y - 45, blastKey)
-      .setDisplaySize(110, 60).setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
+    // -------------------------------------------------------------
+    // FASE 1: WIND-UP / KONSENTRASI KEBERANIAN ASERTIF (650ms)
+    // Dara langsung masuk pose kuda-kuda beladiri (player-attack-1),
+    // pilar cahaya fajar menyembur, rune keberanian berputar ganda,
+    // dan kilatan petir surya mengelilingi tubuhnya.
+    // -------------------------------------------------------------
+    this.audioManager?.playAssertiveBeam();
+
+    // Hentikan animasi lari & ganti instan ke pose charging martial stance
+    this.player.stop();
+    this.player.setTexture('player-attack-1');
+    this.player.setOrigin(0.5, 1);
+    this.player.setScale(this.playerScale);
+    this.player.setTint(0xfffbeb); // Kilauan putih fajar bercahaya
+
+    // Dara ancang-ancang mundur sedikit & getaran konsentrasi
+    this.tweens.add({
+      targets: this.player,
+      x: this.startX - 34,
+      scaleY: this.playerScale * 0.94,
+      duration: 650,
+      ease: 'Back.easeIn',
+    });
+
+    // Kamera bergetar lembut mengumpulkan tenaga
+    this.cameras.main.shake(650, 0.006);
+
+    const bounds = getVisibleBounds(this);
+
+    // 1. Pilar Cahaya Fajar (Pillar of Truth) membubung vertikal dari tanah ke langit
+    const lightPillar = this.add.rectangle(this.player.x, bounds.centerY, 125, bounds.height, 0x38bdf8, 0.22)
+      .setDepth(11).setScrollFactor(0).setBlendMode(Phaser.BlendModes.ADD);
+    const lightPillarCore = this.add.rectangle(this.player.x, bounds.centerY, 48, bounds.height, 0xfef08a, 0.42)
+      .setDepth(12).setScrollFactor(0).setBlendMode(Phaser.BlendModes.ADD);
 
     this.tweens.add({
-      targets: blast,
-      x: this.bossSprite.x,
-      y: this.bossSprite.y,
-      duration: 320,
-      ease: 'Cubic.easeIn',
-      onComplete: () => {
-        blast.destroy();
-        this._damageBoss();
-        this._resumeRunner();
+      targets: [lightPillar, lightPillarCore],
+      scaleX: 1.35,
+      alpha: { from: 0.2, to: 0.8 },
+      yoyo: true,
+      repeat: 3,
+      duration: 150,
+    });
+
+    // 2. Runic Dual Concentric Magic Crests berputar di bawah kaki Dara
+    const crestKey = this.textures.exists('courage-crest') ? 'courage-crest' : null;
+    let crestInner = null;
+    if (crestKey) {
+      crestInner = this.add.image(this.player.x, this.player.y - 15, crestKey)
+        .setScale(0.22).setAlpha(0.95).setDepth(13).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: crestInner,
+        scale: 0.85,
+        alpha: 0,
+        rotation: 1.6,
+        duration: 650,
+        ease: 'Cubic.easeOut',
+        onComplete: () => crestInner.destroy(),
+      });
+    }
+
+    const crestOuterRing = this.add.circle(this.player.x, this.player.y - 15, 24, 0x38bdf8, 0)
+      .setStrokeStyle(3.5, 0x38bdf8, 0.95).setDepth(13).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: crestOuterRing,
+      radius: 72,
+      alpha: 0,
+      duration: 650,
+      ease: 'Quad.easeOut',
+      onComplete: () => crestOuterRing.destroy(),
+    });
+
+    // 3. Sambaran Petir Surya Keberanian (Solar Lightning Arcs)
+    const lightningTimer = this.time.addEvent({
+      delay: 75,
+      repeat: 7,
+      callback: () => {
+        if (!this.player || !this.player.active) return;
+        this._triggerDaraLightning(this.player.x, this.player.y - 45);
       },
+    });
+
+    // 4. Suction particles: Butiran cahaya emas & cyan terhisap masuk melengkung ke dada & telapak Dara
+    const courageSuctionTimer = this.time.addEvent({
+      delay: 35,
+      repeat: 18,
+      callback: () => {
+        if (!this.player || !this.player.active) return;
+        const targetX = this.player.x + 24;
+        const targetY = this.player.y - 48;
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const dist = Phaser.Math.Between(75, 140);
+        const p = this.add.circle(
+          targetX + Math.cos(angle) * dist,
+          targetY + Math.sin(angle) * dist,
+          Phaser.Math.Between(4, 9),
+          Phaser.Utils.Array.GetRandom([0xfde047, 0x38bdf8, 0xffffff, 0xfacc15, 0x10b981]),
+          0.92
+        ).setDepth(14).setBlendMode(Phaser.BlendModes.ADD);
+
+        this.tweens.add({
+          targets: p,
+          x: targetX,
+          y: targetY,
+          scale: 0.15,
+          alpha: 0,
+          duration: 260,
+          ease: 'Cubic.easeIn',
+          onComplete: () => p.destroy(),
+        });
+      },
+    });
+
+    // 5. High-Impact Anime Battle Banner: "⚡ RESONANSI KEBERANIAN: ASERTIF! ⚡"
+    const bannerContainer = this.add.container(this.player.x + 35, this.player.y - 165)
+      .setDepth(35).setScrollFactor(0);
+    const bannerBg = this.add.rectangle(0, 0, 290, 36, 0x0f172a, 0.88)
+      .setStrokeStyle(2.5, 0x38bdf8, 1);
+    const bannerGlow = this.add.rectangle(0, 0, 296, 42, 0x0284c7, 0.3)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const bannerText = this.add.text(0, 0, '⚡ SUARA KEBENARAN: ASERTIF! ⚡', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '13px',
+      fontStyle: '700',
+      color: '#fef08a',
+    }).setOrigin(0.5);
+
+    bannerContainer.add([bannerGlow, bannerBg, bannerText]);
+    bannerContainer.setScale(0.5).setAlpha(0);
+    this.tweens.add({
+      targets: bannerContainer,
+      scale: 1.0,
+      alpha: 1,
+      y: bannerContainer.y - 12,
+      duration: 320,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(450, () => {
+          this.tweens.add({
+            targets: bannerContainer,
+            alpha: 0,
+            y: bannerContainer.y - 18,
+            duration: 250,
+            onComplete: () => bannerContainer.destroy(),
+          });
+        });
+      },
+    });
+
+    // -------------------------------------------------------------
+    // FASE 2: EXPLOSIVE FORWARD DASH & STRIKE THRUST (di 650ms)
+    // Dara menerjang maju cepat, berganti ke pose serang (attack_2 -> attack_3),
+    // melepaskan dentuman suara komet dan kilatan fajar!
+    // -------------------------------------------------------------
+    this.time.delayedCall(650, () => {
+      courageSuctionTimer.remove();
+      lightningTimer.remove();
+      lightPillar.destroy();
+      lightPillarCore.destroy();
+      if (!this.player || !this.player.active) return;
+
+      this.audioManager?.playCourageBlastFire?.();
+
+      // Kamera menghentak tajam & kilatan cahaya emas fajar
+      this.cameras.main.shake(300, 0.022);
+      this.cameras.main.flash(140, 255, 248, 220, 0.5);
+
+      // 1. Transisi Pose Gerak Cepat: attack_2 (dorongan lunge)
+      this.player.setTexture('player-attack-2');
+      this.player.setScale(this.playerScale);
+      this.player.clearTint();
+
+      const lungeTargetX = this.startX + 120;
+
+      // Terjangan maju eksplosif (Forward Dash Lunge)
+      this.tweens.add({
+        targets: this.player,
+        x: lungeTargetX,
+        duration: 150,
+        ease: 'Expo.easeOut',
+        onComplete: () => {
+          if (!this.player || !this.player.active) return;
+          // 2. Kunci Kokoh Pose Puncak: attack_3 (Tebasan Telapak Meriam Energi)
+          this.player.setTexture('player-attack-3');
+          this.player.setScale(this.playerScale);
+        },
+      });
+
+      // 5 Bayangan Hantu Prismatik (Prismatic Afterimages) membentang di belakang terjangan Dara
+      const ghostColors = [0xfacc15, 0x38bdf8, 0x10b981, 0xa855f7, 0xffffff];
+      for (let i = 1; i <= 5; i++) {
+        const ghost = this.add.sprite(
+          this.player.x - (i * 24),
+          this.player.y,
+          'player-attack-2'
+        )
+          .setScale(this.player.scaleX, this.player.scaleY)
+          .setOrigin(0.5, 1)
+          .setTint(ghostColors[i - 1] || 0x38bdf8)
+          .setAlpha(0.75 / i)
+          .setDepth(9)
+          .setBlendMode(Phaser.BlendModes.ADD);
+
+        this.tweens.add({
+          targets: ghost,
+          alpha: 0,
+          x: ghost.x - 35,
+          duration: 420,
+          onComplete: () => ghost.destroy(),
+        });
+      }
+
+      // Gelombang cincin kejut peluncuran (Sonic Boom Shockwaves)
+      for (let s = 1; s <= 2; s++) {
+        const ring = this.add.circle(this.player.x + 45, this.player.y - 48, 16 * s, 0xfde047, 0)
+          .setStrokeStyle(4, s === 1 ? 0x38bdf8 : 0xfacc15, 0.95).setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: ring,
+          radius: 80 * s,
+          alpha: 0,
+          duration: 450 + s * 60,
+          onComplete: () => ring.destroy(),
+        });
+      }
+
+      // -------------------------------------------------------------
+      // FASE 3: SURGE BLAST & FLYING IMPACT BURST (650ms - 1200ms)
+      // Dara melepaskan gelombang keberanian 'courage-blast-surge.png' di depan telapaknya,
+      // lalu proyektil 'courage-impact-burst.png' melayang menembus koridor menuju Boss,
+      // dan saat mengenai Boss, proyektil membesar dahsyat!
+      // -------------------------------------------------------------
+      const surgeKey = this.textures.exists('courage-blast-surge')
+        ? 'courage-blast-surge'
+        : 'player-idle';
+
+      const flyingBurstKey = this.textures.exists('courage-impact-burst')
+        ? 'courage-impact-burst'
+        : surgeKey;
+
+      const handX = lungeTargetX + 48;
+      const handY = this.player.y - 48;
+      const targetX = this.bossSprite ? this.bossSprite.x : 680;
+      const targetY = this.bossSprite ? this.bossSprite.y : 280;
+
+      // 1. Tembakan gelombang pendorong di depan telapak Dara (courage-blast-surge.png)
+      const surgeWave = this.add.sprite(handX, handY, surgeKey)
+        .setScale(0.24)
+        .setDepth(22)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      this.audioManager?.playCourageBlastFire?.() || this.audioManager?.playAssertiveBeam?.();
+
+      this.tweens.add({
+        targets: surgeWave,
+        x: handX + 85,
+        scaleX: 0.58,
+        scaleY: 0.48,
+        alpha: 0,
+        duration: 480,
+        ease: 'Cubic.easeOut',
+        onComplete: () => surgeWave.destroy(),
+      });
+
+      // 2. Proyektil inti yang melayang ke Boss (courage-impact-burst.png)
+      const flyingBurst = this.add.sprite(handX + 24, handY, flyingBurstKey)
+        .setScale(0.24)
+        .setDepth(25)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      // Micro-recoil vibration pada tubuh Dara saat menembakkan gelombang keberanian
+      const recoilTimer = this.time.addEvent({
+        delay: 35,
+        repeat: 14,
+        callback: () => {
+          if (!this.player || !this.player.active) return;
+          this.player.x = lungeTargetX + Phaser.Math.Between(-2, 2);
+          // Percikan api surya keluar dari telapak tangan
+          const spark = this.add.circle(
+            handX + Phaser.Math.Between(-6, 6),
+            handY + Phaser.Math.Between(-6, 6),
+            Phaser.Math.Between(4, 7),
+            0xfde047,
+            0.9
+          ).setDepth(23).setBlendMode(Phaser.BlendModes.ADD);
+          this.tweens.add({
+            targets: spark,
+            x: handX - Phaser.Math.Between(15, 35),
+            y: handY + Phaser.Math.Between(-15, 15),
+            alpha: 0,
+            scale: 0.2,
+            duration: 220,
+            onComplete: () => spark.destroy(),
+          });
+        },
+      });
+
+      // Helical particles: Butiran cahaya berputar memilin (double-helix) di sekitar laser
+      let helixAngle = 0;
+      const helixTimer = this.time.addEvent({
+        delay: 24,
+        repeat: 22,
+        callback: () => {
+          if (!flyingBurst || !flyingBurst.active) return;
+          helixAngle += 0.45;
+          const sampleT = Phaser.Math.FloatBetween(0.1, 0.9);
+          const curX = handX + (flyingBurst.x - handX) * sampleT;
+          const curY = handY + (flyingBurst.y - handY) * sampleT;
+          const offset = Math.sin(helixAngle) * 22;
+
+          const hp = this.add.circle(
+            curX,
+            curY + offset,
+            Phaser.Math.Between(4, 8),
+            Phaser.Utils.Array.GetRandom([0xfde047, 0x38bdf8, 0xffffff]),
+            0.9
+          ).setDepth(21).setBlendMode(Phaser.BlendModes.ADD);
+
+          this.tweens.add({
+            targets: hp,
+            scale: 0.1,
+            alpha: 0,
+            duration: 280,
+            onComplete: () => hp.destroy(),
+          });
+        },
+      });
+
+      // Peluncuran proyektil melayang ke arah Boss dengan pengikatan laser real-time
+      this.tweens.add({
+        targets: flyingBurst,
+        x: targetX,
+        y: targetY,
+        rotation: Math.PI * 4,
+        duration: 540,
+        ease: 'Cubic.easeIn',
+        onUpdate: (tween, target) => {
+          if (!this.daraBeamGraphics || !flyingBurst.active) return;
+          this._drawContinuousLaserBeam(handX, handY, target.x, target.y, false);
+        },
+        onComplete: () => {
+          helixTimer.remove();
+          recoilTimer.remove();
+
+          // Sorotan laser bertahan menusuk badan Boss selama 110ms
+          this._drawContinuousLaserBeam(handX, handY, targetX, targetY, true);
+          this.time.delayedCall(110, () => {
+            this.daraBeamGraphics?.clear();
+          });
+
+          // SAAT MENGENAI BOSS: MEMBESAR SECARA DRAMATIS!
+          this.tweens.add({
+            targets: flyingBurst,
+            scale: 1.85,
+            rotation: Math.PI * 6.5,
+            duration: 380,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+              this.tweens.add({
+                targets: flyingBurst,
+                alpha: 0,
+                scale: 2.25,
+                duration: 220,
+                ease: 'Quad.easeOut',
+                onComplete: () => flyingBurst.destroy(),
+              });
+            },
+          });
+
+          // -------------------------------------------------------------
+          // FASE 4: IMPACT LEDAKAN SEISMIK & HIT-STOP (di 1180ms)
+          // -------------------------------------------------------------
+          this._createAttackImpactVisual(targetX, targetY);
+          this._damageBoss();
+
+          // -------------------------------------------------------------
+          // FASE 5: DARA BERSLUNCUR MUNDUR KE POSISI LARI (Recovery Slide)
+          // -------------------------------------------------------------
+          this.time.delayedCall(240, () => {
+            if (this.player && this.player.active) {
+              // Ganti ke pose meluncur rem anggun (player-attack-4)
+              this.player.setTexture('player-attack-4');
+              this.player.setScale(this.playerScale);
+
+              // Percikan gesekan kaki di lantai
+              const slideDustTimer = this.time.addEvent({
+                delay: 40,
+                repeat: 8,
+                callback: () => {
+                  if (!this.player || !this.player.active) return;
+                  const spark = this.add.circle(
+                    this.player.x + Phaser.Math.Between(-10, 10),
+                    this.groundY - 4,
+                    Phaser.Math.Between(3, 6),
+                    0x38bdf8,
+                    0.85
+                  ).setDepth(11).setBlendMode(Phaser.BlendModes.ADD);
+                  this.tweens.add({
+                    targets: spark,
+                    y: spark.y - 16,
+                    x: spark.x + 20,
+                    alpha: 0,
+                    duration: 220,
+                    onComplete: () => spark.destroy(),
+                  });
+                },
+              });
+
+              this.tweens.add({
+                targets: this.player,
+                x: this.startX,
+                duration: 440,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                  slideDustTimer.remove();
+                  if (this.player && this.player.active) {
+                    this.player.clearTint();
+                  }
+                  if (this.bossHp > 0 && this.gameState === 'QUIZ') {
+                    this._resumeRunner();
+                  }
+                },
+              });
+            }
+          });
+        },
+      });
+    });
+  }
+
+  _createAttackImpactVisual(x, y) {
+    this.audioManager?.playBossHit();
+
+    // 1. Hit-Stop Micro Freeze Frame: Jeda 90ms sensasi bobot pukulan anime
+    const originalTimeScale = this.time.timeScale;
+    this.time.timeScale = 0.12;
+    this.time.delayedCall(90, () => {
+      this.time.timeScale = originalTimeScale;
+    });
+
+    // 2. Guncangan Kamera Seismik & Kilatan Layar Fajar Pemurnian
+    this.cameras.main.shake(450, 0.026);
+    this.cameras.main.flash(200, 255, 242, 190, 0.72);
+
+    // 4. Tebasan Salib Bintang 4-Titik (Celestial Cross-Slash Star)
+    const crossGraphics = this.add.graphics().setDepth(27).setBlendMode(Phaser.BlendModes.ADD);
+    crossGraphics.lineStyle(6, 0xffffff, 1.0);
+    crossGraphics.beginPath();
+    crossGraphics.moveTo(x - 90, y);
+    crossGraphics.lineTo(x + 90, y);
+    crossGraphics.moveTo(x, y - 90);
+    crossGraphics.lineTo(x, y + 90);
+    crossGraphics.strokePath();
+
+    this.tweens.add({
+      targets: crossGraphics,
+      scaleX: 1.6,
+      scaleY: 1.6,
+      alpha: 0,
+      duration: 380,
+      onComplete: () => crossGraphics.destroy(),
+    });
+
+    // 5. Triple Concentric Shockwave Rings (Emas, Cyan, Putih)
+    const shockwaves = [
+      { r: 24, maxR: 140, color: 0xfacc15, width: 5 },
+      { r: 18, maxR: 110, color: 0x38bdf8, width: 4 },
+      { r: 12, maxR: 80, color: 0xffffff, width: 3 },
+    ];
+    shockwaves.forEach((sw) => {
+      const ring = this.add.circle(x, y, sw.r, sw.color, 0)
+        .setStrokeStyle(sw.width, sw.color, 0.95).setDepth(25).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: ring,
+        radius: sw.maxR,
+        alpha: 0,
+        duration: 520,
+        ease: 'Quad.easeOut',
+        onComplete: () => ring.destroy(),
+      });
+    });
+
+    // 6. Radiant Diamond Hit Sparks (24 butiran cahaya berkecepatan tinggi)
+    for (let i = 0; i < 24; i++) {
+      const angle = (Math.PI * 2 / 24) * i;
+      const speed = Phaser.Math.Between(160, 340);
+      const spark = this.add.circle(
+        x,
+        y,
+        Phaser.Math.Between(4, 9),
+        Phaser.Utils.Array.GetRandom([0xfef08a, 0x67e8f9, 0xffffff, 0xf59e0b, 0x10b981]),
+        0.95
+      ).setDepth(28).setBlendMode(Phaser.BlendModes.ADD);
+
+      this.tweens.add({
+        targets: spark,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed,
+        scale: 0.1,
+        alpha: 0,
+        duration: Phaser.Math.Between(550, 850),
+        ease: 'Cubic.easeOut',
+        onComplete: () => spark.destroy(),
+      });
+    }
+
+    // 7. Floating High-Impact Combat Banner
+    const dmgBanner = this.add.container(x, y - 65).setDepth(34);
+    const badgeBg = this.add.rectangle(0, 0, 220, 36, 0x090d16, 0.94)
+      .setStrokeStyle(2, 0xfde047, 1);
+    const badgeText = this.add.text(0, 0, '💥 SUARA KEBENARAN! -1 HP', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
+      fontSize: '15px',
+      fontStyle: '700',
+      color: '#fef08a',
+      stroke: '#000000',
+      strokeThickness: 2,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
+    }).setOrigin(0.5);
+    dmgBanner.add([badgeBg, badgeText]);
+
+    this.tweens.add({
+      targets: dmgBanner,
+      y: dmgBanner.y - 55,
+      alpha: 0,
+      scale: 1.25,
+      duration: 1100,
+      ease: 'Back.easeOut',
+      onComplete: () => dmgBanner.destroy(),
     });
   }
 
@@ -1441,35 +2236,64 @@ export default class RunnerScene extends Phaser.Scene {
     const hurtTex = this.textures.exists('boss-shadow-hurt') ? 'boss-shadow-hurt' : 'boss-shadow';
     this.bossSprite.setTexture(hurtTex);
     this.audioManager?.playBossRoar();
-    this.cameras.main.shake(180, 0.012);
 
+    // Kilatan sakit multi-fase (Putih -> Emas -> Merah)
     this.bossSprite.setTint(0xffffff);
+    this.time.delayedCall(80, () => {
+      if (this.bossSprite?.active) this.bossSprite.setTint(0xfde047);
+    });
+    this.time.delayedCall(160, () => {
+      if (this.bossSprite?.active) this.bossSprite.setTint(0xef4444);
+    });
 
-    // Animasi terpental ke belakang karena terkena peluru asertif Dara
+    // Animasi terpental dahsyat ke belakang karena ledakan meriam laser
     this.tweens.add({
       targets: this.bossSprite,
-      x: this.bossBaseX + 30,
-      y: this.bossBaseY - 15,
-      duration: 130,
+      x: this.bossBaseX + 68,
+      y: this.bossBaseY - 32,
+      rotation: 0.22,
+      duration: 320,
+      hold: 240,
       yoyo: true,
       onComplete: () => {
         if (this.bossSprite && this.bossSprite.active) {
           this.bossSprite.clearTint();
           this.bossSprite.setTexture('boss-shadow');
           this.bossSprite.x = this.bossBaseX;
+          this.bossSprite.rotation = 0;
           this.bossState = 'IDLE';
         }
       },
     });
 
+    // Shadow puffs bleeding off boss body (16 partikel miasma keluar dari tubuh boss)
+    for (let i = 0; i < 16; i++) {
+      const puff = this.add.circle(
+        this.bossSprite.x + Phaser.Math.Between(-45, 45),
+        this.bossSprite.y + Phaser.Math.Between(-45, 45),
+        Phaser.Math.Between(14, 28),
+        0x3b0764,
+        0.85
+      ).setDepth(8).setBlendMode(Phaser.BlendModes.SCREEN);
+      this.tweens.add({
+        targets: puff,
+        scale: 2.2,
+        alpha: 0,
+        x: puff.x + Phaser.Math.Between(-30, 30),
+        y: puff.y - 55,
+        duration: 580,
+        onComplete: () => puff.destroy(),
+      });
+    }
+
     // Distorsi hawa miasma saat boss terkena serangan
     if (this.bossAuraDisc) {
       this.tweens.add({
         targets: [this.bossAuraDisc],
-        scaleX: 1.45,
-        scaleY: 1.45,
-        alpha: 0.9,
-        duration: 140,
+        scaleX: 1.8,
+        scaleY: 1.8,
+        alpha: 0.95,
+        duration: 260,
         yoyo: true,
       });
     }
@@ -1478,6 +2302,14 @@ export default class RunnerScene extends Phaser.Scene {
 
     if (this.bossHp <= 0) {
       this._handleVictory();
+    } else if (this.bossHp <= 5 && !this.isBossEnraged) {
+      this.isBossEnraged = true;
+      // Picu transisi Enrage Roar seketika saat animasi hurt selesai!
+      this.time.delayedCall(450, () => {
+        if (this.gameState === 'PLAYING') {
+          this._triggerBossRoar(false, true);
+        }
+      });
     }
   }
 
@@ -1485,33 +2317,310 @@ export default class RunnerScene extends Phaser.Scene {
     this.currentQuestionIndex++;
     this._updateShardsHUD();
 
-    // Trigger visual serangan & raungan penuh boss
-    this._triggerBossRoar(true);
+    if (!this.bossSprite || !this.bossSprite.active) {
+      this._resumeRunner();
+      return;
+    }
 
-    const wave = this.add.circle(this.bossSprite.x, this.bossSprite.y, 28, 0x9333ea, 0.8)
-      .setDepth(15).setBlendMode(Phaser.BlendModes.ADD);
+    // Proyektil Boss dinamis sesuai Darah Boss:
+    // Darah Boss > 50% (> 5 HP) -> boss-projectile.png
+    // Darah Boss <= 50% (<= 5 HP / enraged) -> shadow-meteor.png
+    const isEnraged = (this.bossHp <= 5 || this.isBossEnraged);
+    const desiredProjKey = isEnraged ? 'shadow-meteor' : 'boss-projectile';
+    const projKey = this.textures.exists(desiredProjKey)
+      ? desiredProjKey
+      : (this.textures.exists('boss-projectile') ? 'boss-projectile' : null);
 
+    this.bossState = 'ATTACKING';
+
+    // -------------------------------------------------------------
+    // FASE 1: WIND-UP / CHARGING MANA GELAP (720ms)
+    // Boss menarik badan ke belakang & melayang naik, menyerap energi miasma
+    // -------------------------------------------------------------
+    const castTex = this.textures.exists('boss-shadow-cast') ? 'boss-shadow-cast' : 'boss-shadow-attack';
+    this.bossSprite.setTexture(castTex);
+    this.bossSprite.setTint(isEnraged ? 0xf87171 : 0xc084fc);
+    this.audioManager?.playBossRoar();
+
+    // Kamera bergetar halus menunjukkan konsentrasi kekuatan gelap
+    this.cameras.main.shake(700, isEnraged ? 0.008 : 0.005);
+
+    // Animasi boss menarik badan ke belakang dan mengangkat kedua cakar
     this.tweens.add({
-      targets: wave,
-      x: this.player.x,
-      y: this.player.y - 35,
-      scale: 3.2,
-      duration: 380,
-      ease: 'Quad.easeIn',
-      onComplete: () => {
-        wave.destroy();
-        this._handlePlayerHurt();
-        this._resumeRunner();
+      targets: this.bossSprite,
+      x: this.bossBaseX + 45,
+      y: this.bossBaseY - 32,
+      rotation: 0.14,
+      scaleX: this.bossBaseScale * 1.16,
+      scaleY: this.bossBaseScale * 1.16,
+      duration: 700,
+      ease: 'Back.easeIn',
+    });
+
+    // Swirling Void Gathering Vortex di tangan Boss
+    const chargeOrbKey = projKey;
+    let chargeVfx = null;
+    if (chargeOrbKey) {
+      chargeVfx = this.add.image(this.bossSprite.x - 48, this.bossSprite.y - 50, chargeOrbKey)
+        .setScale(0.08)
+        .setAlpha(0.2)
+        .setDepth(15)
+        .setBlendMode(Phaser.BlendModes.SCREEN);
+
+      this.tweens.add({
+        targets: chargeVfx,
+        scale: isEnraged ? 0.26 : 0.22,
+        alpha: 0.95,
+        rotation: -Math.PI * 3,
+        duration: 700,
+        ease: 'Cubic.easeIn',
+      });
+    }
+
+    // Sambaran petir gelap di sekitar cakar saat charging
+    this._triggerBossLightning(this.bossSprite.x - 20, this.bossSprite.y - 40);
+
+    // Partikel hisap (suction particles) miasma ke tangan boss
+    const suctionColors = isEnraged
+      ? [0xef4444, 0x991b1b, 0x450a0a, 0x000000]
+      : [0x7c3aed, 0x9333ea, 0x3b0764, 0x000000];
+
+    const suctionTimer = this.time.addEvent({
+      delay: 50,
+      repeat: 12,
+      callback: () => {
+        if (!this.bossSprite || !this.bossSprite.active) return;
+        const targetX = this.bossSprite.x - 48;
+        const targetY = this.bossSprite.y - 50;
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const dist = Phaser.Math.Between(70, 130);
+        const p = this.add.circle(
+          targetX + Math.cos(angle) * dist,
+          targetY + Math.sin(angle) * dist,
+          Phaser.Math.Between(4, 8),
+          Phaser.Utils.Array.GetRandom(suctionColors),
+          0.85
+        ).setDepth(14).setBlendMode(Phaser.BlendModes.ADD);
+
+        this.tweens.add({
+          targets: p,
+          x: targetX,
+          y: targetY,
+          scale: 0.2,
+          alpha: 0,
+          duration: 280,
+          onComplete: () => p.destroy(),
+        });
       },
+    });
+
+    // -------------------------------------------------------------
+    // FASE 2: EXPLOSIVE STRIKE & FORWARD LUNGE (720ms)
+    // Boss menghempaskan cakar dan menerjang maju ke arah Dara!
+    // -------------------------------------------------------------
+    this.time.delayedCall(720, () => {
+      suctionTimer.remove();
+      if (chargeVfx) chargeVfx.destroy();
+      if (!this.bossSprite || !this.bossSprite.active) return;
+
+      const attackTex = this.textures.exists('boss-shadow-attack') ? 'boss-shadow-attack' : 'boss-shadow-roar';
+      this.bossSprite.setTexture(attackTex);
+      this.bossSprite.setTint(0xffffff);
+
+      // Kamera menghentak kuat saat serangan diluncurkan
+      this.cameras.main.shake(260, isEnraged ? 0.018 : 0.014);
+
+      // Terjangan dahsyat ke depan (Forward Lunge Strike Tween)
+      this.tweens.add({
+        targets: this.bossSprite,
+        x: this.bossBaseX - 85,
+        y: this.bossBaseY + 18,
+        rotation: -0.22,
+        scaleX: this.bossBaseScale * 1.32,
+        scaleY: this.bossBaseScale * 1.32,
+        duration: 200,
+        ease: 'Expo.easeOut',
+      });
+
+      // Bayangan hantu blur (Ghost afterimages) membentang di belakang terjangan boss
+      for (let i = 1; i <= 3; i++) {
+        const ghost = this.add.sprite(
+          this.bossSprite.x + (i * 28),
+          this.bossSprite.y - (i * 6),
+          attackTex
+        )
+          .setScale(this.bossBaseScale * 1.2)
+          .setRotation(-0.2)
+          .setTint(isEnraged ? 0xef4444 : 0x7c3aed)
+          .setAlpha(0.6 / i)
+          .setDepth(6)
+          .setBlendMode(Phaser.BlendModes.SCREEN);
+
+        this.tweens.add({
+          targets: ghost,
+          alpha: 0,
+          x: ghost.x + 35,
+          duration: 380,
+          onComplete: () => ghost.destroy(),
+        });
+      }
+
+      // -------------------------------------------------------------
+      // FASE 3: PELURU KOMET / METEOR BOSS
+      // HP > 50%: boss-projectile.png (komet void ungu)
+      // HP <= 50%: shadow-meteor.png (meteor bayangan merah berkobar)
+      // -------------------------------------------------------------
+      const startX = this.bossSprite.x - 70;
+      const startY = this.bossSprite.y - 10;
+      const targetX = this.player ? this.player.x + 10 : 160;
+      const targetY = this.player ? this.player.y - 40 : this.groundY - 50;
+
+      let projectile = null;
+      if (projKey) {
+        projectile = this.add.image(startX, startY, projKey)
+          .setScale(isEnraged ? 0.22 : 0.18)
+          .setDepth(18)
+          .setBlendMode(Phaser.BlendModes.SCREEN);
+      } else {
+        projectile = this.add.circle(startX, startY, 32, isEnraged ? 0xef4444 : 0x9333ea, 0.95)
+          .setStrokeStyle(3, 0xf43f5e)
+          .setDepth(18)
+          .setBlendMode(Phaser.BlendModes.ADD);
+      }
+
+      // Trail jejak api void & percikan bara gelap di sepanjang lintasan komet
+      const cometColors = isEnraged
+        ? [0xef4444, 0xb91c1c, 0x7f1d1d, 0x000000]
+        : [0x7c3aed, 0xa855f7, 0x2e1065, 0xef4444];
+
+      const cometTrail = this.time.addEvent({
+        delay: 35,
+        repeat: 16,
+        callback: () => {
+          if (!projectile || !projectile.active) return;
+          const puff = this.add.circle(
+            projectile.x + Phaser.Math.Between(-10, 10),
+            projectile.y + Phaser.Math.Between(-10, 10),
+            Phaser.Math.Between(8, 18),
+            Phaser.Utils.Array.GetRandom(cometColors),
+            0.8
+          ).setDepth(17).setBlendMode(Phaser.BlendModes.ADD);
+
+          this.tweens.add({
+            targets: puff,
+            scale: 2.2,
+            alpha: 0,
+            duration: 350,
+            onComplete: () => puff.destroy(),
+          });
+        },
+      });
+
+      // Rotasi dan pembesaran proyektil saat mendekati pemain
+      this.tweens.add({
+        targets: projectile,
+        rotation: 0.6,
+        scale: 0.38,
+        duration: 520,
+      });
+
+      // Lintasan melesat menuju Dara
+      this.tweens.add({
+        targets: projectile,
+        x: targetX,
+        y: targetY,
+        duration: 520,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          cometTrail.remove();
+          projectile.destroy();
+
+          // -------------------------------------------------------------
+          // FASE 4: DAMPAK LEDAKAN KE DARA (Dark Impact Blast)
+          // -------------------------------------------------------------
+          this.audioManager?.playPlayerHurt();
+          this.cameras.main.shake(320, 0.022);
+
+          // Efek benturan ledakan miasma gelap
+          const burstKey = this.textures.exists('courage-impact-burst') ? 'courage-impact-burst' : null;
+          if (burstKey) {
+            const burst = this.add.image(targetX, targetY, burstKey)
+              .setScale(0.3)
+              .setTint(0x9333ea)
+              .setDepth(20)
+              .setBlendMode(Phaser.BlendModes.ADD);
+
+            this.tweens.add({
+              targets: burst,
+              scale: 1.4,
+              alpha: 0,
+              rotation: -0.8,
+              duration: 550,
+              onComplete: () => burst.destroy(),
+            });
+          }
+
+          // Cincin gelombang kejut void
+          const wave = this.add.circle(targetX, targetY, 20, 0x7c3aed, 0)
+            .setStrokeStyle(5, 0xa855f7, 0.95)
+            .setDepth(19)
+            .setBlendMode(Phaser.BlendModes.ADD);
+          this.tweens.add({
+            targets: wave,
+            radius: 120,
+            alpha: 0,
+            duration: 480,
+            ease: 'Quad.easeOut',
+            onComplete: () => wave.destroy(),
+          });
+
+          // Panggil logic nyawa berkurang & animasi terpental Dara
+          this._handlePlayerHurt();
+
+          // -------------------------------------------------------------
+          // FASE 5: RECOVERY & RETURN TO BASE
+          // Boss kembali melayang anggun ke posisi semula
+          // -------------------------------------------------------------
+          this.time.delayedCall(350, () => {
+            if (this.bossSprite && this.bossSprite.active) {
+              this.tweens.add({
+                targets: this.bossSprite,
+                x: this.bossBaseX,
+                y: this.bossBaseY,
+                rotation: 0,
+                scaleX: this.bossBaseScale,
+                scaleY: this.bossBaseScale,
+                duration: 480,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                  if (this.bossSprite && this.bossSprite.active) {
+                    this.bossSprite.setTexture('boss-shadow');
+                    this.bossSprite.clearTint();
+                    this.bossState = 'IDLE';
+                  }
+                },
+              });
+            }
+          });
+
+          // Lanjutkan berlari setelah pemain pulih
+          this.time.delayedCall(700, () => {
+            if (this.playerCourage > 0) {
+              this._resumeRunner();
+            }
+          });
+        },
+      });
     });
   }
 
   _resumeRunner() {
+    this._isResolvingAnswer = false;
     this.gameState = 'PLAYING';
     this.player.play('run');
 
     this.obstaclesGroup.setVelocityX(-this.runSpeed);
-    this.shardsGroup.setVelocityX(-this.runSpeed);
+    this.shardsGroup.setVelocityX(0);
   }
 
   // ==============================================================
@@ -1590,21 +2699,33 @@ export default class RunnerScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setDepth(51);
 
-    const btn = this.add.rectangle(bounds.centerX, bounds.centerY + 45, 230, 42, 0x0c1626, 0.95)
+    const btnY = bounds.centerY + 45;
+    const respawnBtn = this.add.rectangle(bounds.centerX - 100, btnY, 170, 40, 0x0c1626, 0.95)
       .setStrokeStyle(1.5, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
-    const btnText = this.add.text(bounds.centerX, bounds.centerY + 45, 'RESPAWN CHECKPOINT', {
+    const respawnText = this.add.text(bounds.centerX - 100, btnY, '🔄 RESPAWN', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
+      fontSize: '11px',
       fontStyle: '700',
       color: '#38bdf8',
     }).setOrigin(0.5).setDepth(52);
 
-    btn.on('pointerdown', () => {
+    const epSelectBtn = this.add.rectangle(bounds.centerX + 100, btnY, 170, 40, 0x0c1626, 0.95)
+      .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
+    const epSelectText = this.add.text(bounds.centerX + 100, btnY, '📋 PILIH EPISODE', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '11px',
+      fontStyle: '700',
+      color: '#c084fc',
+    }).setOrigin(0.5).setDepth(52);
+
+    respawnBtn.on('pointerdown', () => {
       modal.destroy();
       title.destroy();
       msg.destroy();
-      btn.destroy();
-      btnText.destroy();
+      respawnBtn.destroy();
+      respawnText.destroy();
+      epSelectBtn.destroy();
+      epSelectText.destroy();
 
       this.distance = this.currentCheckpointDistance;
       this.playerCourage = this.maxCourage;
@@ -1614,6 +2735,15 @@ export default class RunnerScene extends Phaser.Scene {
       this.obstaclesGroup.clear(true, true);
       this._resumeRunner();
     });
+    respawnBtn.on('pointerover', () => respawnBtn.setFillStyle(0x1e293b, 1));
+    respawnBtn.on('pointerout', () => respawnBtn.setFillStyle(0x0c1626, 0.95));
+
+    epSelectBtn.on('pointerdown', () => {
+      this.audioManager?.stopBGM();
+      this.scene.start('EpisodeSelectScene');
+    });
+    epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
+    epSelectBtn.on('pointerout', () => epSelectBtn.setFillStyle(0x0c1626, 0.95));
   }
 
   _handleVictory() {
@@ -1647,17 +2777,18 @@ export default class RunnerScene extends Phaser.Scene {
 
     const bounds = getVisibleBounds(this);
 
-    const modal = this.add.rectangle(bounds.centerX, bounds.centerY, Math.min(bounds.width * 0.84, 520), 240, 0x07111a, 0.96)
+    const modalH = this.isLastEpisode ? 260 : 230;
+    const modal = this.add.rectangle(bounds.centerX, bounds.centerY, Math.min(bounds.width * 0.88, 540), modalH, 0x07111a, 0.96)
       .setStrokeStyle(1.5, 0x10b981).setDepth(50).setScrollFactor(0);
 
-    const title = this.add.text(bounds.centerX, bounds.centerY - 60, '🏆 KEMENANGAN ASERTIF! 🏆', {
+    const title = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 32), '🏆 KEMENANGAN ASERTIF! 🏆', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '16px',
+      fontSize: '18px',
       fontStyle: '700',
       color: '#34d399',
     }).setOrigin(0.5).setDepth(51);
 
-    const msg = this.add.text(bounds.centerX, bounds.centerY - 10, `Luar biasa! Dara berhasil menembus 10 intimidasi dengan batasan yang kokoh!\nTotal Jarak: ${this.distance} Meter`, {
+    const msg = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 76), `Luar biasa! Dara berhasil menembus 10 intimidasi dengan batasan yang kokoh!\nTotal Jarak: ${this.distance} Meter`, {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '12px',
       color: '#f8fafc',
@@ -1665,18 +2796,83 @@ export default class RunnerScene extends Phaser.Scene {
       lineSpacing: 5,
     }).setOrigin(0.5).setDepth(51);
 
-    const btn = this.add.rectangle(bounds.centerX, bounds.centerY + 55, 200, 42, 0x064e3b, 1)
-      .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
-    const btnText = this.add.text(bounds.centerX, bounds.centerY + 55, 'MAIN LAGI', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
-      fontStyle: '700',
-      color: '#ffffff',
-    }).setOrigin(0.5).setDepth(52);
+    if (this.isLastEpisode) {
+      // Tombol 1: Evaluasi & Rapor Akhir (Menuju EpisodeEndingScene)
+      const evalBtn = this.add.rectangle(bounds.centerX, bounds.centerY + 10, 280, 38, 0x064e3b, 1)
+        .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
+      const evalBtnText = this.add.text(bounds.centerX, bounds.centerY + 10, '📜 LIHAT EVALUASI & RAPOR', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '12px',
+        fontStyle: '700',
+        color: '#ffffff',
+      }).setOrigin(0.5).setDepth(52);
 
-    btn.on('pointerdown', () => {
-      this.scene.restart();
-    });
+      evalBtn.on('pointerdown', () => {
+        this.audioManager?.stopBGM();
+        this.scene.start('EpisodeEndingScene', {
+          episodeId: this.episodeId || 6,
+          isLastEpisode: true,
+          choices: this.choices || [],
+        });
+      });
+      evalBtn.on('pointerover', () => evalBtn.setFillStyle(0x047857, 1));
+      evalBtn.on('pointerout', () => evalBtn.setFillStyle(0x064e3b, 1));
+
+      // Tombol 2: Main Lagi (Kiri) & Tombol 3: Pilih Episode (Kanan)
+      const subBtnY = bounds.centerY + 62;
+      const replayBtn = this.add.rectangle(bounds.centerX - 110, subBtnY, 150, 36, 0x0f172a, 0.95)
+        .setStrokeStyle(1.2, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
+      const replayBtnText = this.add.text(bounds.centerX - 110, subBtnY, '🔄 MAIN LAGI', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '11px',
+        fontStyle: '700',
+        color: '#38bdf8',
+      }).setOrigin(0.5).setDepth(52);
+
+      replayBtn.on('pointerdown', () => this.scene.restart());
+      replayBtn.on('pointerover', () => replayBtn.setFillStyle(0x1e293b, 1));
+      replayBtn.on('pointerout', () => replayBtn.setFillStyle(0x0f172a, 0.95));
+
+      const epSelectBtn = this.add.rectangle(bounds.centerX + 110, subBtnY, 150, 36, 0x0f172a, 0.95)
+        .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
+      const epSelectBtnText = this.add.text(bounds.centerX + 110, subBtnY, '📋 PILIH EPISODE', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '11px',
+        fontStyle: '700',
+        color: '#c084fc',
+      }).setOrigin(0.5).setDepth(52);
+
+      epSelectBtn.on('pointerdown', () => {
+        this.audioManager?.stopBGM();
+        this.scene.start('EpisodeSelectScene');
+      });
+      epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
+      epSelectBtn.on('pointerout', () => epSelectBtn.setFillStyle(0x0f172a, 0.95));
+    } else {
+      const subBtnY = bounds.centerY + 35;
+      const replayBtn = this.add.rectangle(bounds.centerX - 100, subBtnY, 160, 40, 0x064e3b, 1)
+        .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
+      const replayBtnText = this.add.text(bounds.centerX - 100, subBtnY, '🔄 MAIN LAGI', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '12px',
+        fontStyle: '700',
+        color: '#ffffff',
+      }).setOrigin(0.5).setDepth(52);
+      replayBtn.on('pointerdown', () => this.scene.restart());
+
+      const epSelectBtn = this.add.rectangle(bounds.centerX + 100, subBtnY, 160, 40, 0x0f172a, 0.95)
+        .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
+      const epSelectBtnText = this.add.text(bounds.centerX + 100, subBtnY, '📋 PILIH EPISODE', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '12px',
+        fontStyle: '700',
+        color: '#c084fc',
+      }).setOrigin(0.5).setDepth(52);
+      epSelectBtn.on('pointerdown', () => {
+        this.audioManager?.stopBGM();
+        this.scene.start('EpisodeSelectScene');
+      });
+    }
   }
 
   // ==============================================================
@@ -1684,83 +2880,145 @@ export default class RunnerScene extends Phaser.Scene {
   // ==============================================================
 
   _createRunnerHUD(bounds) {
-    // 1. HUD Dara (Kiri Atas) - Cyberpunk Glass Card
+    // 1. HUD Dara (Kiri Atas) - Cyberpunk Glass Card (Anti-Ketumpuk & Nyawa Jelas)
     const cardX = bounds.left + 16;
     const cardY = bounds.top + 16;
+    const cardW = 252;
+    const cardH = 78;
 
     // Glass panel with glowing cyan stroke & corner chamfer
-    this.add.rectangle(cardX + 95, cardY + 30, 190, 60, 0x07111a, 0.88)
-      .setStrokeStyle(1.5, 0x06b6d4).setDepth(30).setScrollFactor(0);
+    this.daraHudBg = this.add.rectangle(cardX + cardW / 2, cardY + cardH / 2, cardW, cardH, 0x050e17, 0.92)
+      .setStrokeStyle(1.8, 0x06b6d4).setDepth(30).setScrollFactor(0);
 
-    // Subtle cyan corner tag
-    this.add.text(cardX + 16, cardY + 8, 'DARA // KETEGASAN DIRI', {
+    // Subtle cyan corner tag & status
+    this.daraTagText = this.add.text(cardX + 12, cardY + 9, 'DARA // KETEGASAN DIRI', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '9px',
+      fontSize: '10px',
       fontStyle: '700',
       color: '#67e8f9',
     }).setDepth(31).setScrollFactor(0);
 
-    // Courage Crystals (◆  ◆  ◆)
-    this.heartsText = this.add.text(cardX + 16, cardY + 22, '◆  ◆  ◆', {
+    this.daraStatusText = this.add.text(cardX + cardW - 14, cardY + 9, '● SIAP', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '17px',
+      fontSize: '9px',
       fontStyle: '700',
       color: '#34d399',
-      stroke: '#064e3b',
-      strokeThickness: 3,
-    }).setDepth(31).setScrollFactor(0);
+    }).setOrigin(1, 0).setDepth(31).setScrollFactor(0);
 
-    // Distance in Cyber Mint & Facts in Cyber Gold
-    this.distanceText = this.add.text(cardX + 16, cardY + 44, '🏃 0 m', {
+    // NYAWA DARAH (Baris 2) - Hati Merah Menyala & Jelas
+    this.daraNyawaLabel = this.add.text(cardX + 12, cardY + 28, 'NYAWA:', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '10px',
+      fontSize: '9px',
       fontStyle: '700',
-      color: '#a7f3d0',
+      color: '#94a3b8',
     }).setDepth(31).setScrollFactor(0);
 
-    this.shardsText = this.add.text(cardX + 92, cardY + 44, '✦ FAKTA: 0/10', {
+    this.heartsText = this.add.text(cardX + 62, cardY + 24, '❤️ ❤️ ❤️', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '10px',
-      fontStyle: '700',
-      color: '#fde047',
+      fontSize: '15px',
+      color: '#f43f5e',
+      stroke: '#4c0519',
+      strokeThickness: 2,
     }).setDepth(31).setScrollFactor(0);
 
-    // 2. HUD Boss Health Bar (Tengah Atas) - Dark Carbon Armor Housing
-    const centerX = bounds.centerX;
-    const barW = Math.min(bounds.width * 0.44, 380);
-    const barY = bounds.top + 24;
-
-    // Header Frame Boss
-    this.add.rectangle(centerX, barY - 12, barW + 8, 20, 0x0a010d, 0.95)
-      .setStrokeStyle(1.5, 0xbe123c).setDepth(30).setScrollFactor(0);
-
-    this.add.text(centerX, barY - 12, '☠ BAYANGAN INTIMIDASI', {
+    this.heartsCountText = this.add.text(cardX + cardW - 14, cardY + 28, '3 / 3', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '10px',
       fontStyle: '700',
       color: '#fda4af',
-      align: 'center',
-    }).setOrigin(0.5, 0.5).setDepth(31).setScrollFactor(0);
+    }).setOrigin(1, 0).setDepth(31).setScrollFactor(0);
 
-    // Track Bar HP Boss
-    this.add.rectangle(centerX, barY + 6, barW, 14, 0x09010e, 0.98)
-      .setStrokeStyle(1.5, 0x881337).setDepth(30).setScrollFactor(0);
+    // STATS ROW (Baris 3) - Dua Kotak Badge Mandiri (Jarak & Fakta Terpisah Total)
+    const badgeW = 108;
+    const badgeH = 20;
+    const badgeY = cardY + 52;
+
+    // Badge Jarak (Kiri)
+    this.distPillBg = this.add.rectangle(cardX + 12 + badgeW / 2, badgeY + badgeH / 2, badgeW, badgeH, 0x042426, 0.9)
+      .setStrokeStyle(1, 0x0d9488).setDepth(31).setScrollFactor(0);
+    this.distanceText = this.add.text(cardX + 12 + badgeW / 2, badgeY + badgeH / 2, '🏃 JARAK: 0 m', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '9.5px',
+      fontStyle: '700',
+      color: '#6ee7b7',
+    }).setOrigin(0.5).setDepth(32).setScrollFactor(0);
+
+    // Badge Fakta (Kanan)
+    const faktaX = cardX + 12 + badgeW + 8;
+    const faktaW = cardW - (12 + badgeW + 8 + 12);
+    this.faktaPillBg = this.add.rectangle(faktaX + faktaW / 2, badgeY + badgeH / 2, faktaW, badgeH, 0x271904, 0.9)
+      .setStrokeStyle(1, 0xb45309).setDepth(31).setScrollFactor(0);
+    this.shardsText = this.add.text(faktaX + faktaW / 2, badgeY + badgeH / 2, '✨ FAKTA: 0/10', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '9.5px',
+      fontStyle: '700',
+      color: '#fde047',
+    }).setOrigin(0.5).setDepth(32).setScrollFactor(0);
+
+    // 2. HUD Boss Health Bar (Tengah Atas) - Epic Dark Souls / Cyberpunk Boss Frame
+    const centerX = bounds.centerX;
+    const barW = Math.min(bounds.width * 0.54, 450);
+    const barY = bounds.top + 40; // Posisi nyaman & proporsional
+
+    // Header Frame Boss
+    this.bossHeaderFrame = this.add.rectangle(centerX, barY - 17, barW + 12, 28, 0x090111, 0.96)
+      .setStrokeStyle(2, 0xf43f5e).setDepth(30).setScrollFactor(0);
+
+    this.bossTitleText = this.add.text(centerX, barY - 17, '⚔️ BOSS: BAYANGAN INTIMIDASI & KEBISUAN', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
+      fontSize: '15px',
+      fontStyle: '700',
+      color: '#ffe4e6',
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 2,
+      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 3, fill: true },
+    }).setOrigin(0.5).setDepth(31).setScrollFactor(0);
+
+    // Track Bar Housing HP Boss
+    this.bossBarContainer = this.add.rectangle(centerX, barY + 11, barW + 12, 24, 0x07010e, 0.98)
+      .setStrokeStyle(2, 0xbe123c).setDepth(30).setScrollFactor(0);
 
     const leftX = centerX - barW / 2;
-    this.bossHpGhostFill = this.add.rectangle(leftX, barY + 6, barW, 14, 0xf59e0b, 0.85)
+    // Track background
+    this.bossTrackBg = this.add.rectangle(leftX, barY + 11, barW, 20, 0x1a0212, 1)
       .setOrigin(0, 0.5).setDepth(31).setScrollFactor(0);
 
-    this.bossHpFill = this.add.rectangle(leftX, barY + 6, barW, 14, 0xe11d48, 1)
+    // Segmented Grid Lines (Indikator 10 HP terpisah)
+    this.bossHpDividers = [];
+    for (let i = 1; i < 10; i++) {
+      const divX = leftX + (barW / 10) * i;
+      const div = this.add.line(0, 0, divX, barY + 1, divX, barY + 21, 0x4c0519, 0.75)
+        .setOrigin(0).setDepth(34).setScrollFactor(0);
+      this.bossHpDividers.push(div);
+    }
+
+    // Ghost Lag Fill (kuning/oranye menyala saat darah berkurang)
+    this.bossHpGhostFill = this.add.rectangle(leftX, barY + 11, barW, 20, 0xf59e0b, 0.9)
       .setOrigin(0, 0.5).setDepth(32).setScrollFactor(0);
 
-    this.bossHpText = this.add.text(centerX, barY + 6, '10 / 10 HP', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '10px',
+    // Main HP Fill (Crimson Neon)
+    this.bossHpFill = this.add.rectangle(leftX, barY + 11, barW, 20, 0xff1744, 1)
+      .setOrigin(0, 0.5).setDepth(33).setScrollFactor(0);
+
+    // Glossy Top Highlight
+    this.bossGlossHighlight = this.add.rectangle(leftX, barY + 5, barW, 8, 0xffffff, 0.22)
+      .setOrigin(0, 0.5).setDepth(34).setScrollFactor(0);
+
+    // HP Text Besar & Tebal di tengah bar (Font Jelas, Kontras Tinggi & Anti-Blur)
+    this.bossHpText = this.add.text(centerX, barY + 11, '10 / 10 HP (100%)', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
+      fontSize: '13px',
       fontStyle: '700',
       color: '#ffffff',
-    }).setOrigin(0.5).setDepth(33).setScrollFactor(0);
+      stroke: '#000000',
+      strokeThickness: 2,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
+    }).setOrigin(0.5).setDepth(35).setScrollFactor(0);
 
     this._bossBarWidth = barW;
+    this._bossBarLeftX = leftX;
+    this._bossBarY = barY;
   }
 
   _showTutorialBanner(bounds) {
@@ -1789,34 +3047,73 @@ export default class RunnerScene extends Phaser.Scene {
   _updateHeartsUI() {
     const hearts = [];
     for (let i = 0; i < this.maxCourage; i++) {
-      hearts.push(i < this.playerCourage ? '◆' : '◇');
+      hearts.push(i < this.playerCourage ? '❤️' : '🖤');
     }
-    this.heartsText?.setText(hearts.join('  '));
+    this.heartsText?.setText(hearts.join(' '));
+    this.heartsCountText?.setText(`${this.playerCourage} / ${this.maxCourage}`);
+
+    // Denyut merah halus ketika sisa 1 nyawa
+    if (this.playerCourage <= 1 && this.heartsText) {
+      this.tweens.add({
+        targets: this.heartsText,
+        scale: 1.15,
+        duration: 220,
+        yoyo: true,
+      });
+    }
   }
 
   _updateShardsHUD() {
-    this.shardsText?.setText(`✦ FAKTA: ${this.currentQuestionIndex}/10`);
+    this.shardsText?.setText(`✨ FAKTA: ${this.currentQuestionIndex}/10`);
   }
 
   _updateBossHPUI() {
     if (!this._bossBarWidth) return;
 
     const targetW = (this.bossHp / this.bossMaxHp) * this._bossBarWidth;
+    const percent = Math.round((this.bossHp / this.bossMaxHp) * 100);
+
+    // Flash Bar putih saat kena hit
+    if (this.bossBarContainer) {
+      this.tweens.add({
+        targets: this.bossBarContainer,
+        alpha: 0.5,
+        duration: 80,
+        yoyo: true,
+      });
+    }
 
     this.tweens.add({
       targets: this.bossHpFill,
       width: targetW,
       duration: 160,
+      ease: 'Quad.easeOut',
     });
 
     this.tweens.add({
       targets: this.bossHpGhostFill,
       width: targetW,
       duration: 500,
-      delay: 250,
+      delay: 200,
+      ease: 'Quad.easeOut',
     });
 
-    this.bossHpText?.setText(`${this.bossHp} / ${this.bossMaxHp} HP`);
+    this.bossHpText?.setText(`${this.bossHp} / ${this.bossMaxHp} HP (${percent}%)`);
+
+    // Perbarui judul & border jika mode Enraged (<= 50% HP)
+    if (this.bossHp <= 5 || this.isBossEnraged) {
+      this.bossTitleText?.setText('🔥 ENRAGED BOSS: BAYANGAN KEMURKAAN (FASE 2)');
+      this.bossTitleText?.setColor('#fecdd3');
+      this.bossHeaderFrame?.setStrokeStyle(2.2, 0xef4444);
+      this.bossNameTagText?.setText('🔥 ENRAGED BOSS 🔥');
+      this.bossNameTagText?.setColor('#fecdd3');
+    } else {
+      this.bossTitleText?.setText('⚔️ BOSS: BAYANGAN INTIMIDASI & KEBISUAN');
+      this.bossTitleText?.setColor('#ffe4e6');
+      this.bossHeaderFrame?.setStrokeStyle(2, 0xf43f5e);
+      this.bossNameTagText?.setText('☠️ MINI BOSS ☠️');
+      this.bossNameTagText?.setColor('#ffe4e6');
+    }
   }
 
   _repositionUI(bounds) {
@@ -1825,6 +3122,10 @@ export default class RunnerScene extends Phaser.Scene {
       this.roadBg.setPosition(bounds.centerX, bounds.centerY);
       this.roadBg.setSize(bounds.width * 1.5, bounds.height);
       this.roadBg.setTileScale(bgScale, bgScale);
+    }
+    if (this.enrageDarknessOverlay) {
+      this.enrageDarknessOverlay.setPosition(bounds.centerX, bounds.centerY);
+      this.enrageDarknessOverlay.setSize(bounds.width * 2, bounds.height * 2);
     }
     if (this.floorPlatform) {
       const floorH = bounds.height - (this.groundY - bounds.top);
@@ -1846,6 +3147,69 @@ export default class RunnerScene extends Phaser.Scene {
       this.jumpBtn.setPosition(bounds.right - 88, bounds.bottom - 46);
       this.jumpBtnText?.setPosition(bounds.right - 88, bounds.bottom - 46);
     }
+
+    // Reposisi Dara HUD (Kiri Atas)
+    const cardX = bounds.left + 16;
+    const cardY = bounds.top + 16;
+    const cardW = 252;
+    const cardH = 78;
+
+    this.daraHudBg?.setPosition(cardX + cardW / 2, cardY + cardH / 2);
+    this.daraTagText?.setPosition(cardX + 12, cardY + 9);
+    this.daraStatusText?.setPosition(cardX + cardW - 14, cardY + 9);
+    this.daraNyawaLabel?.setPosition(cardX + 12, cardY + 28);
+    this.heartsText?.setPosition(cardX + 62, cardY + 24);
+    this.heartsCountText?.setPosition(cardX + cardW - 14, cardY + 28);
+
+    const badgeW = 108;
+    const badgeH = 20;
+    const badgeY = cardY + 52;
+    this.distPillBg?.setPosition(cardX + 12 + badgeW / 2, badgeY + badgeH / 2);
+    this.distanceText?.setPosition(cardX + 12 + badgeW / 2, badgeY + badgeH / 2);
+
+    const faktaX = cardX + 12 + badgeW + 8;
+    const faktaW = cardW - (12 + badgeW + 8 + 12);
+    this.faktaPillBg?.setPosition(faktaX + faktaW / 2, badgeY + badgeH / 2);
+    this.shardsText?.setPosition(faktaX + faktaW / 2, badgeY + badgeH / 2);
+
+    // Reposisi Boss Health Bar (Tengah Atas)
+    const centerX = bounds.centerX;
+    const barW = Math.min(bounds.width * 0.54, 450);
+    const barY = bounds.top + 40;
+    const leftX = centerX - barW / 2;
+
+    this.bossHeaderFrame?.setPosition(centerX, barY - 17);
+    this.bossHeaderFrame?.setSize(barW + 12, 28);
+    this.bossTitleText?.setPosition(centerX, barY - 17);
+
+    this.bossBarContainer?.setPosition(centerX, barY + 11);
+    this.bossBarContainer?.setSize(barW + 12, 24);
+
+    this.bossTrackBg?.setPosition(leftX, barY + 11);
+    this.bossTrackBg?.setSize(barW, 20);
+
+    this._bossBarWidth = barW;
+    this._bossBarLeftX = leftX;
+    this._bossBarY = barY;
+
+    if (this.bossHpDividers) {
+      for (let i = 0; i < this.bossHpDividers.length; i++) {
+        const divX = leftX + (barW / 10) * (i + 1);
+        this.bossHpDividers[i]?.setTo(divX, barY + 1, divX, barY + 21);
+      }
+    }
+
+    const targetW = (this.bossHp / this.bossMaxHp) * barW;
+    this.bossHpGhostFill?.setPosition(leftX, barY + 11);
+    this.bossHpGhostFill?.setSize(targetW, 20);
+    this.bossHpFill?.setPosition(leftX, barY + 11);
+    this.bossHpFill?.setSize(targetW, 20);
+
+    this.bossGlossHighlight?.setPosition(leftX, barY + 5);
+    this.bossGlossHighlight?.setSize(barW, 8);
+
+    this.bossHpText?.setPosition(centerX, barY + 11);
+
     if (this.bossSprite) {
       this.bossBaseX = bounds.right - 180;
       this.bossBaseY = bounds.top + 185;
@@ -1855,6 +3219,9 @@ export default class RunnerScene extends Phaser.Scene {
       }
       if (this.bossAuraLayers) {
         this.bossAuraLayers.forEach((layer) => layer?.setPosition(this.bossBaseX, this.bossBaseY));
+      }
+      if (this.bossNameTag) {
+        this.bossNameTag.setPosition(this.bossBaseX, this.bossBaseY - 146);
       }
     }
   }

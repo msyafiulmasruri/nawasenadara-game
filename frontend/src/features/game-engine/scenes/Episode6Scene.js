@@ -629,7 +629,7 @@ export default class Episode6Scene extends BasePlayerScene {
       });
 
       const choices = this.npcChoices || [];
-      this.scene.start('FinalBossScene', {
+      this.scene.start('RunnerScene', {
         episodeId: 6,
         isLastEpisode: true,
         choices,

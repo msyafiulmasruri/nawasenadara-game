@@ -15,7 +15,6 @@ import Episode3Scene from './scenes/Episode3Scene';
 import Episode4Scene from './scenes/Episode4Scene';
 import Episode5Scene from './scenes/Episode5Scene';
 import Episode6Scene from './scenes/Episode6Scene';
-import FinalBossScene from './scenes/FinalBossScene';
 import RunnerScene from './scenes/RunnerScene';
 import StoryEpisodeScene from './scenes/StoryEpisodeScene';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/gameConfig';
@@ -79,19 +78,20 @@ export default function PhaserGame({ initialScene, initialData }) {
     // di sisi client saja (tidak boleh di-import biasa di top-level).
     let destroyed = false;
 
-    // Deteksi scene awal dari prop atau URL query string (mis. /game?mode=boss atau /game?scene=FinalBossScene)
+    // Deteksi scene awal dari prop atau URL query string (mis. /game?mode=boss atau /game?scene=RunnerScene)
     let resolvedScene = initialScene;
     let resolvedData = initialData;
+    if (resolvedScene === 'FinalBossScene') {
+      resolvedScene = 'RunnerScene';
+      resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
+    }
     if (!resolvedScene && typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || params.get('scene');
-        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss') {
-          resolvedScene = 'FinalBossScene';
-          resolvedData = { episodeId: 6, isLastEpisode: true };
-        } else if (mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
+        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
           resolvedScene = 'RunnerScene';
-          resolvedData = { mode: 'runner' };
+          resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
         } else if (mode) {
           resolvedScene = mode;
         }
@@ -127,7 +127,6 @@ export default function PhaserGame({ initialScene, initialData }) {
           Episode4Scene,
           Episode5Scene,
           Episode6Scene,
-          FinalBossScene,
           RunnerScene,
           StoryEpisodeScene,
         ],

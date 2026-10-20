@@ -1634,6 +1634,67 @@ export default class AudioManager {
     osc.stop(t + 0.46);
   }
 
+  // SFX: Tembakan Meriam Energi Keberanian Dara (Sub-bass thump + laser whoosh)
+  playCourageBlastFire() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // 1. Sub-bass kinetic thump
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(190, t);
+    subOsc.frequency.exponentialRampToValueAtTime(38, t + 0.28);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.55, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+    subOsc.start(t);
+    subOsc.stop(t + 0.34);
+
+    // 2. High-power plasma laser whoosh
+    const laserOsc = ctx.createOscillator();
+    laserOsc.type = 'sawtooth';
+    laserOsc.frequency.setValueAtTime(1400, t);
+    laserOsc.frequency.exponentialRampToValueAtTime(320, t + 0.38);
+
+    const laserFilter = ctx.createBiquadFilter();
+    laserFilter.type = 'bandpass';
+    laserFilter.frequency.setValueAtTime(1800, t);
+    laserFilter.frequency.exponentialRampToValueAtTime(450, t + 0.38);
+    laserFilter.Q.value = 3.5;
+
+    const laserGain = ctx.createGain();
+    laserGain.gain.setValueAtTime(0.001, t);
+    laserGain.gain.linearRampToValueAtTime(0.48, t + 0.02);
+    laserGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+
+    laserOsc.connect(laserFilter);
+    laserFilter.connect(laserGain);
+    laserGain.connect(this.sfxGain);
+
+    laserOsc.start(t);
+    laserOsc.stop(t + 0.44);
+
+    // 3. Shockwave burst noise
+    const noiseBuffer = this._createNoiseBuffer(0.12);
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.35, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+    noiseSrc.connect(noiseGain);
+    noiseGain.connect(this.sfxGain);
+    noiseSrc.start(t);
+    noiseSrc.stop(t + 0.13);
+  }
+
   playBossHit() {
     if (!this._initialized) return;
     this.resume();

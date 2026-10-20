@@ -6,6 +6,7 @@ import {
   classifyEpisodeMoodPayloadSchema,
   counselingChatPayloadSchema,
   npcDialogueLinePayloadSchema,
+  runnerQuizQuestionsPayloadSchema,
 } from '../validator/schema.js';
 import {
   analyzeReflection,
@@ -14,12 +15,17 @@ import {
   generateNpcDialogueLine,
   getActiveSession,
   getCounselingHistory,
+  getRunnerQuizQuestions,
   shouldAutoOpenCounseling,
 } from '../controllers/nlp-controller.js';
 
 const router = Router();
 
-// Semua endpoint di sini murni interaksi PEMAIN dengan cerita
+// Endpoint publik: Pertanyaan kuis asertif untuk Boss Runner (dapat diakses
+// pemain episode cerita maupun mode arcade standalone tanpa token auth)
+router.post('/quiz-questions', validate(runnerQuizQuestionsPayloadSchema), getRunnerQuizQuestions);
+
+// Semua endpoint di bawah ini murni interaksi PEMAIN terautentikasi dengan cerita
 // (jurnal refleksi & chatbot konseling) — dibatasi role 'siswa' saja.
 // Guru BK melihat HASILNYA lewat /api/bk/*, bukan lewat endpoint ini.
 router.use(authenticate, authorize('siswa'));

@@ -63,8 +63,10 @@ export function createPlayerAnimations(scene) {
   scene.anims.create({
     key: 'attack',
     frames: [
-      { key: 'player-attack-1', duration: 160 },
-      { key: 'player-attack-2', duration: 450 },
+      { key: 'player-attack-1', duration: 180 },
+      { key: 'player-attack-2', duration: 220 },
+      { key: 'player-attack-3', duration: 350 },
+      { key: 'player-attack-4', duration: 220 },
     ],
     frameRate: 6,
     repeat: 0,
