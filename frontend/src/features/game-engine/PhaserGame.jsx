@@ -15,6 +15,8 @@ import Episode3Scene from './scenes/Episode3Scene';
 import Episode4Scene from './scenes/Episode4Scene';
 import Episode5Scene from './scenes/Episode5Scene';
 import Episode6Scene from './scenes/Episode6Scene';
+import FinalBossScene from './scenes/FinalBossScene';
+import RunnerScene from './scenes/RunnerScene';
 import StoryEpisodeScene from './scenes/StoryEpisodeScene';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/gameConfig';
 import { tryLockCurrentOrientation } from './utils/fullscreen';
@@ -68,7 +70,7 @@ function setupAutoFullscreen() {
   };
 }
 
-export default function PhaserGame() {
+export default function PhaserGame({ initialScene, initialData }) {
   const gameRef = useRef(null);
   const phaserInstance = useRef(null);
 
@@ -76,6 +78,27 @@ export default function PhaserGame() {
     // Phaser mengakses `window`, jadi wajib di-load secara dinamis
     // di sisi client saja (tidak boleh di-import biasa di top-level).
     let destroyed = false;
+
+    // Deteksi scene awal dari prop atau URL query string (mis. /game?mode=boss atau /game?scene=FinalBossScene)
+    let resolvedScene = initialScene;
+    let resolvedData = initialData;
+    if (!resolvedScene && typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode') || params.get('scene');
+        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss') {
+          resolvedScene = 'FinalBossScene';
+          resolvedData = { episodeId: 6, isLastEpisode: true };
+        } else if (mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
+          resolvedScene = 'RunnerScene';
+          resolvedData = { mode: 'runner' };
+        } else if (mode) {
+          resolvedScene = mode;
+        }
+      } catch (e) {
+        // Abaikan jika query string gagal di-parse
+      }
+    }
 
     // Pasang auto-fullscreen listener — akan hilang sendiri setelah
     // interaksi pertama pengguna (klik/tap/tekan tombol).
@@ -104,6 +127,8 @@ export default function PhaserGame() {
           Episode4Scene,
           Episode5Scene,
           Episode6Scene,
+          FinalBossScene,
+          RunnerScene,
           StoryEpisodeScene,
         ],
         audio: {
@@ -146,6 +171,11 @@ export default function PhaserGame() {
       };
 
       phaserInstance.current = new Phaser.Game(config);
+
+      if (resolvedScene) {
+        phaserInstance.current.registry.set('initialScene', resolvedScene);
+        phaserInstance.current.registry.set('initialData', resolvedData || { episodeId: 6, isLastEpisode: true });
+      }
 
       // Phaser Scale Manager sudah dengar event `resize` window, tapi di
       // iOS Safari event itu kadang tidak terpicu tepat waktu saat rotasi

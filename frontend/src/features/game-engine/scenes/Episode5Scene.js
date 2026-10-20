@@ -15,7 +15,7 @@ import { getVisibleBounds, pxToWorld } from '../utils/visibleBounds';
 import { getEpisodeById } from '../config/episodes';
 
 // ================================================================
-// EPISODE 5 — "Ketika Sahabat Berubah"
+// EPISODE 5 — "Ketika Sahabat Berubah" 
 // ================================================================
 // Latar: Taman belakang sekolah di bawah pohon rindang & bangku kayu.
 // Karakter: Kirana (sahabat dekat Dara yang belakangan menarik diri
@@ -119,8 +119,8 @@ export default class Episode5Scene extends BasePlayerScene {
     const bgKey = this.textures.exists('episode-5-bg')
       ? 'episode-5-bg'
       : this.textures.exists('episode5-bg')
-      ? 'episode5-bg'
-      : null;
+        ? 'episode5-bg'
+        : null;
 
     if (bgKey) {
       const source = this.textures.get(bgKey).getSourceImage();
@@ -408,7 +408,7 @@ export default class Episode5Scene extends BasePlayerScene {
       if (this._cutsceneContainer) {
         try {
           this._cutsceneContainer.destroy();
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // Depth 100 agar berada di atas world gameplay (background, NPC, player),
