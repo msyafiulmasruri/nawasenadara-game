@@ -94,6 +94,219 @@ function shouldShowEpisode6Learning(choices = []) {
   );
 }
 
+const REPORT_ROOT_ID = 'nd-report-root';
+const REPORT_STYLE_ID = 'nd-report-style';
+
+const REPORT_CSS = `
+#${REPORT_ROOT_ID} {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(255, 221, 87, 0.08), transparent 55%),
+    radial-gradient(ellipse at 85% 85%, rgba(96, 165, 250, 0.09), transparent 60%),
+    rgba(6, 6, 17, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: 'Pixelify Sans', monospace;
+  color: #ffffff;
+  padding: clamp(14px, 2.5vh, 28px) clamp(16px, 3vw, 36px);
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-y: auto;
+}
+#${REPORT_ROOT_ID}.is-visible {
+  opacity: 1;
+}
+#${REPORT_ROOT_ID}.is-closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nd-report-content {
+  width: min(1260px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 1.8vh, 18px);
+  margin: auto;
+}
+
+.nd-report-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.nd-report-tag {
+  display: inline-block;
+  background: #ffdd57;
+  color: #14122a;
+  font-family: 'Pixelify Sans', monospace;
+  font-weight: 700;
+  font-size: clamp(13px, 1.3vw, 15px);
+  padding: 3px 14px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+.nd-report-title {
+  font-family: 'Jersey 15', monospace;
+  font-size: clamp(32px, 4vw, 48px);
+  color: #ffdd57;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-shadow: 0 0 18px rgba(255, 221, 87, 0.45);
+  line-height: 1.15;
+}
+.nd-report-subtitle {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(16px, 1.6vw, 20px);
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.nd-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(10px, 1.4vw, 16px);
+  width: 100%;
+}
+@media (max-width: 820px) {
+  .nd-report-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.nd-report-card {
+  background: rgba(20, 18, 38, 0.92);
+  border: 2px solid rgba(255, 221, 87, 0.35);
+  border-radius: 8px;
+  padding: 10px 16px 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.nd-report-card:hover {
+  border-color: rgba(255, 221, 87, 0.85);
+  background: rgba(28, 25, 52, 0.96);
+  transform: translateY(-2px);
+}
+
+.nd-report-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 5px;
+}
+.nd-report-card-title {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 700;
+  color: #ffdd57;
+}
+.nd-report-card-badge {
+  font-family: 'Jersey 15', monospace;
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.nd-report-card-badge.is-perfect {
+  background: rgba(34, 197, 94, 0.22);
+  border: 1.5px solid #22c55e;
+  color: #86efac;
+}
+.nd-report-card-badge.is-good {
+  background: rgba(234, 179, 8, 0.22);
+  border: 1.5px solid #eab308;
+  color: #fde047;
+}
+
+.nd-report-card-detail {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(15px, 1.5vw, 18px);
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+.nd-report-card-detail.is-perfect {
+  color: #bbf7d0;
+}
+.nd-report-card-detail.is-good {
+  color: #fef08a;
+}
+
+.nd-report-note {
+  position: relative;
+  width: 100%;
+  background: rgba(30, 27, 75, 0.92);
+  border: 1.8px solid rgba(129, 140, 248, 0.7);
+  border-radius: 8px;
+  padding: 14px 22px 12px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+.nd-report-note-tag {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: #ffdd57;
+  color: #14122a;
+  font-family: 'Pixelify Sans', monospace;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 2px 12px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.nd-report-note-text {
+  margin: 0;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(16px, 1.6vw, 19px);
+  color: #fef08a;
+  line-height: 1.5;
+}
+
+.nd-report-finish-btn {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border: 2px solid #86efac;
+  border-radius: 8px;
+  padding: 12px 42px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  box-shadow: 0 6px 22px rgba(22, 163, 74, 0.45), 0 0 14px rgba(134, 239, 172, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  outline: none;
+}
+.nd-report-finish-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 28px rgba(22, 163, 74, 0.6), 0 0 20px rgba(134, 239, 172, 0.5);
+  filter: brightness(1.1);
+}
+.nd-report-finish-btn:active {
+  transform: translateY(1px);
+}
+`;
+
 export default class EpisodeEndingScene extends Phaser.Scene {
   constructor() {
     super('EpisodeEndingScene');
@@ -260,6 +473,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => {
       this._teardownInput();
+      this._cleanupFinalReport();
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale.off('resize', this._onResize);
       window.removeEventListener('resize', this._onResize);
@@ -767,6 +981,17 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._readyToAdvance = true;
   }
 
+  _cleanupFinalReport() {
+    if (typeof document === 'undefined') return;
+    const root = document.getElementById(REPORT_ROOT_ID);
+    if (root) {
+      root.classList.add('is-closing');
+      setTimeout(() => {
+        root.remove();
+      }, 240);
+    }
+  }
+
   _showFinalReportLandscape(onCloseCallback = null) {
     if (!this._isSceneValid()) return;
 
@@ -775,7 +1000,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._readyToAdvance = false;
     this._teardownInput();
 
-    // Sembunyikan elemen stage sebelumnya
+    // Sembunyikan elemen canvas ending sebelumnya
     this.endingObjects?.forEach((obj) => obj.setVisible(false));
     this.emotionObjects?.forEach((obj) => obj.setVisible(false));
     this.emotionLoadingText?.setVisible(false);
@@ -783,201 +1008,101 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._aspectContainer?.setVisible(false);
     this.learningObjects?.forEach((obj) => obj.setVisible(false));
 
-    if (this._finalReportContainer) {
-      this._finalReportContainer.destroy();
-      this._finalReportContainer = null;
+    if (typeof document === 'undefined') return;
+
+    // Bersihkan overlay lama jika ada
+    document.getElementById(REPORT_ROOT_ID)?.remove();
+
+    // Pastikan stylesheet terpasang
+    if (!document.getElementById(REPORT_STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = REPORT_STYLE_ID;
+      style.textContent = REPORT_CSS;
+      document.head.appendChild(style);
     }
 
-    const bounds = getVisibleBounds(this);
-    const centerX = bounds.centerX;
     const reportData = getFullAspectReport();
 
-    this._finalReportContainer = this.add.container(0, 0).setDepth(200);
+    // Bangun elemen HTML kartu rapor
+    const cardsHtml = EPISODES.map((ep) => {
+      const data = reportData[ep.id];
+      const fulfilled = data ? data.fulfilledCount : 3;
+      const total = data ? data.totalCount : 3;
+      const isPerfect = fulfilled === total;
+      const badgeClass = isPerfect ? 'is-perfect' : 'is-good';
+      const badgeText = `${fulfilled}/${total} ${isPerfect ? 'Sempurna' : 'Tercapai'}`;
 
-    // Background penuh landscape dengan gradasi malam gelap
-    const bg = this.add
-      .rectangle(centerX, bounds.centerY, bounds.width, bounds.height, 0x060611, 0.98)
-      .setInteractive();
-    this._finalReportContainer.add(bg);
-
-    // Judul Besar Rapor
-    const titleFont = pxToWorld(this, 36);
-    const subFont = pxToWorld(this, 19);
-    const title = this.add
-      .text(centerX, bounds.top + bounds.height * 0.08, 'RAPOR CAPAIAN 6 EPISODE — NAWASENA DARA', {
-        fontFamily: '"Jersey 15", monospace',
-        fontSize: `${titleFont}px`,
-        color: '#ffdd57',
-        align: 'center',
-      })
-      .setOrigin(0.5);
-    this._finalReportContainer.add(title);
-
-    const sub = this.add
-      .text(
-        centerX,
-        bounds.top + bounds.height * 0.14,
-        'Rangkuman pemenuhan langkah tujuan di setiap episode perjalananmu:',
-        {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${subFont}px`,
-          color: '#cbd5e1',
-          align: 'center',
-        },
-      )
-      .setOrigin(0.5);
-    this._finalReportContainer.add(sub);
-
-    // TATA LETAK 2 KOLOM LANDSCAPE PENUH (Kiri: Ep 1-3, Kanan: Ep 4-6)
-    // Membuat ukuran kartu sangat lebar dan font jauh lebih besar serta mudah dibaca!
-    const colWidth = Math.min(bounds.width * 0.465, pxToWorld(this, 580));
-    const colGap = bounds.width * 0.025;
-    const leftColX = centerX - colWidth / 2 - colGap / 2;
-    const rightColX = centerX + colWidth / 2 + colGap / 2;
-
-    const rowStartY = bounds.top + bounds.height * 0.22;
-    const rowGap = bounds.height * 0.185;
-    const cardHeight = pxToWorld(this, 94);
-
-    const epTitleFont = pxToWorld(this, 20);
-    const badgeFont = pxToWorld(this, 21);
-    const detailFont = pxToWorld(this, 16);
-
-    EPISODES.forEach((ep, i) => {
-      const isLeft = i < 3;
-      const colX = isLeft ? leftColX : rightColX;
-      const rowIndex = isLeft ? i : i - 3;
-      const y = rowStartY + rowIndex * rowGap;
-
-      let epReport = reportData[ep.id] || null;
-      if (!epReport) {
-        const storedChoices = getStoryChoices(
-          ep.id,
-          ep.id === this.episodeId ? this.choices : [],
-        );
-        if (storedChoices && storedChoices.length > 0) {
-          epReport = evaluateEpisodeAspects(ep.id, storedChoices);
-        }
+      let detailLine = '';
+      if (data && Array.isArray(data.aspects)) {
+        const passedTitles = data.aspects
+          .filter((a) => a.fulfilled)
+          .map((a) => a.title);
+        detailLine = passedTitles.length > 0
+          ? `Langkah: ${passedTitles.join(', ')}`
+          : 'Perlu latihan lebih lanjut';
+      } else {
+        detailLine = 'Seluruh 3 aspek berhasil dipenuhi dengan baik.';
       }
 
-      const aspects = epReport?.aspects || ep.aspects.map((a) => ({ ...a, fulfilled: true }));
-      const missingList = aspects.filter((a) => !a.fulfilled);
-      const fulfilled = aspects.filter((a) => a.fulfilled).length;
-      const total = aspects.length || 3;
-      const isPerfect = missingList.length === 0;
+      return `
+        <div class="nd-report-card">
+          <div class="nd-report-card-top">
+            <span class="nd-report-card-title">${ep.title}</span>
+            <span class="nd-report-card-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="nd-report-card-detail ${badgeClass}">
+            ${detailLine}
+          </div>
+        </div>
+      `;
+    }).join('');
 
-      // Card Background
-      const cardBg = this.add
-        .rectangle(
-          colX,
-          y,
-          colWidth,
-          cardHeight,
-          isPerfect ? 0x142820 : 0x271924,
-          0.96,
-        )
-        .setStrokeStyle(2, isPerfect ? 0x22c55e : 0xf43f5e, 0.85);
-      this._finalReportContainer.add(cardBg);
+    const root = document.createElement('div');
+    root.id = REPORT_ROOT_ID;
+    root.innerHTML = `
+      <div class="nd-report-content">
+        <div class="nd-report-header">
+          <span class="nd-report-tag">RAPOR 6 EPISODE</span>
+          <h1 class="nd-report-title">CAPAIAN EVALUASI 6 EPISODE — NAWASENA DARA</h1>
+          <p class="nd-report-subtitle">Rangkuman pemenuhan langkah tujuan di setiap episode perjalananmu di sekolah:</p>
+        </div>
 
-      // Header Baris: Judul Episode di kiri, Nilai Aspek di kanan
-      const epLabel = this.add
-        .text(colX - colWidth / 2 + 18, y - 24, `Ep ${ep.id}: ${ep.title}`, {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${epTitleFont}px`,
-          fontStyle: '700',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0.5);
-      this._finalReportContainer.add(epLabel);
+        <div class="nd-report-grid">
+          ${cardsHtml}
+        </div>
 
-      const scoreLabel = this.add
-        .text(
-          colX + colWidth / 2 - 18,
-          y - 24,
-          `${fulfilled}/${total} Aspek ${isPerfect ? '✓' : ''}`,
-          {
-            fontFamily: '"Jersey 15", monospace',
-            fontSize: `${badgeFont}px`,
-            color: isPerfect ? '#4ade80' : '#fb7185',
-          },
-        )
-        .setOrigin(1, 0.5);
-      this._finalReportContainer.add(scoreLabel);
+        <div class="nd-report-note">
+          <span class="nd-report-note-tag">Pesan Kak Dara</span>
+          <p class="nd-report-note-text">
+            &ldquo;Hebat sudah menyelesaikan seluruh 6 episode! Dari rapor ini kamu bisa melihat langkah mana yang sudah kamu kuasai dan mana yang perlu terus dilatih dalam keseharian.&rdquo;
+          </p>
+        </div>
 
-      // Keterangan Aspek yang Kurang atau Sudah Sempurna
-      const detailLine = isPerfect
-        ? '✓ Semua langkah tujuan berhasil dipenuhi dengan baik!'
-        : `Perlu dilatih: ${missingList.map((m) => `(${m.id}) ${m.title}`).join(', ')}`;
+        <button id="nd-report-finish-btn" class="nd-report-finish-btn" type="button">
+          SELESAI &amp; KEMBALI KE MENU UTAMA &gt;
+        </button>
+      </div>
+    `;
 
-      const detailText = this.add
-        .text(colX - colWidth / 2 + 18, y + 15, detailLine, {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${detailFont}px`,
-          color: isPerfect ? '#86efac' : '#fecdd3',
-          lineSpacing: 3,
-          wordWrap: { width: colWidth - 36 },
-        })
-        .setOrigin(0, 0.5);
-      this._finalReportContainer.add(detailText);
+    document.body.appendChild(root);
+
+    // Fade-in mulus di frame berikutnya
+    requestAnimationFrame(() => {
+      root.classList.add('is-visible');
     });
 
-    // Pesan Refleksi dari Kak Dara di bawah
-    const noteY = bounds.top + bounds.height * 0.81;
-    const noteBoxWidth = Math.min(bounds.width * 0.94, pxToWorld(this, 1200));
-    const noteBg = this.add
-      .rectangle(centerX, noteY, noteBoxWidth, pxToWorld(this, 52), 0x1e1b4b, 0.9)
-      .setStrokeStyle(1.5, 0x818cf8, 0.7);
-    this._finalReportContainer.add(noteBg);
-
-    const note = this.add
-      .text(
-        centerX,
-        noteY,
-        'Pesan Kak Dara: "Hebat sudah menyelesaikan seluruh 6 episode! Dari rapor ini kamu bisa melihat langkah mana yang sudah kamu kuasai dan mana yang perlu terus dilatih dalam keseharian."',
-        {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 17)}px`,
-          color: '#fef08a',
-          align: 'center',
-          wordWrap: { width: noteBoxWidth - 32 },
-        },
-      )
-      .setOrigin(0.5);
-    this._finalReportContainer.add(note);
-
-    // Tombol Selesai & Kembali ke Menu Utama
-    const finishBtnY = bounds.top + bounds.height * 0.91;
-    const finishBtn = this.add
-      .rectangle(centerX, finishBtnY, pxToWorld(this, 420), pxToWorld(this, 52), 0x16a34a, 1)
-      .setStrokeStyle(2, 0x86efac, 0.95)
-      .setInteractive({ useHandCursor: true });
-    const finishText = this.add
-      .text(
-        centerX,
-        finishBtnY,
-        'SELESAI & KEMBALI KE MENU UTAMA >',
-        {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 20)}px`,
-          fontStyle: '700',
-          color: '#ffffff',
-        },
-      )
-      .setOrigin(0.5);
-    this._finalReportContainer.add(finishBtn);
-    this._finalReportContainer.add(finishText);
-
-    const handleFinish = () => {
-      this._finalReportContainer?.destroy();
-      this._finalReportContainer = null;
-      if (typeof onCloseCallback === 'function') {
-        onCloseCallback();
-      } else {
-        this.scene.start('EpisodeSelectScene');
-      }
-    };
-    finishBtn.on('pointerdown', handleFinish);
-    finishText.setInteractive({ useHandCursor: true }).on('pointerdown', handleFinish);
+    const finishBtn = root.querySelector('#nd-report-finish-btn');
+    if (finishBtn) {
+      finishBtn.addEventListener('click', () => {
+        finishBtn.disabled = true;
+        this._cleanupFinalReport();
+        if (typeof onCloseCallback === 'function') {
+          onCloseCallback();
+        } else {
+          this.scene.start('EpisodeSelectScene');
+        }
+      });
+    }
   }
 
   _startPromptPulse() {
@@ -1049,9 +1174,8 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     if (this._stage === 'aspect' && this._aspectContainer) {
       this._revealAspectStage();
     }
-    if (this._stage === 'final_report' && this._finalReportContainer) {
-      this._showFinalReportLandscape(this._finalReportOnClose);
-    }
+    // Stage final_report menggunakan lapisan DOM responsif asli layar
+    // sehingga tidak perlu digambar ulang saat kanvas Phaser berubah ukuran.
   }
 
   _teardownInput() {
@@ -1229,7 +1353,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       () => {
         if (this.isLastEpisode || this.episodeId === 6) {
           completeEpisode(this.episodeId, this.choices);
-          this._showFinalReportModal(() => {
+          this._showFinalReportLandscape(() => {
             this.scene.start('EpisodeSelectScene');
           });
           return;
