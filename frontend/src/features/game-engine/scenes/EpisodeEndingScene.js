@@ -737,132 +737,118 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       retryBtn.on('pointerdown', doRetry);
       retryText.setInteractive({ useHandCursor: true }).on('pointerdown', doRetry);
     } else {
-      // Can Advance!
-      if (this.isLastEpisode || this.episodeId === 6) {
-        // Episode 6 buttons: Rapor 6 Episode + Selesaikan ke Jurnal
-        const reportBtn = this.add
-          .rectangle(centerX - pxToWorld(this, 185), btnY, pxToWorld(this, 330), pxToWorld(this, 52), 0x7c3aed, 1)
-          .setStrokeStyle(2, 0xc4b5fd, 0.85)
-          .setInteractive({ useHandCursor: true });
-        const reportText = this.add
-          .text(reportBtn.x, btnY, 'LIHAT RAPOR 6 EPISODE', {
-            fontFamily: '"Pixelify Sans", monospace',
-            fontSize: `${pxToWorld(this, 18)}px`,
-            fontStyle: '700',
-            color: '#ffffff',
-          })
-          .setOrigin(0.5);
-        this._aspectContainer.add(reportBtn);
-        this._aspectContainer.add(reportText);
+      // Pemain memenuhi minimal 1 aspek: Lanjut ke Jurnal Refleksi terlebih dahulu
+      // (Jurnal Refleksi selalu muncul duluan; Rapor 6 Episode baru keluar setelah jurnal selesai diisi di Ep 6)
+      const nextBtn = this.add
+        .rectangle(centerX, btnY, pxToWorld(this, 380), pxToWorld(this, 54), 0x16a34a, 1)
+        .setStrokeStyle(2, 0x86efac, 0.9)
+        .setInteractive({ useHandCursor: true });
+      const nextText = this.add
+        .text(centerX, btnY, 'LANJUT KE JURNAL REFLEKSI >', {
+          fontFamily: '"Pixelify Sans", monospace',
+          fontSize: `${pxToWorld(this, 20)}px`,
+          fontStyle: '700',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+      this._aspectContainer.add(nextBtn);
+      this._aspectContainer.add(nextText);
 
-        const openReport = () => this._showFinalReportModal();
-        reportBtn.on('pointerdown', openReport);
-        reportText.setInteractive({ useHandCursor: true }).on('pointerdown', openReport);
-
-        const nextBtn = this.add
-          .rectangle(centerX + pxToWorld(this, 185), btnY, pxToWorld(this, 330), pxToWorld(this, 52), 0x16a34a, 1)
-          .setStrokeStyle(2, 0x86efac, 0.85)
-          .setInteractive({ useHandCursor: true });
-        const nextText = this.add
-          .text(nextBtn.x, btnY, 'LANJUT KE JURNAL >', {
-            fontFamily: '"Pixelify Sans", monospace',
-            fontSize: `${pxToWorld(this, 18)}px`,
-            fontStyle: '700',
-            color: '#ffffff',
-          })
-          .setOrigin(0.5);
-        this._aspectContainer.add(nextBtn);
-        this._aspectContainer.add(nextText);
-
-        const advanceFinal = () => {
-          this._advancing = true;
-          this._teardownInput();
-          void this._goToJournal();
-        };
-        nextBtn.on('pointerdown', advanceFinal);
-        nextText.setInteractive({ useHandCursor: true }).on('pointerdown', advanceFinal);
-      } else {
-        // Episode 1-5 button: Lanjut ke Jurnal Refleksi
-        const nextBtn = this.add
-          .rectangle(centerX, btnY, pxToWorld(this, 380), pxToWorld(this, 54), 0x16a34a, 1)
-          .setStrokeStyle(2, 0x86efac, 0.9)
-          .setInteractive({ useHandCursor: true });
-        const nextText = this.add
-          .text(centerX, btnY, 'LANJUT KE JURNAL REFLEKSI >', {
-            fontFamily: '"Pixelify Sans", monospace',
-            fontSize: `${pxToWorld(this, 20)}px`,
-            fontStyle: '700',
-            color: '#ffffff',
-          })
-          .setOrigin(0.5);
-        this._aspectContainer.add(nextBtn);
-        this._aspectContainer.add(nextText);
-
-        const advanceNext = () => {
-          this._advancing = true;
-          this._teardownInput();
-          void this._goToJournal();
-        };
-        nextBtn.on('pointerdown', advanceNext);
-        nextText.setInteractive({ useHandCursor: true }).on('pointerdown', advanceNext);
-      }
+      const advanceNext = () => {
+        this._advancing = true;
+        this._teardownInput();
+        void this._goToJournal();
+      };
+      nextBtn.on('pointerdown', advanceNext);
+      nextText.setInteractive({ useHandCursor: true }).on('pointerdown', advanceNext);
     }
 
     this._transitioning = false;
     this._readyToAdvance = true;
   }
 
-  _showFinalReportModal(onCloseCallback = null) {
-    const reportData = getFullAspectReport();
+  _showFinalReportLandscape(onCloseCallback = null) {
+    if (!this._isSceneValid()) return;
+
+    this._stage = 'final_report';
+    this._finalReportOnClose = onCloseCallback;
+    this._readyToAdvance = false;
+    this._teardownInput();
+
+    // Sembunyikan elemen stage sebelumnya
+    this.endingObjects?.forEach((obj) => obj.setVisible(false));
+    this.emotionObjects?.forEach((obj) => obj.setVisible(false));
+    this.emotionLoadingText?.setVisible(false);
+    this.promptText?.setVisible(false);
+    this._aspectContainer?.setVisible(false);
+    this.learningObjects?.forEach((obj) => obj.setVisible(false));
+
+    if (this._finalReportContainer) {
+      this._finalReportContainer.destroy();
+      this._finalReportContainer = null;
+    }
+
     const bounds = getVisibleBounds(this);
     const centerX = bounds.centerX;
+    const reportData = getFullAspectReport();
 
-    const modal = this.add.container(0, 0).setDepth(200);
+    this._finalReportContainer = this.add.container(0, 0).setDepth(200);
 
-    const overlay = this.add
-      .rectangle(centerX, bounds.centerY, bounds.width, bounds.height, 0x050512, 0.96)
+    // Background penuh landscape dengan gradasi malam gelap
+    const bg = this.add
+      .rectangle(centerX, bounds.centerY, bounds.width, bounds.height, 0x060611, 0.98)
       .setInteractive();
-    modal.add(overlay);
+    this._finalReportContainer.add(bg);
 
-    const cardWidth = Math.min(bounds.width * 0.94, pxToWorld(this, 980));
-    const cardHeight = bounds.height * 0.92;
-
-    const panel = this.add
-      .rectangle(centerX, bounds.centerY, cardWidth, cardHeight, 0x131224, 1)
-      .setStrokeStyle(2, 0xffdd57, 0.9);
-    modal.add(panel);
-
+    // Judul Besar Rapor
+    const titleFont = pxToWorld(this, 36);
+    const subFont = pxToWorld(this, 19);
     const title = this.add
-      .text(centerX, bounds.top + bounds.height * 0.09, 'RAPOR 6 EPISODE — NAWASENA DARA', {
+      .text(centerX, bounds.top + bounds.height * 0.08, 'RAPOR CAPAIAN 6 EPISODE — NAWASENA DARA', {
         fontFamily: '"Jersey 15", monospace',
-        fontSize: `${pxToWorld(this, 32)}px`,
+        fontSize: `${titleFont}px`,
         color: '#ffdd57',
         align: 'center',
       })
       .setOrigin(0.5);
-    modal.add(title);
+    this._finalReportContainer.add(title);
 
     const sub = this.add
       .text(
         centerX,
         bounds.top + bounds.height * 0.14,
-        'Rincian Aspek yang Sudah Terpenuhi dan yang Masih Kurang di Setiap Episode',
+        'Rangkuman pemenuhan langkah tujuan di setiap episode perjalananmu:',
         {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 17)}px`,
+          fontSize: `${subFont}px`,
           color: '#cbd5e1',
           align: 'center',
         },
       )
       .setOrigin(0.5);
-    modal.add(sub);
+    this._finalReportContainer.add(sub);
 
-    // List of all 6 episodes with missing-aspect breakdown
-    const startY = bounds.top + bounds.height * 0.2;
-    const epRowHeight = bounds.height * 0.094;
+    // TATA LETAK 2 KOLOM LANDSCAPE PENUH (Kiri: Ep 1-3, Kanan: Ep 4-6)
+    // Membuat ukuran kartu sangat lebar dan font jauh lebih besar serta mudah dibaca!
+    const colWidth = Math.min(bounds.width * 0.465, pxToWorld(this, 580));
+    const colGap = bounds.width * 0.025;
+    const leftColX = centerX - colWidth / 2 - colGap / 2;
+    const rightColX = centerX + colWidth / 2 + colGap / 2;
+
+    const rowStartY = bounds.top + bounds.height * 0.22;
+    const rowGap = bounds.height * 0.185;
+    const cardHeight = pxToWorld(this, 94);
+
+    const epTitleFont = pxToWorld(this, 20);
+    const badgeFont = pxToWorld(this, 21);
+    const detailFont = pxToWorld(this, 16);
 
     EPISODES.forEach((ep, i) => {
-      const y = startY + i * epRowHeight;
+      const isLeft = i < 3;
+      const colX = isLeft ? leftColX : rightColX;
+      const rowIndex = isLeft ? i : i - 3;
+      const y = rowStartY + rowIndex * rowGap;
+
       let epReport = reportData[ep.id] || null;
       if (!epReport) {
         const storedChoices = getStoryChoices(
@@ -880,104 +866,118 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       const total = aspects.length || 3;
       const isPerfect = missingList.length === 0;
 
-      const rowBg = this.add
+      // Card Background
+      const cardBg = this.add
         .rectangle(
-          centerX,
-          y + 12,
-          cardWidth - 32,
-          pxToWorld(this, 56),
-          isPerfect ? 0x152524 : 0x261a24,
-          0.9,
+          colX,
+          y,
+          colWidth,
+          cardHeight,
+          isPerfect ? 0x142820 : 0x271924,
+          0.96,
         )
-        .setStrokeStyle(1.5, isPerfect ? 0x22c55e : 0xfb7185, 0.65);
-      modal.add(rowBg);
+        .setStrokeStyle(2, isPerfect ? 0x22c55e : 0xf43f5e, 0.85);
+      this._finalReportContainer.add(cardBg);
 
+      // Header Baris: Judul Episode di kiri, Nilai Aspek di kanan
       const epLabel = this.add
-        .text(centerX - cardWidth / 2 + 28, y + 2, `Ep ${ep.id}: ${ep.title}`, {
+        .text(colX - colWidth / 2 + 18, y - 24, `Ep ${ep.id}: ${ep.title}`, {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 17)}px`,
+          fontSize: `${epTitleFont}px`,
           fontStyle: '700',
           color: '#ffffff',
         })
         .setOrigin(0, 0.5);
-      modal.add(epLabel);
-
-      const detailLine = isPerfect
-        ? 'Semua 3 aspek langkah tujuan sudah terpenuhi dengan baik!'
-        : `Kurang di aspek: ${missingList.map((m) => `(${m.id}) ${m.title}`).join(', ')}`;
-
-      const detailText = this.add
-        .text(centerX - cardWidth / 2 + 28, y + 23, detailLine, {
-          fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 15)}px`,
-          color: isPerfect ? '#86efac' : '#fda4af',
-          wordWrap: { width: cardWidth - pxToWorld(this, 210) },
-        })
-        .setOrigin(0, 0.5);
-      modal.add(detailText);
+      this._finalReportContainer.add(epLabel);
 
       const scoreLabel = this.add
         .text(
-          centerX + cardWidth / 2 - 28,
-          y + 12,
-          `${fulfilled}/${total} Aspek`,
+          colX + colWidth / 2 - 18,
+          y - 24,
+          `${fulfilled}/${total} Aspek ${isPerfect ? '✓' : ''}`,
           {
             fontFamily: '"Jersey 15", monospace',
-            fontSize: `${pxToWorld(this, 21)}px`,
-            color: isPerfect ? '#ffdd57' : '#fda4af',
+            fontSize: `${badgeFont}px`,
+            color: isPerfect ? '#4ade80' : '#fb7185',
           },
         )
         .setOrigin(1, 0.5);
-      modal.add(scoreLabel);
+      this._finalReportContainer.add(scoreLabel);
+
+      // Keterangan Aspek yang Kurang atau Sudah Sempurna
+      const detailLine = isPerfect
+        ? '✓ Semua langkah tujuan berhasil dipenuhi dengan baik!'
+        : `Perlu dilatih: ${missingList.map((m) => `(${m.id}) ${m.title}`).join(', ')}`;
+
+      const detailText = this.add
+        .text(colX - colWidth / 2 + 18, y + 15, detailLine, {
+          fontFamily: '"Pixelify Sans", monospace',
+          fontSize: `${detailFont}px`,
+          color: isPerfect ? '#86efac' : '#fecdd3',
+          lineSpacing: 3,
+          wordWrap: { width: colWidth - 36 },
+        })
+        .setOrigin(0, 0.5);
+      this._finalReportContainer.add(detailText);
     });
 
-    // Kak Dara's concluding note
-    const noteY = bounds.top + bounds.height * 0.8;
+    // Pesan Refleksi dari Kak Dara di bawah
+    const noteY = bounds.top + bounds.height * 0.81;
+    const noteBoxWidth = Math.min(bounds.width * 0.94, pxToWorld(this, 1200));
+    const noteBg = this.add
+      .rectangle(centerX, noteY, noteBoxWidth, pxToWorld(this, 52), 0x1e1b4b, 0.9)
+      .setStrokeStyle(1.5, 0x818cf8, 0.7);
+    this._finalReportContainer.add(noteBg);
+
     const note = this.add
       .text(
         centerX,
         noteY,
-        'Pesan Kak Dara: "Hebat sudah menyelesaikan seluruh 6 episode! Dari rapor ini kamu bisa melihat langkah mana yang sudah kuat dan mana yang masih perlu dilatih. Teruslah berani bicara jujur dan saling menjaga teman!"',
+        'Pesan Kak Dara: "Hebat sudah menyelesaikan seluruh 6 episode! Dari rapor ini kamu bisa melihat langkah mana yang sudah kamu kuasai dan mana yang perlu terus dilatih dalam keseharian."',
         {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 16)}px`,
+          fontSize: `${pxToWorld(this, 17)}px`,
           color: '#fef08a',
           align: 'center',
-          wordWrap: { width: cardWidth - 40 },
-          lineSpacing: 4,
+          wordWrap: { width: noteBoxWidth - 32 },
         },
       )
       .setOrigin(0.5);
-    modal.add(note);
+    this._finalReportContainer.add(note);
 
-    // Close button
-    const closeBtnY = bounds.top + bounds.height * 0.9;
-    const closeBtn = this.add
-      .rectangle(centerX, closeBtnY, pxToWorld(this, 280), pxToWorld(this, 44), 0x2563eb, 1)
-      .setStrokeStyle(2, 0x93c5fd, 0.9)
+    // Tombol Selesai & Kembali ke Menu Utama
+    const finishBtnY = bounds.top + bounds.height * 0.91;
+    const finishBtn = this.add
+      .rectangle(centerX, finishBtnY, pxToWorld(this, 420), pxToWorld(this, 52), 0x16a34a, 1)
+      .setStrokeStyle(2, 0x86efac, 0.95)
       .setInteractive({ useHandCursor: true });
-    const closeText = this.add
+    const finishText = this.add
       .text(
         centerX,
-        closeBtnY,
-        onCloseCallback ? 'Selesai & Kembali ke Menu' : 'Tutup Rapor',
+        finishBtnY,
+        'SELESAI & KEMBALI KE MENU UTAMA >',
         {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 18)}px`,
+          fontSize: `${pxToWorld(this, 20)}px`,
           fontStyle: '700',
           color: '#ffffff',
         },
       )
       .setOrigin(0.5);
-    modal.add(closeBtn);
-    modal.add(closeText);
+    this._finalReportContainer.add(finishBtn);
+    this._finalReportContainer.add(finishText);
 
-    const handleClose = () => {
-      modal.destroy();
-      if (typeof onCloseCallback === 'function') onCloseCallback();
+    const handleFinish = () => {
+      this._finalReportContainer?.destroy();
+      this._finalReportContainer = null;
+      if (typeof onCloseCallback === 'function') {
+        onCloseCallback();
+      } else {
+        this.scene.start('EpisodeSelectScene');
+      }
     };
-    closeBtn.on('pointerdown', handleClose);
-    closeText.setInteractive({ useHandCursor: true }).on('pointerdown', handleClose);
+    finishBtn.on('pointerdown', handleFinish);
+    finishText.setInteractive({ useHandCursor: true }).on('pointerdown', handleFinish);
   }
 
   _startPromptPulse() {
@@ -1049,6 +1049,9 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     if (this._stage === 'aspect' && this._aspectContainer) {
       this._revealAspectStage();
     }
+    if (this._stage === 'final_report' && this._finalReportContainer) {
+      this._showFinalReportLandscape(this._finalReportOnClose);
+    }
   }
 
   _teardownInput() {
@@ -1076,7 +1079,8 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     // tanpa memunculkan layar suruh mengulang lagi.
     if (this.isLastEpisode || this.episodeId === 6) {
       completeEpisode(this.episodeId, this.choices);
-      this._showFinalReportModal(() => {
+      // Jurnal refleksi telah selesai diisi; sekarang tampilkan Rapor 6 Episode Landscape!
+      this._showFinalReportLandscape(() => {
         this.scene.start('EpisodeSelectScene');
       });
       return;
@@ -1240,7 +1244,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     completeEpisode(this.episodeId, this.choices);
 
     if (this.isLastEpisode || this.episodeId === 6) {
-      this._showFinalReportModal(() => {
+      this._showFinalReportLandscape(() => {
         this.scene.start('EpisodeSelectScene');
       });
     } else {
