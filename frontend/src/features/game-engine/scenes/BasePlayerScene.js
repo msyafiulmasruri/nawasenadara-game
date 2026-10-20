@@ -19,6 +19,7 @@ import { stopMenuBGM } from '../audio/menuAudio';
 import { getCharacterName } from '../utils/characterName';
 import { getEpisodeById } from '../config/episodes';
 import ObjectiveBriefing from '../ui/ObjectiveBriefing';
+import ControlTutorialOverlay from '../ui/ControlTutorialOverlay';
 
 const WALK_SPEED = 150;
 const RUN_SPEED = 260;
@@ -115,32 +116,12 @@ export default class BasePlayerScene extends Phaser.Scene {
     // ukuran referensi baku 1280x720 (crop kiri-kanan di sana memang
     // disengaja untuk level yang di-pan kamera, lihat
     // _updatePortraitCamera() di bawah).
-    const { width: viewportWidth } = syncGameSizeToOrientation(this);
+    const { width } = syncGameSizeToOrientation(this, { maxWidth: WORLD_WIDTH });
 
-    // Artwork gameplay Episode 2-5 dirancang pada rasio 16:9. Ketika
-    // browser dibuat sangat lebar (mis. keluar fullscreen atau window
-    // di-split), lebar dunia dinamis sebelumnya bisa melampaui artwork.
-    // Scene lalu menutup selisih itu dengan tileSprite sehingga potongan
-    // kamar/sekolah tampak berulang di sisi kanan. Batasi kanvas gameplay
-    // ke lebar referensi 16:9; mode ENVELOP akan melakukan crop vertikal
-    // kecil pada layar ultra-wide tanpa pernah memperlihatkan tile ulang.
-    const width = Math.min(viewportWidth, WORLD_WIDTH);
-    if (width !== viewportWidth) {
-      this.scale.setGameSize(width, height);
-    }
-
-    // Dipakai oleh _onResize untuk mendeteksi perubahan rasio aspek
-    // landscape yang TIDAK mengubah kategori orientasi (masih sama-sama
-    // landscape) — misalnya saat masuk/keluar fullscreen. Address bar
-    // browser hilang saat fullscreen mengubah tinggi viewport tanpa
-    // mengubah orientasi, jadi rasio aspek bergeser padahal kategori
-    // "landscape" tetap sama. Tanpa deteksi ini, dunia game tetap
-    // memakai rasio LAMA (dari sebelum fullscreen) sehingga crop
-    // atas/bawah/kiri/kanan muncul lagi persis seperti sebelum di-fix.
     this._lastAspect =
       this.scale.parentSize.width / this.scale.parentSize.height;
 
-    this.levelWidth = this._isPortraitMode ? LEVEL_WIDTH : width;
+    this.levelWidth = this._isPortraitMode ? LEVEL_WIDTH : Math.max(width, WORLD_WIDTH);
 
     // Latar belakang: ditentukan oleh scene turunan (Episode1Scene pakai
     // gambar asli, StoryEpisodeScene punya fallback terarah).
@@ -288,6 +269,9 @@ export default class BasePlayerScene extends Phaser.Scene {
       this.audioManager?.destroy();
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale?.off('resize', this._onResize);
+      if (this._onWindowResize) {
+        window.removeEventListener('resize', this._onWindowResize);
+      }
       if (this._onFullscreenChange) {
         document.removeEventListener(
           'fullscreenchange',
@@ -393,20 +377,49 @@ export default class BasePlayerScene extends Phaser.Scene {
     this.createPauseButton(width, height);
     this.createFullscreenButton(width, height);
     this.createObjectiveHintButton(width, height);
+    this.createControlTutorialButton(width, height);
     this.createChatButton(width, height);
     this.createPauseMenu();
+
+    this._applyViewportReflow = () => {
+      if (!this.scene?.isActive() || !this.sys?.game) return;
+      syncGameSizeToOrientation(this, { maxWidth: WORLD_WIDTH });
+      this._updatePortraitCamera(true);
+      this._repositionUI();
+      if (this.activeCutsceneImage?.active) {
+        const camW = this.cameras.main.width;
+        const camH = this.cameras.main.height;
+        this.activeCutsceneImage
+          .setPosition(camW / 2, camH / 2)
+          .setDisplaySize(camW, camH);
+      }
+      this.onViewportResize?.(
+        this.scale.gameSize.width,
+        this.scale.gameSize.height,
+      );
+      this.dialogueBox?._onResize?.();
+    };
 
     // Update ikon tombol fullscreen setiap kali status fullscreen browser
     // berubah — baik lewat tombol ini, tombol Esc browser, atau gesture lain.
     this._onFullscreenChange = () => {
       if (!this.scene?.isActive() || !this.sys?.game) return;
+      this._lastFullscreenChangeAt = Date.now();
       this._updateFullscreenIcon();
-      // Tunggu jeda singkat agar browser selesai reflow viewport fullscreen
-      setTimeout(() => {
-        if (!this.scene?.isActive() || !this.sys?.game) return;
-        this.scale?.refresh();
-        this._repositionUI();
-      }, 100);
+      // Kembalikan fokus keyboard ke window/canvas saat keluar fullscreen dengan Esc
+      try {
+        window.focus?.();
+        this.sys?.game?.canvas?.focus?.();
+      } catch {
+        // abaikan
+      }
+      this._applyViewportReflow();
+      // Tunggu beberapa jeda singkat agar browser selesai menganimasikan reflow fullscreen / split-screen
+      [80, 200, 380].forEach((delay) => {
+        setTimeout(() => {
+          this._applyViewportReflow();
+        }, delay);
+      });
     };
     document.addEventListener('fullscreenchange', this._onFullscreenChange);
     document.addEventListener(
@@ -422,6 +435,8 @@ export default class BasePlayerScene extends Phaser.Scene {
       }
       this._resizeDebounceTimer = setTimeout(() => {
         this._resizeDebounceTimer = null;
+        if (!this.scene?.isActive() || !this.sys?.game) return;
+
         const nowPortrait = isPortrait(this);
         const nowAspect =
           this.scale.parentSize?.height > 0
@@ -429,34 +444,33 @@ export default class BasePlayerScene extends Phaser.Scene {
             : this._lastAspect;
 
         const orientationChanged = nowPortrait !== this._isPortraitMode;
-        const aspectChanged = Math.abs(nowAspect - this._lastAspect) > 0.01;
 
-        // Background dan bounds dibangun dari ukuran viewport pada saat
-        // create(). Karena itu perubahan rasio yang tetap landscape juga
-        // perlu rebuild (contoh: split-window atau keluar fullscreen),
-        // bukan hanya rotasi portrait <-> landscape. Menunda restart saat
-        // dialog/overlay aktif mencegah percakapan terputus di tengah.
-        if (orientationChanged || aspectChanged) {
-          this._pendingViewportRestart = true;
-          this._lastAspect = nowAspect;
-
-          if (!this.npcInDialogue && !this.uiInputLocked && !this.isPaused) {
-            this._restartForViewportChange();
-          } else {
-            this.scale.refresh();
-            this._repositionUI();
-          }
-          return;
-        }
-
-        // Untuk perubahan aspect ratio (masuk/keluar fullscreen atau address bar toggle):
-        // Cukup refresh transformasi skala & reposisi elemen UI secara aman tanpa restart game!
-        this.scale.refresh();
-        this._repositionUI();
+        // Jangan panggil this.scale.refresh() tanpa syarat di dalam listener 'resize',
+        // karena scale.refresh() menembakkan event 'resize' lagi setiap 150ms (infinite loop)
+        // yang membuat pilihan jawaban dialog berkedip-kedip dan mengunci input E / tap!
+        // Cukup sinkronkan gameSize (dengan maxWidth: WORLD_WIDTH), clamp kamera, & reposisi UI.
+        this._applyViewportReflow();
         this._lastAspect = nowAspect;
-      }, 150);
+
+        if (orientationChanged) {
+          this._isPortraitMode = nowPortrait;
+          this._pendingViewportRestart = true;
+          const inAnyDialogue =
+            this.npcInDialogue || this.phoneInDialogue || this.dialogueBox?.isOpen;
+          if (!inAnyDialogue && !this.uiInputLocked && !this.isPaused) {
+            this._restartForViewportChange();
+          }
+        }
+      }, 80);
     };
+    this._onWindowResize = () => {
+      this._applyViewportReflow();
+      this._onResize();
+      setTimeout(() => this._applyViewportReflow(), 220);
+    };
+    window.addEventListener('resize', this._onWindowResize);
     this._repositionUI();
+    this._updatePortraitCamera(true);
     this.scale.on('resize', this._onResize);
   }
 
@@ -472,6 +486,9 @@ export default class BasePlayerScene extends Phaser.Scene {
       preservePlayer: {
         x: this.player?.x,
         facingLeft: this.player?.flipX,
+        inClassroom: this.inClassroom,
+        npcTalked: this.npcTalked,
+        npcChoices: this.npcChoices,
       },
     });
   }
@@ -971,6 +988,8 @@ export default class BasePlayerScene extends Phaser.Scene {
     // setQuestGuide()/clearQuestGuide()) — ditaruh TEPAT di bawah blok
     // profil ini, bukan lagi menempel di atas kepala NPC. Dibuat
     // tersembunyi sampai scene turunan memanggil setQuestGuide().
+    // Bisa diklik/diketuk untuk memunculkan marker penanda di atas
+    // side karakter tujuan, dan otomatis hilang saat pemain mendekat.
     const questFont = pxToWorld(this, 15);
     this._questGuideText = this.add
       .text(0, 0, '', {
@@ -983,7 +1002,26 @@ export default class BasePlayerScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(30)
-      .setVisible(false);
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
+    this._questGuideText.on('pointerover', () => {
+      this._questGuideText?.setStyle({
+        color: '#ffffff',
+        backgroundColor: '#2f4d73ee',
+      });
+    });
+    this._questGuideText.on('pointerout', () => {
+      this._questGuideText?.setStyle({
+        color: '#ffdd57',
+        backgroundColor: '#1a1a2ecc',
+      });
+    });
+    this._questGuideText.on('pointerdown', (pointer) => {
+      pointer?.event?.stopPropagation?.();
+      this.triggerQuestTargetMarker();
+    });
+    this.registerLockable(this._questGuideText);
   }
 
   /** Gambar/ganti avatar wajah di dalam ring profil — dipanggil saat HUD
@@ -1062,6 +1100,10 @@ export default class BasePlayerScene extends Phaser.Scene {
       const questY = bounds.top + pxToWorld(this, 14) + r * 2 + pxToWorld(this, 10);
       this._questGuideText.setPosition(questX, questY);
       this._questGuideText.setFontSize(pxToWorld(this, 15));
+      if (!this._buttonsLocked) {
+        this._questGuideText.disableInteractive();
+        this._questGuideText.setInteractive({ useHandCursor: true });
+      }
     }
   }
 
@@ -1077,6 +1119,181 @@ export default class BasePlayerScene extends Phaser.Scene {
   /** Sembunyikan penanda quest (dipanggil setelah quest selesai). */
   clearQuestGuide() {
     this._questGuideText?.setVisible(false);
+    this.hideQuestTargetMarker();
+  }
+
+  /**
+   * Ambil informasi koordinat target quest aktif (side karakter atau objek).
+   * Scene turunan dapat meng-override method ini jika punya target khusus
+   * (mis. pintu keluar kelas saat pemain sedang di dalam kelas pada Episode 1).
+   */
+  getQuestTargetInfo() {
+    if (this.npcSprite && this.npcSprite.visible !== false) {
+      const topY =
+        this.groundY - (this._npcVisualHeight || this.playerDisplayHeight || 220) - 46;
+      return {
+        x: this.npcSprite.x,
+        y: topY,
+        radius: this.npcConfig?.interactionRadius || 160,
+        label: this.npcConfig?.name || 'Karakter',
+      };
+    }
+    if (typeof this.phoneX === 'number') {
+      const topY = (this.phoneY || this.groundY - 120) - 52;
+      return {
+        x: this.phoneX,
+        y: topY,
+        radius: 160,
+        label: 'Ponsel',
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Munculkan marker penanda di atas side karakter ketika pemain menekan
+   * hint quest guide ("○ ── Ajak bicara ... ──"). Marker akan otomatis
+   * hilang begitu karakter pemain mendekati side karakter tersebut.
+   */
+  triggerQuestTargetMarker() {
+    const target = this.getQuestTargetInfo();
+    if (!target) return;
+
+    this.hideQuestTargetMarker();
+    this._questMarkerActive = true;
+
+    // 1. Marker di atas kepala side karakter (world space)
+    const markerContainer = this.add.container(target.x, target.y).setDepth(35);
+
+    const pulseRing = this.add
+      .circle(0, 18, 22, 0xffdd57, 0.18)
+      .setStrokeStyle(2, 0xffdd57, 0.85);
+
+    const labelFont = pxToWorld(this, 14);
+    const badgeText = this.add
+      .text(0, -14, target.label.toUpperCase(), {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${labelFont}px`,
+        color: '#14122a',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
+    const padX = pxToWorld(this, 18);
+    const padY = pxToWorld(this, 10);
+    const badgeBg = this.add
+      .rectangle(
+        0,
+        -14,
+        badgeText.width + padX,
+        badgeText.height + padY,
+        0xffdd57,
+        0.96,
+      )
+      .setStrokeStyle(2, 0x14122a, 1);
+
+    // Segitiga panah menunjuk ke bawah ke arah side karakter
+    const arrowTriangle = this.add
+      .triangle(0, 10, -10, -4, 10, -4, 0, 12, 0xffdd57, 1)
+      .setStrokeStyle(2, 0x14122a, 1);
+
+    markerContainer.add([pulseRing, badgeBg, badgeText, arrowTriangle]);
+    this._questMarkerContainer = markerContainer;
+
+    this.tweens.add({
+      targets: markerContainer,
+      y: target.y - 12,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    this.tweens.add({
+      targets: pulseRing,
+      scaleX: { from: 0.85, to: 1.45 },
+      scaleY: { from: 0.85, to: 1.45 },
+      alpha: { from: 0.75, to: 0.05 },
+      duration: 850,
+      repeat: -1,
+      ease: 'Sine.easeOut',
+    });
+
+    // 2. Indikator arah di tepi layar jika side karakter sedang berada di luar pandangan kamera
+    const edgeFont = pxToWorld(this, 15);
+    this._questEdgeIndicator = this.add
+      .text(0, 0, '', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${edgeFont}px`,
+        color: '#14122a',
+        backgroundColor: '#ffdd57',
+        padding: { x: 10, y: 5 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(36)
+      .setVisible(false);
+
+    this._updateQuestTargetMarker();
+  }
+
+  hideQuestTargetMarker() {
+    this._questMarkerActive = false;
+    if (this._questMarkerContainer) {
+      this.tweens?.killTweensOf(this._questMarkerContainer);
+      this._questMarkerContainer.destroy();
+      this._questMarkerContainer = null;
+    }
+    if (this._questEdgeIndicator) {
+      this._questEdgeIndicator.destroy();
+      this._questEdgeIndicator = null;
+    }
+  }
+
+  _updateQuestTargetMarker() {
+    if (!this._questMarkerActive) return;
+    if (this.npcInDialogue || this.phoneInDialogue || this.dialogueBox?.isOpen) {
+      this.hideQuestTargetMarker();
+      return;
+    }
+
+    const target = this.getQuestTargetInfo();
+    if (!target || !this.player) {
+      this.hideQuestTargetMarker();
+      return;
+    }
+
+    // Ketika karakter pemain sudah mendekat ke side karakter, hilangkan marker otomatis
+    const dist = Math.abs(this.player.x - target.x);
+    if (dist <= target.radius) {
+      this.hideQuestTargetMarker();
+      return;
+    }
+
+    if (this._questMarkerContainer) {
+      this._questMarkerContainer.x = target.x;
+    }
+
+    // Update indikator tepi layar bila side karakter di luar kamera
+    if (this._questEdgeIndicator) {
+      const bounds = getVisibleBounds(this);
+      const cam = this.cameras.main;
+      const screenX = target.x - cam.scrollX;
+      const minScreenX = bounds.left + pxToWorld(this, 64);
+      const maxScreenX = bounds.right - pxToWorld(this, 64);
+
+      if (screenX < minScreenX) {
+        this._questEdgeIndicator.setText(`◄ ${target.label}`);
+        this._questEdgeIndicator.setPosition(minScreenX, bounds.centerY - pxToWorld(this, 40));
+        this._questEdgeIndicator.setVisible(true);
+      } else if (screenX > maxScreenX) {
+        this._questEdgeIndicator.setText(`${target.label} ►`);
+        this._questEdgeIndicator.setPosition(maxScreenX, bounds.centerY - pxToWorld(this, 40));
+        this._questEdgeIndicator.setVisible(true);
+      } else {
+        this._questEdgeIndicator.setVisible(false);
+      }
+    }
   }
 
   createPauseButton(width) {
@@ -1191,10 +1408,7 @@ export default class BasePlayerScene extends Phaser.Scene {
         .then(() => {
           this._updateFullscreenIcon();
           setTimeout(() => {
-            if (this.scale) {
-              this.scale.refresh();
-              this._repositionUI();
-            }
+            this._applyViewportReflow?.();
           }, 100);
           try {
             const orientation = window.screen?.orientation;
@@ -1217,10 +1431,7 @@ export default class BasePlayerScene extends Phaser.Scene {
         .then(() => {
           this._updateFullscreenIcon();
           setTimeout(() => {
-            if (this.scale) {
-              this.scale.refresh();
-              this._repositionUI();
-            }
+            this._applyViewportReflow?.();
           }, 100);
         })
         .catch(() => {});
@@ -1253,9 +1464,9 @@ export default class BasePlayerScene extends Phaser.Scene {
    * Memungkinkan pemain membuka kembali ringkasan objektif/hint episode kapan saja.
    */
   createObjectiveHintButton(width) {
-    const wPx = 52;
+    const wPx = 56;
     const hPx = 40;
-    const fontPx = 18;
+    const fontPx = 19;
     this._hintBtnSize = {
       w: pxToWorld(this, wPx),
       h: pxToWorld(this, hPx),
@@ -1276,10 +1487,10 @@ export default class BasePlayerScene extends Phaser.Scene {
     this._hintBtn.setInteractive({ useHandCursor: true });
 
     this._hintBtnText = this.add
-      .text(width - 160, 36, '🎯', {
-        fontFamily: 'monospace, "Segoe UI Emoji"',
+      .text(width - 160, 36, 'MISI', {
+        fontFamily: '"Jersey 15", monospace',
         fontSize: `${this._hintBtnSize.font}px`,
-        color: '#ffffff',
+        color: '#ffdd57',
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
@@ -1315,20 +1526,93 @@ export default class BasePlayerScene extends Phaser.Scene {
     const episodeData = getEpisodeById(this.episodeId ?? 1);
     const objectiveText =
       episodeData?.objective ??
-      'Kenali situasi di sekitarmu, tentukan batasan diri dengan asertif, dan cari bantuan orang tepercaya.';
+      'Kenali situasi di sekitarmu, berani bicara jujur, dan cari bantuan orang yang kamu percaya.';
 
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
     this.player?.anims?.stop?.();
 
     this.objectiveBriefing.show({
-      title: '🎯 TUJUAN EPISODE',
+      title: 'TUJUAN EPISODE',
       objectiveText,
       promptLabel: 'TEKAN UNTUK KEMBALI KE GAME',
       onContinue: () => {
         this.uiInputLocked = false;
       },
     });
+  }
+
+  /**
+   * Tombol "KONTROL" di sebelah kiri tombol MISI untuk membuka
+   * kembali tutorial kontrol interaktif kapan saja.
+   */
+  createControlTutorialButton(width) {
+    const wPx = 76;
+    const hPx = 40;
+    const fontPx = 18;
+    this._ctrlBtnSize = {
+      w: pxToWorld(this, wPx),
+      h: pxToWorld(this, hPx),
+      font: pxToWorld(this, fontPx),
+    };
+
+    this._ctrlBtn = this.add.rectangle(
+      width - 236,
+      36,
+      this._ctrlBtnSize.w,
+      this._ctrlBtnSize.h,
+      0x1a1a2e,
+      0.6,
+    );
+    this._ctrlBtn.setStrokeStyle(2, 0xffffff, 0.55);
+    this._ctrlBtn.setScrollFactor(0);
+    this._ctrlBtn.setDepth(20);
+    this._ctrlBtn.setInteractive({ useHandCursor: true });
+
+    this._ctrlBtnText = this.add
+      .text(width - 236, 36, 'KONTROL', {
+        fontFamily: '"Jersey 15", monospace',
+        fontSize: `${this._ctrlBtnSize.font}px`,
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(21)
+      .setInteractive({ useHandCursor: true });
+
+    this._ctrlBtn.on('pointerdown', () => this.toggleControlTutorial());
+    this._ctrlBtnText.on('pointerdown', () => this.toggleControlTutorial());
+
+    this._ctrlBtn.on('pointerover', () => {
+      this._ctrlBtn.setFillStyle(0xffffff, 0.22);
+    });
+    this._ctrlBtn.on('pointerout', () => {
+      this._ctrlBtn.setFillStyle(0x1a1a2e, 0.6);
+    });
+
+    this.registerLockable(this._ctrlBtn);
+  }
+
+  startControlTutorial({ force = false } = {}) {
+    if (!this.scene?.isActive() || !this.sys?.game) return;
+    if (this.isPaused) return;
+    if (!this.controlTutorial) {
+      this.controlTutorial = new ControlTutorialOverlay(this);
+    }
+    this.controlTutorial.show({ force });
+  }
+
+  toggleControlTutorial() {
+    if (!this.scene?.isActive() || !this.sys?.game) return;
+    if (this.isPaused) return;
+    if (!this.controlTutorial) {
+      this.controlTutorial = new ControlTutorialOverlay(this);
+    }
+    if (this.controlTutorial.isOpen) {
+      this.controlTutorial.close();
+    } else {
+      this.controlTutorial.show({ force: true });
+    }
   }
 
   createPauseMenu() {
@@ -1348,7 +1632,7 @@ export default class BasePlayerScene extends Phaser.Scene {
     // dipakai EpisodeSelectScene.
     const container = this.add
       .container(0, 0)
-      .setDepth(100)
+      .setDepth(900)
       .setVisible(false)
       .setScrollFactor(0);
     this.pauseMenuContainer = container;
@@ -1375,7 +1659,8 @@ export default class BasePlayerScene extends Phaser.Scene {
 
     const overlay = this.add
       .rectangle(cx, cy, bounds.width, bounds.height, 0x000000, 0.7)
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setInteractive();
     container.add(overlay);
 
     const panel = this.add
@@ -1578,6 +1863,24 @@ export default class BasePlayerScene extends Phaser.Scene {
       this._hintBtnText.setFontSize(hintFont);
     }
 
+    // Tombol tutorial kontrol: di samping kiri tombol MISI
+    const ctrlW = pxToWorld(this, 76);
+    const ctrlH = pxToWorld(this, pauseHPx);
+    const ctrlFont = pxToWorld(this, 18);
+    const ctrlX = hintX - hintW / 2 - gapWorld - ctrlW / 2;
+    const ctrlY = pauseY;
+
+    if (this._ctrlBtn) {
+      this._ctrlBtn.setPosition(ctrlX, ctrlY);
+      this._ctrlBtn.setSize(ctrlW, ctrlH);
+      this._ctrlBtn.disableInteractive();
+      this._ctrlBtn.setInteractive({ useHandCursor: true });
+    }
+    if (this._ctrlBtnText) {
+      this._ctrlBtnText.setPosition(ctrlX, ctrlY);
+      this._ctrlBtnText.setFontSize(ctrlFont);
+    }
+
     this._repositionPauseMenu();
 
     // Tombol chat: kembalikan ke posisi FRAKSI yang tersimpan (kalau
@@ -1618,14 +1921,6 @@ export default class BasePlayerScene extends Phaser.Scene {
     if (!btn) return;
     btn.circle.setPosition(x, y);
     btn.circle.setRadius(radius);
-    // PENTING: setRadius() TIDAK otomatis memperbarui hit area interaktif
-    // — Phaser menyimpan hit area sebagai snapshot geometri pada saat
-    // setInteractive() pertama kali dipanggil. Kalau ini tidak
-    // di-refresh, area yang benar-benar bisa di-tap jadi tidak sinkron
-    // dengan ukuran visual tombol setelah resize/rotasi (gejala persis
-    // "tombol kelihatan tapi tidak bisa diklik" setelah ganti orientasi).
-    // Solusi paling aman: matikan lalu aktifkan ulang interactive supaya
-    // hit area dihitung ulang dari ukuran barunya.
     btn.circle.disableInteractive();
     btn.circle.setInteractive({ useHandCursor: true });
     btn.text.setPosition(x, y);
@@ -1650,10 +1945,6 @@ export default class BasePlayerScene extends Phaser.Scene {
     this.pauseMenuContainer.setVisible(this.isPaused);
 
     if (this.isPaused) {
-      // Hentikan dulu suara langkah kaki yang mungkin sedang berbunyi,
-      // dan bekukan fisika supaya karakter tidak diam-diam terus
-      // bergerak/lompat di belakang menu jeda.
-      // (Listener animationupdate otomatis berhenti saat animasi berhenti.)
       this.physics.world.pause();
     } else {
       this.physics.world.resume();
@@ -1680,9 +1971,12 @@ export default class BasePlayerScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    const inAnyDialogue =
+      this.npcInDialogue || this.phoneInDialogue || this.dialogueBox?.isOpen;
+
     if (
       this._pendingViewportRestart &&
-      !this.npcInDialogue &&
+      !inAnyDialogue &&
       !this.uiInputLocked &&
       !this.isPaused &&
       !this.finished
@@ -1691,27 +1985,23 @@ export default class BasePlayerScene extends Phaser.Scene {
       return;
     }
 
-    // ESC selalu dicek duluan, baik untuk membuka maupun menutup menu
-    // jeda — TAPI khusus untuk MEMBUKA menu jeda (belum isPaused),
-    // sekarang diblokir selama uiInputLocked (dialog NPC atau overlay
-    // React lain sedang aktif). FIX: dulu ESC tetap bisa membuka menu
-    // jeda kapan pun, termasuk di tengah dialog dengan NPC — dari sana
-    // pemain bisa pilih "Mulai Ulang dari Awal"/"Pilih Episode" dan
-    // scene langsung pindah TANPA dialog box sempat menutup dirinya
-    // sendiri secara normal, meninggalkan listener resize/keyboard
-    // yang nyangkut dan memicu crash "reading 'sys' of undefined" saat
-    // scene lain dibuka berikutnya (lihat juga jaring pengaman kedua
-    // di DialogueBox.js). Menutup menu jeda yang SUDAH terbuka (ESC
-    // kedua) tetap selalu diizinkan.
+    if (inAnyDialogue) {
+      this.controlTutorial?.notifyAction?.('interact');
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
-      if (this.isPaused || !this.uiInputLocked) {
+      const justExitedFullscreen =
+        Date.now() - (this._lastFullscreenChangeAt || 0) < 400;
+      if (!justExitedFullscreen && (this.isPaused || (!this.uiInputLocked && !inAnyDialogue))) {
         this.togglePause();
       }
     }
     if (this.isPaused) {
+      this._updatePortraitCamera();
       return;
     }
     if (this.uiInputLocked) {
+      this._updatePortraitCamera();
       return;
     }
 
@@ -1730,10 +2020,18 @@ export default class BasePlayerScene extends Phaser.Scene {
       this.touchState.right;
     const currentDirection = goLeftInput ? -1 : goRightInput ? 1 : 0;
 
+    if (currentDirection !== 0) {
+      this.controlTutorial?.notifyAction?.('walk');
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.shiftKeyLeft)) {
       this.touchState.runToggle = !this.touchState.runToggle;
+      this.controlTutorial?.notifyAction?.('run');
     }
     const isRunning = this.touchState.runToggle;
+    if (isRunning) {
+      this.controlTutorial?.notifyAction?.('run');
+    }
     const speed = isRunning ? RUN_SPEED : WALK_SPEED;
 
     if (this.btnRun && this.lastRunVisual !== isRunning) {
@@ -1746,6 +2044,7 @@ export default class BasePlayerScene extends Phaser.Scene {
     }
 
     if (jumpJustPressed && !this.isJumping) {
+      this.controlTutorial?.notifyAction?.('jump');
       this.isJumping = true;
       this.jumpLocksMovement = currentDirection === 0;
       this.audioManager?.playJump();
@@ -1772,10 +2071,6 @@ export default class BasePlayerScene extends Phaser.Scene {
           this.isJumping = false;
           this.jumpLocksMovement = false;
           this.player.y = this.groundY;
-          // Catatan: AudioManager belum punya bunyi khusus "mendarat",
-          // cuma playJump() untuk lepas landas. Kalau nanti mau
-          // ditambah, tinggal buat method playLand() baru di
-          // AudioManager.js lalu panggil di sini.
         },
       });
     }
@@ -1796,6 +2091,7 @@ export default class BasePlayerScene extends Phaser.Scene {
       }
       this.player.setScale(this.spriteScale);
       this._updatePortraitCamera();
+      this._updateQuestTargetMarker();
       this.onSceneUpdate(time, delta);
       return;
     }
@@ -1806,9 +2102,6 @@ export default class BasePlayerScene extends Phaser.Scene {
       this.player.setVelocityX(-speed);
       this.player.setFlipX(true);
       this.player.setScale(this.spriteScale);
-      // SFX footstep di-trigger oleh listener animationupdate di
-      // _registerFootstepListeners(), bukan di sini — jadi ritme bunyi
-      // selalu selaras dengan frame animasi, bukan frame rate game.
       this.player.play(animKey, true);
     } else if (currentDirection === 1) {
       this.player.setVelocityX(speed);
@@ -1823,63 +2116,33 @@ export default class BasePlayerScene extends Phaser.Scene {
     }
 
     this._updatePortraitCamera();
+    this._updateQuestTargetMarker();
     this.onSceneUpdate(time, delta);
   }
 
-  /**
-   * Geser kamera secara MANUAL tiap frame — dipakai UNIVERSAL untuk
-   * semua orientasi (dulu cuma portrait, sekarang landscape juga pakai
-   * skema yang sama persis, sesuai permintaan supaya landscape ikut
-   * bisa "mentok baru kamera follow"). Clamp di sini pakai LEBAR AREA
-   * YANG BENAR-BENAR TERLIHAT (visBounds.width, hasil crop ENVELOP kalau
-   * ada), bukan lebar viewport kamera penuh seperti Camera.startFollow()
-   * bawaan Phaser.
-   *
-   * Kalau this.levelWidth <= visBounds.width (level sudah muat penuh di
-   * layar — kasus umum landscape dengan background natural yang pas/
-   * lebih sempit dari layar), minScroll & maxScroll di bawah otomatis
-   * sama-sama 0, jadi kamera otomatis diam — PERSIS seperti perilaku
-   * statis yang dulu di-hardcode khusus landscape, tapi sekarang
-   * didapat "gratis" dari rumus yang sama tanpa percabangan kode.
-   */
-  _updatePortraitCamera() {
+  _updatePortraitCamera(immediate = false) {
     if (!this.player) return;
 
     const visBounds = getVisibleBounds(this);
 
-    // Batas scroll minimum & maksimum supaya jendela yang BENAR-BENAR
-    // terlihat (bukan lebar dunia game penuh) tidak pernah menampilkan
-    // area di luar level (kosong di kiri sebelum x=0, atau kosong di
-    // kanan setelah x=levelWidth). Kedua batas ini WAJIB ikut
-    // memperhitungkan visBounds.left (offset crop) — lihat penjelasan
-    // panjang di bawah pada targetScroll kalau masih bingung kenapa.
     const minScroll = -visBounds.left;
     const maxScroll = Math.max(
       minScroll,
       this.levelWidth - visBounds.left - visBounds.width,
     );
 
-    // PENTING: target scroll harus memperhitungkan visBounds.left
-    // (offset crop ENVELOP), bukan cuma visBounds.width saja.
-    // Kalau ada crop tersisa (mis. dari pembulatan dynamicWidth di
-    // syncGameSizeToOrientation), world x=0 TIDAK berada di tepi kiri
-    // layar — ia berada visBounds.left unit di sebelah kiri area yang
-    // benar-benar terlihat. Rumus lama (`player.x - visBounds.width/2`)
-    // mengabaikan offset ini sama sekali, sehingga saat crop cukup
-    // besar, jendela kamera yang benar-benar tampil di layar bisa
-    // sama sekali tidak menyentuh posisi karakter — karakter jadi
-    // "hilang" (dirender di luar area yang ke-crop, walau clamp scroll
-    // itu sendiri terlihat masuk akal di atas kertas).
     const targetScroll = Phaser.Math.Clamp(
       this.player.x - visBounds.left - visBounds.width / 2,
       minScroll,
       maxScroll,
     );
 
-    // Sedikit smoothing (lerp) supaya kamera tidak "nempel kaku" ke
-    // karakter — nilai 0.1 dipilih senada dengan lerp startFollow yang
-    // dipakai sebelumnya, terasa halus tapi tetap responsif.
     const cam = this.cameras.main;
-    cam.scrollX = Phaser.Math.Linear(cam.scrollX, targetScroll, 0.1);
+    if (immediate) {
+      cam.scrollX = targetScroll;
+    } else {
+      const clampedCurrent = Phaser.Math.Clamp(cam.scrollX, minScroll, maxScroll);
+      cam.scrollX = Phaser.Math.Linear(clampedCurrent, targetScroll, 0.1);
+    }
   }
 }

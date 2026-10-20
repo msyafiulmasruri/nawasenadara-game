@@ -126,16 +126,16 @@ export const EPISODE5_DIALOGUE = {
     n1b: {
       id: 'n1b',
       speaker: 'kirana',
-      text: '"E-eh, kamu mencariku, {PLAYER_NAME}? Aku cuma lagi capek saja kok... Tidak ada apa-apa."',
+      text: '"E-eh, kamu nyariin aku ya, {PLAYER_NAME}? Aku cuma lagi agak capek aja kok... Nggak ada apa-apa."',
       dynamic: true,
       situationHint:
-        'Aku Kirana, sahabat Sekar. Belakangan aku menarik diri dan cemas. Sekar menemuiku di taman. Aku belum siap bercerita sehingga bilang hanya lelah.',
+        'Aku Kirana, sahabat Sekar. Belakangan aku menarik diri dan cemas. Sekar menemuiku di taman. Aku belum siap bercerita sehingga bilang hanya capek.',
       next: 'n1c',
     },
     n1c: {
       id: 'n1c',
       speaker: 'narration',
-      text: 'Kamu duduk di samping Kirana di bangku kayu taman, lalu menyodorkan sekotak susu dingin dan sepotong roti manis untuk mencairkan ketegangan.',
+      text: 'Kamu duduk di samping Kirana di bangku kayu taman, lalu menyodorkan sekotak susu dingin dan sepotong roti manis untuk mencairkan suasana.',
       next: 'n_icebreak',
     },
 
@@ -143,7 +143,7 @@ export const EPISODE5_DIALOGUE = {
     n_icebreak: {
       id: 'n_icebreak',
       speaker: 'narration',
-      text: 'Kirana menatap minuman itu dengan ragu. Bagaimana {PLAYER_NAME} membuka percakapan?',
+      text: 'Kirana menatap minuman itu dengan ragu. Gimana cara {PLAYER_NAME} mulai ngobrol?',
       choices: [
         {
           id: 'a',
@@ -153,13 +153,13 @@ export const EPISODE5_DIALOGUE = {
         },
         {
           id: 'b',
-          label: '"Belakangan ini sering melamun, ada masalah kah? Kalau butuh teman cerita, kabari ya."',
+          label: '"Belakangan ini kamu sering ngelamun, lagi ada masalah ya? Kalau butuh teman cerita, kabari aja."',
           emotion: 'netral',
           next: 'n_icebreak_res_b',
         },
         {
           id: 'c',
-          label: '"Kamu jelas menyembunyikan sesuatu. Kenapa rahasia-rahasiaan dan menjauh dariku gini?"',
+          label: '"Kamu pasti nyembunyiin sesuatu kan? Kok sekarang main rahasia-rahasiaan sama aku?"',
           emotion: 'menyinggung',
           next: 'n_icebreak_res_c',
         },
@@ -169,33 +169,33 @@ export const EPISODE5_DIALOGUE = {
     n_icebreak_res_a: {
       id: 'n_icebreak_res_a',
       speaker: 'kirana',
-      text: '"Makasih banyak ya, {PLAYER_NAME}... Duduk berdua sama kamu rasanya bikin kepalaku sedikit lebih adem."',
+      text: '"Makasih banyak ya, {PLAYER_NAME}... Duduk berdua sama kamu gini bikin kepalaku lumayan adem."',
       dynamic: true,
-      situationHint: 'Aku menawarkan ruang santai tanpa memaksa, membuat Kirana merasa aman dan dihargai.',
+      situationHint: 'Aku menawarkan ruang santai tanpa memaksa, membuat Kirana merasa aman dan nyaman.',
       next: 'n2_shift',
     },
     n_icebreak_res_b: {
       id: 'n_icebreak_res_b',
       speaker: 'kirana',
-      text: '"Makasih sudah peduli... Aku belum tahu harus mulai cerita dari mana, tapi jangan pergi dulu ya."',
+      text: '"Makasih udah peduli ya... Aku bingung mau mulai cerita dari mana, tapi temani aku bentar di sini ya."',
       dynamic: true,
-      situationHint: 'Aku bertanya secara umum, Kirana menjawab sopan namun meminta ditemani sebentar.',
+      situationHint: 'Aku bertanya dengan santai, Kirana berterima kasih dan minta ditemani sebentar.',
       next: 'n2_shift',
     },
     n_icebreak_res_c: {
       id: 'n_icebreak_res_c',
       speaker: 'kirana',
-      text: '"Aku tidak bermaksud begitu... Aku cuma takut kalau kamu tahu, kamu juga bakal menyalahkanku."',
+      text: '"Aku nggak maksud gitu kok... Aku cuma takut kalau cerita, nanti kamu malah ikut nyalahin aku."',
       dynamic: true,
-      situationHint: 'Aku mendesak Kirana, membuatnya merasa tersudut dan takut disalahkan.',
+      situationHint: 'Aku mendesak Kirana, membuatnya merasa pojok dan takut disalahkan.',
       next: 'n2_shift',
     },
     n_icebreak_res_d: {
       id: 'n_icebreak_res_d',
       speaker: 'kirana',
-      text: '"Maaf ya, {PLAYER_NAME}... Aku sama sekali tidak bermaksud menjauhimu. Aku cuma lagi takut banget sama diriku sendiri."',
+      text: '"Maaf ya, {PLAYER_NAME}... Aku nggak bermaksud ngejauh. Aku cuma lagi takut banget."',
       dynamic: true,
-      situationHint: 'Aku mengeluhkan sikapnya yang menjauh, membuat Kirana merasa menjadi beban teman.',
+      situationHint: 'Aku mengeluhkan sikapnya yang menjauh, membuat Kirana merasa bersalah.',
       next: 'n2_shift',
     },
 
@@ -203,37 +203,37 @@ export const EPISODE5_DIALOGUE = {
     n2_shift: {
       id: 'n2_shift',
       speaker: 'narration',
-      text: 'Suasana taman kembali hening sejenak, ditemani desau angin sore di dedaunan. Namun ketenangan itu mendadak pecah...',
+      text: 'Suasana taman kembali hening sejenak, ditemani angin sore. Tapi tiba-tiba ketenangan itu pecah...',
       next: 'n2_threat',
     },
     n2_threat: {
       id: 'n2_threat',
       speaker: 'narration',
-      text: 'Bzzzt! Bzzzt! Bzzzt! Ponsel di saku Kirana bergetar keras tanpa henti. Di layar yang menyala, rentetan pesan teks masuk bertubi-tubi dengan kata-kata penuh amarah, tuntutan posesif, dan ancaman. Kirana panik gemetar hebat sampai kotak susunya terjatuh ke tanah.',
+      text: 'Bzzzt! Bzzzt! Bzzzt! HP di saku Kirana bergetar terus-menerus. Di layarnya muncul banyak pesan chat berisi bentakan dan ancaman. Kirana gemetaran hebat sampai kotak susunya jatuh.',
       next: 'n2_mark',
     },
     n2_mark: {
       id: 'n2_mark',
       speaker: 'narration',
-      text: 'Saat tangannya bergerak panik mencoba mematikan layar ponsel, lengan seragam Kirana tersingkap—tampak jelas bekas cengkeraman kemerahan yang membiru di pergelangan tangannya!',
+      text: 'Waktu Kirana buru-buru mematikan layar HP-nya, lengan seragamnya tersingkap—terlihat bekas cengkeraman kemerahan di pergelangan tangannya!',
       next: 'n3_confession',
     },
     n3_confession: {
       id: 'n3_confession',
       speaker: 'kirana',
-      text: '"Orang yang dekat denganku sering memeriksa isi ponselku, melarangku berteman sama siapa pun, dan membentakku di depan umum. Kemarin tanganku dicengkeram saat aku menolak permintaannya... Dia mengancam aku bakal menyesal seumur hidup kalau berani cerita ke siapa pun."',
+      text: '"Dia sering banget ngecek HP-ku, ngelarang aku main sama teman-teman, terus ngebentak aku. Kemarin tanganku dicengkeram keras waktu aku nolak... Dia ngancam aku bakal nyesel kalau berani cerita ke siapa-siapa."',
       dynamic: true,
       situationHint:
-        'Aku akhirnya memberanikan diri membuka tanda kekerasan dan kontrol posesif dari seseorang yang dekat denganku: ponsel diperiksa, dibentak, tangan dicengkeram, dan diancam agar diam.',
+        'Aku menceritakan perlakuan kasar dari orang dekatku: HP dicek, dibentak, tangan dicengkeram, dan diancam jangan cerita.',
       next: 'n4_plea',
     },
     n4_plea: {
       id: 'n4_plea',
       speaker: 'kirana',
-      text: '"Bel sekolah sudah berbunyi... Koridor mulai sepi. Aku bingung harus melangkah ke mana, {PLAYER_NAME}... Aku takut kalau melapor, dia makin nekat mencelakaiku. Aku harus bagaimana?"',
+      text: '"Sekolah udah mulai sepi... Aku bingung harus gimana, {PLAYER_NAME}. Aku takut kalau ngadu, dia malah makin nekat nyakitin aku. Aku harus gimana?"',
       dynamic: true,
       situationHint:
-        'Aku bingung dan ketakutan akan keselamatan diriku. Aku meminta pendapat dan perlindungan dari sahabatku Sekar.',
+        'Aku bingung dan ketakutan. Aku meminta pendapat dan bantuan sahabatku.',
       next: 'n_action',
     },
 
@@ -241,23 +241,23 @@ export const EPISODE5_DIALOGUE = {
     n_action: {
       id: 'n_action',
       speaker: 'narration',
-      text: 'Kirana dilanda ketakutan mendalam dan kebingungan. Langkah apa yang ditawarkan {PLAYER_NAME} untuk mendampingi dan melindungi sahabatmu?',
+      text: 'Kirana tampak ketakutan dan bingung. Apa yang kamu lakukan untuk membantu sahabatmu?',
       choices: [
         {
           id: 'a',
-          label: '"Ini bukan salahmu, Ran. Ayo temui Bu Ratih di ruang BK sekarang, aku dampingi kamu."',
+          label: '"Ini bukan salahmu, Ran. Ayo kita ke Bu Ratih di ruang BK sekarang, aku temani kamu."',
           emotion: 'aman',
           next: 'cutsceneA1',
         },
         {
           id: 'b',
-          label: '"Tarik napas dulu, Ran. Kita istirahat di halte sore ini. Besok kalau sudah siap, kita temui Bu Ratih bareng-bareng."',
+          label: '"Tarik napas dulu ya, Ran. Kita duduk di halte sore ini, besok kita ke Bu Ratih bareng-bareng."',
           emotion: 'netral',
           next: 'cutsceneB1',
         },
         {
           id: 'c',
-          label: '"Kurang ajar! Kasih tahu siapa namanya, biar kulabrak dan kuhajar dia sekarang juga!"',
+          label: '"Parah banget dia! Kasih tahu namanya, biar kulabrak dia sekarang juga!"',
           emotion: 'marah',
           next: 'cutsceneC1',
         },
@@ -366,16 +366,16 @@ export const EPISODE5_DIALOGUE = {
     cutsceneC4: {
       id: 'cutsceneC4',
       speaker: 'narration',
-      text: 'Melindungi sahabat bukan dengan cara menjadi pahlawan yang main hakim sendiri, melainkan mendengarkan kebutuhan korban dan mencari perlindungan bersama pihak berwenang tepercaya.',
+      text: 'Membantu teman bukan dengan cara nekat menghadapi orang itu sendirian, tapi dengan mendengarkan perasaannya dan mencari bantuan orang dewasa yang aman.',
       next: 'n8c',
     },
     n8c: {
       id: 'n8c',
       speaker: 'narration',
-      text: 'Konfrontasi tanpa rencana pengamanan dapat memperburuk eskalasi kekerasan. Utamakan selalu keselamatan dan persetujuan korban sebelum mengambil tindakan.',
+      text: 'Menghadapi orang yang mengancam tanpa persiapan bisa membahayakan kalian berdua. Selalu utamakan keselamatan dan ajak temanmu melapor bersama.',
     },
 
-    // --- CABANG D: PASIF / MENYERAH (BAHAYA MEMBIARKAN KEKERASAN) ---
+    // --- CABANG D: PASIF / MENYERAH ---
     cutsceneD1: {
       id: 'cutsceneD1',
       speaker: 'narration',
@@ -393,19 +393,19 @@ export const EPISODE5_DIALOGUE = {
     cutsceneD3: {
       id: 'cutsceneD3',
       speaker: 'narration',
-      text: 'Menatap sahabatmu yang putus asa membuat hatimu sesak. Kamu menyadari bahwa menyuruh korban bersabar dan pasrah pada kekerasan hanya akan memperdalam trauma batin.',
+      text: 'Menatap sahabatmu yang putus asa membuat hatimu sesak. Menyuruh teman pasrah dan diam saja saat diperlakukan kasar justru membuatnya semakin terluka.',
       next: 'cutsceneD4',
     },
     cutsceneD4: {
       id: 'cutsceneD4',
       speaker: 'narration',
-      text: 'Membiarkan kekerasan terus berlanjut tanpa perlawanan dan bantuan aman akan membiarkan pelaku terus berkuasa. Memutus rantai ketakutan membutuhkan keberanian mencari uluran tangan yang aman.',
+      text: 'Membiarkan perlakuan kasar terus berlangsung hanya akan membuat orang itu makin leluasa. Keberanian mencari bantuan adalah langkah awal untuk bebas dari rasa takut.',
       next: 'n8d',
     },
     n8d: {
       id: 'n8d',
       speaker: 'narration',
-      text: 'Jangan biarkan sahabatmu menanggung kekerasan seorang diri. Selalu ada pintu bantuan yang aman di sekolah seperti guru BK dan pihak konseling.',
+      text: 'Jangan biarkan sahabatmu menanggung beban berat ini sendirian. Guru BK dan pihak sekolah selalu siap menjadi tempat aman untuk bercerita.',
     },
 
     // --- ALIASES UNTUK BACKWARD COMPATIBILITY ---

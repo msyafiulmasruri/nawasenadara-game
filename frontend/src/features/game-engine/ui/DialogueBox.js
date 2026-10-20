@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getVisibleBounds, pxToWorld } from '../utils/visibleBounds';
+import speechVoiceManager from '../audio/SpeechVoiceManager';
 
 // Dialog box gaya "Harvest Moon: Back to Nature" — label nama
 // pembicara menempel di atas kotak teks, dan (kalau node dialog itu
@@ -131,8 +132,19 @@ export default class DialogueBox {
 
     this._collectedChoices = [];
     this._lastChoiceLabel = null;
+    this._lastCharacterSpeaker = null;
+    this._lastCharacterText = null;
+    this._dynamicCache = new Map();
+    this._resolvedDynamicTexts = new Map();
+    this._lastBounds = null;
+    if (this._resizeTimer) {
+      clearTimeout(this._resizeTimer);
+      this._resizeTimer = null;
+    }
 
     this._buildStaticFrame();
+
+    this._prefetchInitialDynamicNodes();
 
     this._renderNode(dialogueTree.startNode);
 
@@ -147,21 +159,6 @@ export default class DialogueBox {
 
     this.scene.scale.on('resize', this._onResize, this);
 
-    // ============================================================
-    // SCENE SHUTDOWN SAFETY
-    // ============================================================
-    //
-    // Kalau scene berhenti secara paksa saat dialog masih aktif
-    // (misalnya restart / kembali pilih episode), DialogueBox harus
-    // dibersihkan supaya listener global seperti resize tidak tertinggal.
-    //
-    // close(true) artinya:
-    //
-    // - bersihkan dialog
-    // - JANGAN jalankan onClose()
-    //
-    // karena scene memang dihentikan secara paksa.
-    //
     this._shutdownHandler = () => this.close(true);
 
     this.scene.events.once('shutdown', this._shutdownHandler);
@@ -176,6 +173,15 @@ export default class DialogueBox {
 
     this.isOpen = false;
     this._customCardWidth = null;
+    this._lastCharacterSpeaker = null;
+    this._lastCharacterText = null;
+    this._dynamicCache?.clear();
+    this._resolvedDynamicTexts?.clear();
+    this._lastBounds = null;
+    if (this._resizeTimer) {
+      clearTimeout(this._resizeTimer);
+      this._resizeTimer = null;
+    }
 
     // Hentikan loading GenAI kalau masih aktif.
     this._stopLoadingDots();
@@ -240,7 +246,7 @@ export default class DialogueBox {
     // NAME TAG
     // ============================================================
 
-    const nameFont = pxToWorld(scene, 19);
+    const nameFont = pxToWorld(scene, 21);
 
     this._nameTagBg = scene.add
       .rectangle(
@@ -271,12 +277,12 @@ export default class DialogueBox {
     // ============================================================
     // HIDE / SHOW UI BUTTON (Untuk menikmati CG cutscene layar penuh)
     // ============================================================
-    const hideBtnFont = pxToWorld(scene, 13);
+    const hideBtnFont = pxToWorld(scene, 14);
     const hideBtnRight = cardX + cardWidth / 2 - 4;
     const hideBtnY = cardTop + (nameFont + 14) / 2;
 
     this._hideBtnText = scene.add
-      .text(hideBtnRight - 10, hideBtnY, '👁 Sembunyikan UI [H]', {
+      .text(hideBtnRight - 10, hideBtnY, 'Sembunyikan UI [H]', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${hideBtnFont}px`,
         color: '#93c5fd',
@@ -343,13 +349,13 @@ export default class DialogueBox {
 
     if (this._hideTextBoxBackground) {
       this._textBoxBg.setVisible(false);
-    } 
+    }
 
     // ============================================================
     // DIALOGUE TEXT
     // ============================================================
 
-    const dialogueFont = pxToWorld(scene, 18);
+    const dialogueFont = pxToWorld(scene, 20);
 
     this._dialogueText = scene.add
       .text(cardX - cardWidth / 2 + 16, textBoxTop + 14, '', {
@@ -363,7 +369,7 @@ export default class DialogueBox {
           width: cardWidth - 32,
         },
 
-        lineSpacing: 4,
+        lineSpacing: 5,
       })
       .setOrigin(0, 0);
 
@@ -373,19 +379,19 @@ export default class DialogueBox {
     // ADVANCE HINT
     // ============================================================
 
-    const hintFont = pxToWorld(scene, 13);
+    const hintFont = pxToWorld(scene, 14);
 
     this._advanceHint = scene.add
       .text(
         cardX + cardWidth / 2 - 14,
         textBoxTop + textBoxHeight - 10,
-        '[E] / Ketuk layar ▸',
+        '[E] / Spasi / Ketuk layar ▸',
         {
           fontFamily: '"Pixelify Sans", monospace',
 
           fontSize: `${hintFont}px`,
 
-          color: '#aaaaaa',
+          color: '#cbd5e1',
         },
       )
       .setOrigin(1, 1);
@@ -400,6 +406,17 @@ export default class DialogueBox {
 
     // Posisi awal pilihan jawaban.
     this._choicesStartY = textBoxTop + textBoxHeight + 12;
+
+    this._lastBounds = {
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+    };
+
+    // Pastikan seluruh child di dalam container mewarisi scrollFactor(0)
+    // agar hit-test tombol tidak bergeser sejauh camera.scrollX!
+    this._container.setScrollFactor(0, 0, true);
   }
 
   // ==============================================================
@@ -475,14 +492,13 @@ export default class DialogueBox {
   // ACTIVATE NODE INTERACTION
   // ==============================================================
 
-  _activateNodeInteraction(node) {
+  _activateNodeInteraction(node, guidePrompt = null, { isResize = false } = {}) {
     if (!this.isOpen) return;
 
     // Beri jeda kecil SETELAH teks sudah siap.
-    //
-    // Untuk node AI, berarti timer input baru dimulai setelah AI
-    // selesai menghasilkan dialog.
-    this._nodeReadyAt = this.scene.time.now + NODE_INPUT_GUARD_MS;
+    // Saat rebuild akibat resize/keluar fullscreen, jangan kunci input lagi
+    // supaya tombol E / ketuk layar / pilihan jawaban langsung merespons.
+    this._nodeReadyAt = isResize ? 0 : this.scene.time.now + NODE_INPUT_GUARD_MS;
 
     // ============================================================
     // NODE DENGAN CHOICES
@@ -491,7 +507,7 @@ export default class DialogueBox {
     if (Array.isArray(node.choices) && node.choices.length > 0) {
       this._advanceHint.setVisible(false);
 
-      this._renderChoices(node.choices);
+      this._renderChoices(node.choices, guidePrompt, { isResize });
 
       return;
     }
@@ -518,7 +534,7 @@ export default class DialogueBox {
     return this._speakerNames?.[node?.speaker] || this._npcName;
   }
 
-  _renderNode(nodeId) {
+  _renderNode(nodeId, { isResize = false } = {}) {
     const node = this._dialogueTree.nodes[nodeId];
 
     if (!node) {
@@ -529,15 +545,12 @@ export default class DialogueBox {
     // ============================================================
     // REQUEST SEQUENCE
     // ============================================================
-    //
-    // Setiap render node membuat sequence baru.
-    //
-    // Response AI dengan sequence lama akan diabaikan.
-    //
     const requestSeq = ++this._dynamicRequestSeq;
 
     this._currentNode = node;
-    this._onNodeChange?.(node);
+    if (!isResize) {
+      this._onNodeChange?.(node);
+    }
 
     // Hentikan loading node sebelumnya.
     this._stopLoadingDots();
@@ -553,54 +566,93 @@ export default class DialogueBox {
     this._nodeReadyAt = Number.POSITIVE_INFINITY;
 
     // ============================================================
-    // SPEAKER NAME
+    // SPEAKER NAME & GUIDE PANEL
     // ============================================================
 
     const isNarration = node.speaker === 'narration';
+    const isGuide = node.isGuide || node.speaker === 'dara_guide';
+    const hasChoices = Array.isArray(node.choices) && node.choices.length > 0;
 
-    if (isNarration) {
-      // Node narasi tidak punya pembicara fisik. Sembunyikan tab nama
-      // supaya teks seperti deskripsi kamar / isi grup chat tidak
-      // salah terlihat seolah-olah diucapkan oleh Rafi.
-      this._nameTag.setVisible(false);
-      this._nameTagBg.setVisible(false);
-    } else {
+    // Jika node memiliki pilihan dan speaker adalah narration (hanya berisi pertanyaan instruksional
+    // seperti "Gimana caramu merespons omongan Rafi?"), kita pisahkan dari obrolan:
+    // Box obrolan karakter tetap menampilkan ucapan karakter terakhir,
+    // sementara pertanyaan dipindahkan ke panel Panduan Kak Dara di bawah pilihan jawaban.
+    const isInstructionChoiceNode = hasChoices && isNarration && Boolean(this._lastCharacterText);
+
+    if (isInstructionChoiceNode) {
       this._nameTag.setVisible(true);
       this._nameTagBg.setVisible(true);
-
-      this._nameTag.setText(this._resolveSpeakerName(node));
-
+      this._nameTag.setText(this._lastCharacterSpeaker || this._npcName).setColor('#ffdd57');
+      this._nameTagBg.setFillStyle(0x243b55, 0.95).setStrokeStyle(2, 0xffdd57, 0.85);
       this._nameTagBg.setSize(
         this._nameTag.width + 24,
         this._nameTag.height + 14,
       );
+      this._textBoxBg?.setStrokeStyle(2, 0xffdd57, 0.6);
+      this._dialogueText.setText(this._lastCharacterText);
+
+      const prompt = this._substitute(node.text);
+      this._activateNodeInteraction(node, prompt, { isResize });
+      return;
     }
+
+    if (isGuide) {
+      // Guide Panel terpisah: biarkan kotak dialog atas menampilkan ucapan karakter terakhir
+      // (atau judul situasi), sementara panduan Kak Dara muncul dengan motion di bagian bawah!
+      this._nameTag.setVisible(true);
+      this._nameTagBg.setVisible(true);
+      this._nameTag.setText(this._lastCharacterSpeaker || this._npcName).setColor('#ffdd57');
+      this._nameTagBg.setFillStyle(0x243b55, 0.95).setStrokeStyle(2, 0xffdd57, 0.85);
+      this._nameTagBg.setSize(
+        this._nameTag.width + 24,
+        this._nameTag.height + 14,
+      );
+      this._textBoxBg?.setStrokeStyle(2, 0xffdd57, 0.6);
+      if (this._lastCharacterText) {
+        this._dialogueText.setText(this._lastCharacterText);
+      } else {
+        this._dialogueText.setText(this._substitute(node.text));
+      }
+
+      const bounds = getVisibleBounds(this.scene);
+      const bottomGuideY = bounds.bottom - pxToWorld(this.scene, 118);
+      this._renderGuideMotionBanner(this._substitute(node.text), bottomGuideY, { isResize });
+      this._activateNodeInteraction(node, this._substitute(node.text), { isResize });
+      return;
+    }
+
+    // Obrolan Karakter Normal
+    const speakerName = isNarration ? 'Narasi' : this._resolveSpeakerName(node);
+    this._nameTag.setVisible(true);
+    this._nameTagBg.setVisible(true);
+    this._nameTag.setText(speakerName).setColor(isNarration ? '#94a3b8' : '#ffdd57');
+    this._nameTagBg.setFillStyle(isNarration ? 0x1e293b : 0x243b55, 0.95).setStrokeStyle(2, isNarration ? 0x64748b : 0xffdd57, 0.85);
+    this._nameTagBg.setSize(
+      this._nameTag.width + 24,
+      this._nameTag.height + 14,
+    );
+    this._textBoxBg?.setStrokeStyle(2, 0xffdd57, 0.6);
 
     // ============================================================
     // DYNAMIC NPC NODE
     // ============================================================
-    //
-    // INI PERUBAHAN UTAMA.
-    //
-    // Kalau:
-    //
-    // dynamic: true
-    //
-    // maka node.text TIDAK ditampilkan.
-    //
-    // node.text hanya digunakan sebagai:
-    //
-    // 1. plottedLine untuk GenAI
-    // 2. patokan makna
-    // 3. fallback jika AI gagal
-    //
+
     if (node.dynamic) {
+      const alreadyResolved = this._resolvedDynamicTexts?.get(node.id);
+      if (alreadyResolved) {
+        this._dialogueText.setText(alreadyResolved);
+        if (!isNarration) {
+          this._lastCharacterSpeaker = this._resolveSpeakerName(node);
+          this._lastCharacterText = alreadyResolved;
+        }
+        const defaultPrompt = hasChoices
+          ? (node.guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.')
+          : null;
+        this._activateNodeInteraction(node, defaultPrompt, { isResize });
+        return;
+      }
       this._startLoadingDots();
-
-      // Sengaja tidak di-await supaya fungsi render tidak memblokir
-      // game loop Phaser.
       void this._requestDynamicLine(node, requestSeq);
-
       return;
     }
 
@@ -608,10 +660,86 @@ export default class DialogueBox {
     // STATIC NODE
     // ============================================================
 
-    this._dialogueText.setText(this._formatSpeechText(node.text, node));
+    const staticFormatted = this._formatSpeechText(node.text, node);
+    this._dialogueText.setText(staticFormatted);
+    if (!isNarration) {
+      this._lastCharacterSpeaker = this._resolveSpeakerName(node);
+      this._lastCharacterText = staticFormatted;
+    }
 
     // Setelah teks siap baru tombol lanjut / choices aktif.
-    this._activateNodeInteraction(node);
+    const defaultPrompt = hasChoices
+      ? (node.guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.')
+      : null;
+    this._activateNodeInteraction(node, defaultPrompt, { isResize });
+  }
+
+  // ==============================================================
+  // PREFETCH DYNAMIC NPC LINES (Supaya teks dinamis instan)
+  // ==============================================================
+
+  _getDynamicCacheKey(nodeId, choiceLabel = '') {
+    return `${nodeId}::${choiceLabel || ''}`;
+  }
+
+  _prefetchDynamicNode(node, playerChoiceLabel = null) {
+    if (!node || !node.dynamic || !this._dynamicCache) return;
+    const nlp = typeof window !== 'undefined' ? window.__nawasenadaraNlp : null;
+    if (!nlp?.generateNpcLine) return;
+
+    const key = this._getDynamicCacheKey(node.id, playerChoiceLabel);
+    if (this._dynamicCache.has(key)) return;
+
+    const fallbackLine = this._formatSpeechText(node.text, node);
+    const promise = nlp
+      .generateNpcLine({
+        npcName: this._resolveSpeakerName(node),
+        plottedLine: fallbackLine,
+        situation: node.situationHint || null,
+        playerChoiceLabel: playerChoiceLabel || null,
+      })
+      .catch(() => ({ line: fallbackLine }));
+
+    this._dynamicCache.set(key, promise);
+  }
+
+  _prefetchInitialDynamicNodes() {
+    const nodes = this._dialogueTree?.nodes;
+    if (!nodes) return;
+    let curId = this._dialogueTree.startNode;
+    const visited = new Set();
+    while (curId && !visited.has(curId)) {
+      visited.add(curId);
+      const n = nodes[curId];
+      if (!n) break;
+      if (n.dynamic) {
+        this._prefetchDynamicNode(n, null);
+      }
+      if (Array.isArray(n.choices) && n.choices.length > 0) break;
+      curId = n.next;
+    }
+  }
+
+  _prefetchChoiceDynamicNodes(choices = []) {
+    const nodes = this._dialogueTree?.nodes;
+    if (!nodes || !Array.isArray(choices)) return;
+
+    choices.forEach((choice) => {
+      const responseText = this._substitute(choice.chatReply || choice.label);
+      let nextId = choice.next;
+      let hops = 0;
+      while (nextId && hops < 3) {
+        const nextNode = nodes[nextId];
+        if (!nextNode) break;
+        if (nextNode.dynamic) {
+          this._prefetchDynamicNode(nextNode, responseText);
+          break;
+        }
+        if (Array.isArray(nextNode.choices) && nextNode.choices.length > 0) break;
+        nextId = nextNode.next;
+        hops += 1;
+      }
+    });
   }
 
   // ==============================================================
@@ -631,7 +759,6 @@ export default class DialogueBox {
     // ============================================================
 
     if (!nlp?.generateNpcLine) {
-      // Pastikan node/request masih aktif.
       if (!this._isDynamicRequestCurrent(requestedNodeId, requestSeq)) {
         return;
       }
@@ -639,6 +766,10 @@ export default class DialogueBox {
       this._stopLoadingDots();
 
       this._dialogueText.setText(fallbackLine);
+      if (node.speaker !== 'narration') {
+        this._lastCharacterSpeaker = this._resolveSpeakerName(node);
+        this._lastCharacterText = fallbackLine;
+      }
 
       this._activateNodeInteraction(node);
 
@@ -648,72 +779,45 @@ export default class DialogueBox {
     let timeoutId = null;
 
     try {
-      // ==========================================================
-      // REQUEST GEN AI
-      // ==========================================================
+      const cacheKey = this._getDynamicCacheKey(node.id, this._lastChoiceLabel);
+      const fallbackCacheKey = this._getDynamicCacheKey(node.id, null);
+      const cachedPromise =
+        this._dynamicCache?.get(cacheKey) ||
+        this._dynamicCache?.get(fallbackCacheKey) ||
+        null;
 
-      const aiRequest = nlp.generateNpcLine({
-        npcName: this._resolveSpeakerName(node),
-
-        // Ini dialog patokan.
-        //
-        // Tidak ditampilkan sebelum AI selesai.
-        plottedLine: fallbackLine,
-
-        situation: node.situationHint || null,
-
-        playerChoiceLabel: this._lastChoiceLabel || null,
-      });
-
-      // ==========================================================
-      // FRONTEND TIMEOUT
-      // ==========================================================
+      const aiRequest =
+        cachedPromise ||
+        nlp.generateNpcLine({
+          npcName: this._resolveSpeakerName(node),
+          plottedLine: fallbackLine,
+          situation: node.situationHint || null,
+          playerChoiceLabel: this._lastChoiceLabel || null,
+        });
 
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(
           () => {
             reject(
               new Error(
-                `NPC dialogue generation timeout setelah ${DYNAMIC_DIALOGUE_TIMEOUT_MS / 1000
+                `NPC dialogue generation timeout setelah ${
+                  DYNAMIC_DIALOGUE_TIMEOUT_MS / 1000
                 } detik`,
               ),
             );
           },
-
           DYNAMIC_DIALOGUE_TIMEOUT_MS,
         );
       });
 
-      // Yang selesai duluan:
-      //
-      // AI request
-      //
-      // atau
-      //
-      // timeout.
-      //
       const result = await Promise.race([aiRequest, timeoutPromise]);
-
-      // ==========================================================
-      // RACE GUARD
-      // ==========================================================
 
       if (!this._isDynamicRequestCurrent(requestedNodeId, requestSeq)) {
         return;
       }
 
-      // ==========================================================
-      // AI SELESAI
-      // ==========================================================
-
       this._stopLoadingDots();
 
-      // Mendukung dua kemungkinan response:
-      //
-      // { line: "..." }
-      //
-      // maupun langsung string "..."
-      //
       const generatedLine =
         typeof result === 'string'
           ? result.trim()
@@ -722,7 +826,12 @@ export default class DialogueBox {
       const finalLine = generatedLine || fallbackLine;
       const formattedFinalLine = this._formatSpeechText(finalLine, node);
 
+      this._resolvedDynamicTexts?.set(node.id, formattedFinalLine);
       this._dialogueText.setText(formattedFinalLine);
+      if (node.speaker !== 'narration') {
+        this._lastCharacterSpeaker = this._resolveSpeakerName(node);
+        this._lastCharacterText = formattedFinalLine;
+      }
 
       // Kirim hasil dialog ke scene
       this._onDynamicLine?.({
@@ -730,19 +839,11 @@ export default class DialogueBox {
         text: formattedFinalLine,
       });
 
-      // Baru sekarang pemain boleh:
-      //
-      // - menekan E
-      // - menekan Space
-      // - tap layar
-      // - memilih pilihan dialog
-      //
-      this._activateNodeInteraction(node);
+      const defaultPrompt = (Array.isArray(node.choices) && node.choices.length > 0)
+        ? (node.guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.')
+        : null;
+      this._activateNodeInteraction(node, defaultPrompt);
     } catch (error) {
-      // ==========================================================
-      // AI ERROR / TIMEOUT
-      // ==========================================================
-
       if (!this._isDynamicRequestCurrent(requestedNodeId, requestSeq)) {
         return;
       }
@@ -754,10 +855,17 @@ export default class DialogueBox {
         error,
       );
 
-      // Baru pada kondisi gagal teks aslinya ditampilkan.
+      this._resolvedDynamicTexts?.set(node.id, fallbackLine);
       this._dialogueText.setText(fallbackLine);
+      if (node.speaker !== 'narration') {
+        this._lastCharacterSpeaker = this._resolveSpeakerName(node);
+        this._lastCharacterText = fallbackLine;
+      }
 
-      this._activateNodeInteraction(node);
+      const defaultPrompt = (Array.isArray(node.choices) && node.choices.length > 0)
+        ? (node.guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.')
+        : null;
+      this._activateNodeInteraction(node, defaultPrompt);
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -770,17 +878,14 @@ export default class DialogueBox {
   // ==============================================================
 
   _isDynamicRequestCurrent(requestedNodeId, requestSeq) {
-    // Dialog sudah ditutup.
     if (!this.isOpen) {
       return false;
     }
 
-    // Pemain sudah berada di node lain.
     if (this._currentNode?.id !== requestedNodeId) {
       return false;
     }
 
-    // Request lama.
     if (requestSeq !== this._dynamicRequestSeq) {
       return false;
     }
@@ -802,27 +907,135 @@ export default class DialogueBox {
   }
 
   // ==============================================================
+  // PANDUAN KAK DARA MOTION BANNER (DI BAWAH JAWABAN)
+  // ==============================================================
+
+  _renderGuideMotionBanner(promptText, startY, { isResize = false } = {}) {
+    const scene = this.scene;
+    const guideBox = scene.add.container(
+      this._cardX,
+      isResize ? startY : startY + 20,
+    );
+    guideBox.setAlpha(isResize ? 1 : 0);
+    guideBox.setScale(isResize ? 1 : 0.95);
+
+    const badgeWidth = pxToWorld(scene, 174);
+    const badgeHeight = pxToWorld(scene, 24);
+    const badgeX = -this._cardWidth / 2 + badgeWidth / 2 + 12;
+
+    const guideText = scene.add
+      .text(-this._cardWidth / 2 + 16, pxToWorld(scene, 26), promptText, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${pxToWorld(scene, 17)}px`,
+        color: '#f8fafc',
+        wordWrap: { width: this._cardWidth - 32 },
+        lineSpacing: 3,
+      })
+      .setOrigin(0, 0);
+
+    const guideBoxHeight = Math.max(
+      pxToWorld(scene, 56),
+      guideText.y + guideText.height + pxToWorld(scene, 12),
+    );
+
+    const guideGlow = scene.add
+      .rectangle(
+        0,
+        guideBoxHeight / 2,
+        this._cardWidth + 6,
+        guideBoxHeight + 6,
+        0xffdd57,
+        0.14,
+      );
+
+    const guideBg = scene.add
+      .rectangle(0, guideBoxHeight / 2, this._cardWidth, guideBoxHeight, 0x14122a, 0.96)
+      .setStrokeStyle(2, 0xffdd57, 0.9);
+
+    const badgeBg = scene.add
+      .rectangle(badgeX, 0, badgeWidth, badgeHeight, 0xffdd57, 1)
+      .setStrokeStyle(1.5, 0x14122a, 1);
+
+    const guideTag = scene.add
+      .text(badgeX, 0, '✦ PANDUAN KAK DARA', {
+        fontFamily: '"Jersey 15", monospace',
+        fontSize: `${pxToWorld(scene, 17)}px`,
+        color: '#14122a',
+      })
+      .setOrigin(0.5, 0.5);
+
+    guideBox.add([guideGlow, guideBg, badgeBg, guideTag, guideText]);
+    this._container.add(guideBox);
+    this._choiceObjects.push(guideBox);
+    this._container.setScrollFactor(0, 0, true);
+
+    if (isResize) {
+      scene.tweens.add({
+        targets: guideBox,
+        y: startY - 3,
+        duration: 1600,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    } else {
+      // Motion Entrance: muncul dari bawah ke atas dengan efek pegas halus
+      scene.tweens.add({
+        targets: guideBox,
+        y: startY,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 420,
+        delay: 140,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          if (!guideBox.scene) return;
+          // Motion Mengambang Lembut (floating)
+          scene.tweens.add({
+            targets: guideBox,
+            y: startY - 3,
+            duration: 1600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+        },
+      });
+    }
+
+    // Motion Glow Berdenyut
+    scene.tweens.add({
+      targets: guideGlow,
+      alpha: { from: 0.08, to: 0.28 },
+      duration: 1100,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    return guideBoxHeight;
+  }
+
+  // ==============================================================
   // CHOICES
   // ==============================================================
 
-  _renderChoices(choices) {
+  _renderChoices(choices, guidePrompt = null, { isResize = false } = {}) {
     const scene = this.scene;
 
-    const btnFont = pxToWorld(scene, 17);
+    // Pre-fetch dialog dinamis NPC untuk setiap cabang pilihan selagi pemain membaca opsi
+    this._prefetchChoiceDynamicNodes(choices);
 
-    const minBtnHeight = pxToWorld(scene, 36);
-
-    const padY = pxToWorld(scene, 5);
-
+    const btnFont = pxToWorld(scene, 19);
+    const minBtnHeight = pxToWorld(scene, 38);
+    const padY = pxToWorld(scene, 6);
     const gap = 8;
 
     let currentY = this._choicesStartY;
 
+    // 1. Render semua tombol pilihan jawaban lebih dulu (tepat di bawah kotak dialog)
     choices.forEach((choice, i) => {
-      // ========================================================
-      // BUTTON TEXT
-      // ========================================================
-
       const label = scene.add
         .text(
           this._cardX - this._cardWidth / 2 + 14,
@@ -839,68 +1052,77 @@ export default class DialogueBox {
           },
         );
 
-      // Tinggi tombol diperlebar sedikit ke bawah bila teks terdiri dari 2 baris
       const btnHeight = Math.max(minBtnHeight, Math.round(label.height + padY * 2));
-
-      // ========================================================
-      // BUTTON BACKGROUND
-      // ========================================================
+      const targetCenterY = currentY + btnHeight / 2;
 
       const bg = scene.add
         .rectangle(
           this._cardX,
-          currentY + btnHeight / 2,
+          isResize ? targetCenterY : targetCenterY + 10,
           this._cardWidth,
           btnHeight,
           0x243b55,
           0.95,
         )
         .setStrokeStyle(1.5, 0xffdd57, 0.5)
+        .setAlpha(isResize ? 1 : 0)
+        .setScrollFactor(0)
         .setInteractive({
           useHandCursor: true,
         });
 
-      label.setY(currentY + btnHeight / 2);
+      label.setY(isResize ? targetCenterY : targetCenterY + 10);
       label.setOrigin(0, 0.5);
+      label.setAlpha(isResize ? 1 : 0);
+      label.setScrollFactor(0);
 
-      // ========================================================
-      // POINTER EVENTS
-      // ========================================================
+      if (!isResize) {
+        scene.tweens.add({
+          targets: [bg, label],
+          y: targetCenterY,
+          alpha: 1,
+          duration: 280,
+          delay: i * 55,
+          ease: 'Cubic.easeOut',
+        });
+      }
 
-      bg.on('pointerover', () => bg.setFillStyle(0x2f4d73, 0.95));
-
-      bg.on('pointerout', () => bg.setFillStyle(0x243b55, 0.95));
-
-      bg.on('pointerdown', () => {
-        if (!this._isInputReady()) {
-          return;
-        }
-
-        this._selectChoice(choice);
+      // Hanya `bg` yang dibuat interaktif (karena menutupi seluruh area tombol).
+      // Membuat `label` ikut interaktif sebelumnya menyebabkan pointerout pada `bg`
+      // dan pointerover pada `label` saling beradu ketika kursor melintasi teks,
+      // sehingga tombol berkedip-kedip (blink) dan gagal diklik.
+      bg.on('pointerover', () => {
+        bg.setFillStyle(0x2f4d73, 0.98);
+        bg.setStrokeStyle(2, 0xffdd57, 0.95);
       });
-
-      label.setInteractive({ useHandCursor: true });
-      label.on('pointerover', () => bg.setFillStyle(0x2f4d73, 0.95));
-      label.on('pointerout', () => bg.setFillStyle(0x243b55, 0.95));
-      label.on('pointerdown', () => {
+      bg.on('pointerout', () => {
+        bg.setFillStyle(0x243b55, 0.95);
+        bg.setStrokeStyle(1.5, 0xffdd57, 0.5);
+      });
+      bg.on('pointerdown', (pointer) => {
+        pointer?.event?.stopPropagation?.();
         if (!this._isInputReady()) {
           return;
         }
-
         this._selectChoice(choice);
       });
 
       this._container.add(bg);
       this._container.add(label);
-
       this._choiceObjects.push(bg, label);
 
       currentY += btnHeight + gap;
     });
 
-    // ============================================================
-    // KEYBOARD 1 - 9
-    // ============================================================
+    // 2. Panel Panduan Kak Dara diletakkan DI BAWAH pilihan jawaban (dengan motion animasi)
+    // supaya tidak berada di antara dialog dan jawaban yang menutupi karakter.
+    const promptText =
+      guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.';
+    const guideStartY = currentY + pxToWorld(scene, 14);
+    this._renderGuideMotionBanner(promptText, guideStartY, { isResize });
+
+    // Pastikan seluruh elemen baru di dalam container punya scrollFactor(0)
+    this._container.setScrollFactor(0, 0, true);
 
     this._choiceKeyHandler = (event) => {
       if (!this._isInputReady()) {
@@ -915,6 +1137,9 @@ export default class DialogueBox {
     };
 
     scene.input.keyboard.on('keydown', this._choiceKeyHandler);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', this._choiceKeyHandler);
+    }
   }
 
   // ==============================================================
@@ -928,35 +1153,26 @@ export default class DialogueBox {
 
     this._collectedChoices.push({
       nodeId: this._currentNode.id,
-
       choiceId: choice.id,
-
       emotion: choice.emotion,
-
-      // Dipakai endpoint klasifikasi mood episode. `emotion` di atas
-      // tetap khusus perhitungan ending, bukan dianggap keluaran AI.
       responseText,
     });
 
     this._onChoiceSelected?.(choice);
 
-    // ============================================================
-    // LAST PLAYER CHOICE
-    // ============================================================
-    //
-    // Disimpan supaya node NPC selanjutnya punya konteks:
-    //
-    // "Baris yang barusan dikatakan pemain"
-    //
-    // Ini membantu GenAI membuat parafrase yang lebih natural
-    // tanpa mengubah plot.
-    //
     this._lastChoiceLabel = responseText;
 
-    // Keyboard choices tidak boleh tetap aktif ketika pindah node.
+    // Pastikan cabang dinamis NPC untuk pilihan ini sudah di-prefetch
+    const nextNode = choice.next ? this._dialogueTree?.nodes?.[choice.next] : null;
+    if (nextNode?.dynamic) {
+      this._prefetchDynamicNode(nextNode, responseText);
+    }
+
     if (this._choiceKeyHandler) {
       this.scene.input.keyboard.off('keydown', this._choiceKeyHandler);
-
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', this._choiceKeyHandler);
+      }
       this._choiceKeyHandler = null;
     }
 
@@ -976,6 +1192,9 @@ export default class DialogueBox {
 
     if (this._choiceKeyHandler) {
       this.scene.input.keyboard.off('keydown', this._choiceKeyHandler);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', this._choiceKeyHandler);
+      }
 
       this._choiceKeyHandler = null;
     }
@@ -988,21 +1207,37 @@ export default class DialogueBox {
   _attachAdvanceInput(handler) {
     this._detachAdvanceInput();
 
+    let lastTriggerAt = 0;
     const guardedHandler = () => {
       if (!this._isInputReady()) {
         return;
       }
+      const now = Date.now();
+      if (now - lastTriggerAt < 120) {
+        return;
+      }
+      lastTriggerAt = now;
 
       handler();
     };
 
     this._advanceKeyHandler = guardedHandler;
-
     this._advancePointerHandler = guardedHandler;
 
-    this.scene.input.keyboard.on('keydown-E', guardedHandler);
+    this._windowAdvanceKeyHandler = (event) => {
+      if (!this._isInputReady()) return;
+      const code = event?.code || '';
+      const key = (event?.key || '').toLowerCase();
+      if (code === 'KeyE' || code === 'Space' || key === 'e' || key === ' ') {
+        guardedHandler();
+      }
+    };
 
+    this.scene.input.keyboard.on('keydown-E', guardedHandler);
     this.scene.input.keyboard.on('keydown-SPACE', guardedHandler);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', this._windowAdvanceKeyHandler);
+    }
 
     // Tap / klik di mana saja.
     this.scene.input.on('pointerdown', guardedHandler);
@@ -1021,6 +1256,13 @@ export default class DialogueBox {
       this._advanceKeyHandler = null;
     }
 
+    if (this._windowAdvanceKeyHandler) {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', this._windowAdvanceKeyHandler);
+      }
+      this._windowAdvanceKeyHandler = null;
+    }
+
     if (this._advancePointerHandler) {
       this.scene.input.off('pointerdown', this._advancePointerHandler);
 
@@ -1037,31 +1279,46 @@ export default class DialogueBox {
       return;
     }
 
-    const currentNodeId = this._currentNode?.id;
+    if (this._resizeTimer) {
+      clearTimeout(this._resizeTimer);
+    }
 
-    // ============================================================
-    // INVALIDATE OLD AI REQUEST
-    // ============================================================
-    //
-    // Resize membangun ulang DialogueBox.
-    //
-    // Kalau saat itu request AI lama masih berlangsung, responsnya
-    // tidak boleh menimpa UI baru.
-    //
-    this._dynamicRequestSeq += 1;
+    this._resizeTimer = setTimeout(() => {
+      this._resizeTimer = null;
+      if (!this.isOpen || !this.scene?.sys?.game) {
+        return;
+      }
 
-    this._stopLoadingDots();
+      const bounds = getVisibleBounds(this.scene);
+      if (
+        this._lastBounds &&
+        Math.abs(bounds.width - this._lastBounds.width) < 2 &&
+        Math.abs(bounds.height - this._lastBounds.height) < 2 &&
+        Math.abs(bounds.left - this._lastBounds.left) < 2 &&
+        Math.abs(bounds.top - this._lastBounds.top) < 2
+      ) {
+        return;
+      }
 
-    this._destroyChoiceObjects();
-    this._detachAdvanceInput();
+      const currentNodeId = this._currentNode?.id;
 
-    this._container?.destroy();
+      this._dynamicRequestSeq += 1;
 
-    this._container = null;
+      this._stopLoadingDots();
 
-    this._buildStaticFrame();
+      this._destroyChoiceObjects();
+      this._detachAdvanceInput();
 
-    this._renderNode(currentNodeId ?? this._dialogueTree.startNode);
+      this._container?.destroy();
+
+      this._container = null;
+
+      this._buildStaticFrame();
+
+      this._renderNode(currentNodeId ?? this._dialogueTree.startNode, {
+        isResize: true,
+      });
+    }, 80);
   }
 
   // ==============================================================
@@ -1079,13 +1336,13 @@ export default class DialogueBox {
       if (!this._hiddenHint) {
         const bounds = getVisibleBounds(this.scene);
         const hintY = bounds.bottom - pxToWorld(this.scene, 32);
-        const fontSz = pxToWorld(this.scene, 14);
+        const fontSz = pxToWorld(this.scene, 15);
 
         this._hiddenHint = this.scene.add
           .text(
             bounds.centerX,
             hintY,
-            '👁 Mode Layar Penuh — Ketuk di mana saja atau tekan [H] untuk menampilkan dialog',
+            'Mode Layar Penuh — Ketuk di mana saja atau tekan [H] untuk menampilkan dialog',
             {
               fontFamily: '"Pixelify Sans", monospace',
               fontSize: `${fontSz}px`,

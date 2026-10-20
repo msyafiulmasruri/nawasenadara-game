@@ -128,36 +128,36 @@ export const EPISODE1_DIALOGUE = {
     n2: {
       id: 'n2',
       speaker: 'rafi',
-      text: 'Btw enak ya jadi cewek, gak perlu mikirin nilai matematika susah-susah, kan nanti juga "kerjaannya" di rumah doang. Hehe, bercanda— eh tapi bener juga sih.',
+      text: 'Btw enak ya jadi cewek, gak usah pusing-pusing mikirin nilai matematika susah, kan santai aja. Hehe, bercanda doang kok— tapi bener juga kan?',
       next: 'n2b',
     },
     n2b: {
       id: 'n2b',
       speaker: 'rafi',
-      text: 'Lagian kelas ini emang gitu, cewek-cewek biasanya diem aja kalau dicandain, gak baper-baper amat. {PLAYER_NAME} juga gitu kan?',
+      text: 'Lagian anak-anak kelas ini emang asik, biasanya pada selow kalau dicandain, gak gampang baper. {PLAYER_NAME} juga asik kan orangnya?',
       next: 'n3',
     },
     // --- Titik cabang 1 ---
     n3: {
       id: 'n3',
       speaker: 'narration',
-      text: 'Gimana respons {PLAYER_NAME}?',
+      text: 'Gimana caramu merespons omongan Rafi?',
       choices: [
         {
           id: 'a',
-          label: '"Iya deh, gapapa kok, aku gak masalah."',
+          label: '"Iya deh, santai aja, aku gak masalah kok."',
           emotion: 'takut',
           next: 'n4a',
         },
         {
           id: 'b',
-          label: '"Kok gitu sih, kayaknya itu gak ada hubungannya sama jadi cewek atau cowok deh."',
+          label: '"Gak gitu juga kali Raf, pintar atau enggak kan gak ada hubungannya sama cowok atau cewek."',
           emotion: 'aman',
           next: 'n4b',
         },
         {
           id: 'c',
-          label: '"Ih apaan sih, receh banget bercandaannya."',
+          label: '"Garing banget candaan lo, gak mutu."',
           emotion: 'menyinggung',
           next: 'n4c',
         },
@@ -166,56 +166,50 @@ export const EPISODE1_DIALOGUE = {
     n4a: {
       id: 'n4a',
       speaker: 'rafi',
-      text: 'Nah gitu dong, santai aja.',
+      text: 'Nah gitu dong! Asik kan kalau bisa santai bareng.',
       dynamic: true,
-      situationHint: 'Aku baru saja mengalah dan bilang tidak masalah, Rafi santai dan cuek saja meresponsnya.',
+      situationHint: 'Aku baru saja mengalah dan bilang santai aja, Rafi merasa omongannya wajar dan santai meresponsnya.',
       next: 'n5',
     },
     n4b: {
       id: 'n4b',
       speaker: 'rafi',
-      text: 'Eh... iya juga sih. Maksud gue bukan gitu-gitu amat, cuma kebiasaan aja denger yang lain ngomong begitu.',
+      text: 'Eh... iya juga sih ya. Sorry deh, gue cuma latah ikut-ikutan obrolan anak-anak tadi.',
       dynamic: true,
-      situationHint: 'Aku baru saja menegur dengan tenang bahwa candaannya tidak ada hubungannya dengan gender, dan Rafi mulai sadar lalu beralasan.',
+      situationHint: 'Aku baru saja menegur dengan tenang bahwa kepintaran tidak ada hubungannya dengan gender, dan Rafi mulai sadar lalu meminta maaf.',
       next: 'n5',
     },
     n4c: {
       id: 'n4c',
       speaker: 'rafi',
-      text: 'Woy santai, gue cuma bercanda doang kali, gak usah sensi gitu deh.',
+      text: 'Waduh selow dong, gue kan cuma bercanda, gak usah ngegas gitu kali.',
       dynamic: true,
-      situationHint: 'Aku baru saja membalas dengan sedikit menyindir kalau candaannya receh, Rafi jadi defensif dan bilang aku kesenggol/baperan.',
+      situationHint: 'Aku baru saja membalas dengan kata-kata sinis kalau candaannya garing, Rafi jadi defensif dan kaget.',
       next: 'n5',
     },
     // --- Titik cabang 2 ---
-    // REVISI: sebelumnya ada "Doni" yang tiba-tiba nyahut di sini —
-    // memunculkan side karakter kedua padahal episode ini didesain
-    // hanya punya SATU side karakter (Rafi, lihat catatan NPCS di
-    // config/npcs.js: "SATU NPC per episode"). Sekarang baris ini
-    // tetap Rafi sendiri yang bicara, jadi konsisten satu lawan bicara
-    // sepanjang quest.
     n5: {
       id: 'n5',
       speaker: 'rafi',
-      text: 'Halah, udah ah, cewek mah emang gitu terus, gampang tersinggung doang. Gimana, {PLAYER_NAME} setuju kan?',
+      text: 'Tapi serius, kadang anak-anak sini kalau diajak becanda dikit gampang baper. Menurut {PLAYER_NAME} gimana, bener kan?',
       dynamic: true,
-      situationHint: 'Rafi baru saja menggeneralisasi bahwa cewek gampang tersinggung, lalu menantang balik dengan bertanya apakah aku setuju.',
+      situationHint: 'Rafi bilang kalau teman-teman di kelas gampang baper, lalu bertanya apakah aku setuju dengannya.',
       choices: [
         {
           id: 'a',
-          label: '"Bukan soal gampang tersinggung, tapi ini soal saling menghargai aja kali."',
+          label: '"Bukan soal gampang baper, tapi ini soal saling ngehargai sesama teman aja."',
           emotion: 'aman',
           next: 'cutsceneA1',
         },
         {
           id: 'b',
-          label: '"Terserah kalian mau bilang apa, aku gak mau ambil pusing."',
+          label: '"Terserah lo mau bilang apa, gue gak mau ambil pusing."',
           emotion: 'netral',
           next: 'cutsceneB1',
         },
         {
           id: 'c',
-          label: '"Udah, diemin aja, males ribut." (diucapkan pelan, menahan diri)',
+          label: '"Udah ah, males ribut..." (diucapkan pelan sambil buang muka)',
           emotion: 'sedih',
           next: 'cutsceneC1',
         },

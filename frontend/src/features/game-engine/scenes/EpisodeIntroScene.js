@@ -13,39 +13,22 @@ export default class EpisodeIntroScene extends Phaser.Scene {
   init(data) {
     this.episodeId = data?.episodeId ?? 1;
     this.episodeData = getEpisodeById(this.episodeId);
+    this._startingEpisode = false;
+    this._typewriterDone = false;
+    this._typewriterIndex = 0;
+    this._fallbackStartTimer = null;
   }
 
-  async create() {
-    // FIX: episode yang punya quest wajib (mis. Episode1Scene, cek
-    // getCompletedEpisodes()) menentukan status "sudah pernah
-    // diselesaikan?" secara SINKRON dari window.__nawasenadaraProgressCache
-    // begitu scene-nya create(). Cache itu diisi ASYNC oleh
-    // GameProgressBridge.jsx saat game pertama kali dimuat — kalau
-    // pemain sampai di titik ini SEBELUM fetch pertama itu selesai
-    // (jaringan lambat), cache masih kosong dan episode yang SUDAH
-    // selesai di server pun terbaca seolah belum pernah disentuh,
-    // memaksa quest diulang walau pemain memilih "Lanjutkan Permainan
-    // Lama". Menunggu di SINI — satu-satunya pintu masuk ke scene
-    // episode manapun — memastikan cache-nya sudah pasti terisi
-    // sebelum scene gameplay episode sempat dibuat.
-    // Race dengan timeout 4 detik supaya tidak macet permanen kalau
-    // bridge-nya entah kenapa tidak pernah terpasang/gagal total.
-    const progressReady = window.__nawasenadaraProgress?.ready;
-    if (progressReady) {
-      await Promise.race([
-        progressReady,
-        new Promise((resolve) => setTimeout(resolve, 4000)),
-      ]);
-    }
+  create() {
+    this._startingEpisode = false;
+    this._fallbackStartTimer = null;
 
-    // WAJIB dipanggil di awal — lihat dokumentasi lengkap di
-    // syncGameSizeToOrientation() (utils/visibleBounds.js). Tanpa ini,
-    // scene sebelumnya (episode landscape dengan lebar dinamis, mis.
-    // 1650) bisa "membekas": scene ini menggambar dengan asumsi lebar
-    // tetap 1280, menyisakan area kosong (hitam) tidak simetris di
-    // kanan/kiri layar karena dunia game sebenarnya masih lebih lebar
-    // dari yang digambar.
+    // WAJIB dipanggil di awal secara sinkron supaya kanvas langsung
+    // dirender pada frame pertama tanpa jeda layar kosong saat transisi
+    // dari GameIntroGuideScene maupun EpisodeSelectScene.
     const { width, height } = syncGameSizeToOrientation(this);
+    this.cameras.main.fadeEffect?.reset?.();
+    this.cameras.main.fadeIn(400, 5, 5, 15);
 
     // Musik tema menu berhenti di sini (bukan menunggu sampai gameplay
     // sungguhan mulai) — layar intro episode ini sekarang punya tema
@@ -61,7 +44,11 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       this.audioManager?.destroy();
     });
 
-    this.bgRect = this.add.rectangle(width / 2, height / 2, width, height, 0x05050f).setDepth(0);
+    this.bgRect = this.add
+      .rectangle(0, 0, width, height, 0x05050f)
+      .setOrigin(0, 0)
+      .setDepth(0)
+      .setInteractive({ useHandCursor: true });
 
     // Bintang-bintang kecil, posisi acak, tiap bintang berkedip dengan
     // kecepatan berbeda-beda supaya tidak terasa seragam/kaku.
@@ -84,24 +71,10 @@ export default class EpisodeIntroScene extends Phaser.Scene {
 
     const bounds0 = getVisibleBounds(this);
 
-    // --- Ukuran font: PENTING pakai pxToWorld(), bukan angka world-unit
-    // tetap ---
-    // Portrait sekarang punya lebar dunia yang DINAMIS mengikuti rasio
-    // layar (bisa serendah ~300-400 world unit di HP sempit — lihat
-    // syncGameSizeToOrientation()). Font yang ditulis sebagai angka
-    // world-unit tetap (mis. "40px" dulu) jadi punya UKURAN FISIK yang
-    // berubah-ubah tergantung lebar dunia saat itu — di dunia sempit,
-    // font 40 unit itu jadi proporsinya SANGAT besar dibanding lebar
-    // layar (~40/330 ≈ 12% tinggi per karakter), gampang bikin judul
-    // episode yang panjang meluber keluar layar / ke-crop. pxToWorld()
-    // mengonversi ukuran CSS px FISIK yang diinginkan (konsisten di
-    // semua perangkat) ke world-unit yang sesuai skala ENVELOP saat
-    // ini — sama seperti yang sudah dipakai untuk tombol sentuh.
     const episodeLabelFont = pxToWorld(this, 46);
     const episodeTitleFont = pxToWorld(this, 36);
-    // Sinopsis diperbesar secara nyaman agar sangat mudah dibaca sebelum masuk ke game
     const episodeDescFont = pxToWorld(this, 34);
-    const promptFont = pxToWorld(this, 22);
+    const promptFont = pxToWorld(this, 24);
 
     this.episodeLabel = this.add
       .text(width / 2, height * 0.28, `EPISODE ${this.episodeId}`, {
@@ -140,29 +113,23 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       .text(width / 2, height * 0.85, 'TEKAN UNTUK LEWATI', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${promptFont}px`,
-        color: '#ffffff',
+        fontStyle: '700',
+        color: '#ffdd57',
         align: 'center',
         wordWrap: { width: bounds0.width * 0.85 },
       })
       .setOrigin(0.5)
-      .setDepth(2);
+      .setDepth(3)
+      .setInteractive({ useHandCursor: true });
 
     this.tweens.add({
       targets: this.promptText,
-      alpha: 0,
+      alpha: 0.25,
       duration: 700,
       yoyo: true,
       repeat: -1,
     });
 
-    // --- Efek ketik-mesin-tik (typewriter) untuk deskripsi episode ---
-    // Teks penuh muncul huruf demi huruf, dibarengi blip suara pendek
-    // ala Harvest Moon/Animal Crossing tiap beberapa huruf (bukan tiap
-    // satu huruf — kalau tiap huruf, blip-nya jadi berdengung/berisik
-    // di teks yang panjang). Bisa di-skip kapan saja (langsung tampil
-    // penuh) dengan Space/klik/tap; sekali lagi Space/klik/tap setelah
-    // itu baru lanjut ke gameplay episode — supaya pemain yang belum
-    // sempat baca tidak ke-skip otomatis ke gameplay.
     const fullText = this.episodeData?.description ?? '';
     this._typewriterIndex = 0;
     this._typewriterDone = fullText.length === 0;
@@ -173,8 +140,6 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       this._typewriterIndex += 1;
       this.episodeDesc.setText(fullText.slice(0, this._typewriterIndex));
 
-      // Blip tiap 2 karakter, dan dilewati untuk spasi (supaya jeda
-      // antar kata tidak ikut "bunyi").
       if (
         this._typewriterIndex % 2 === 0 &&
         fullText[this._typewriterIndex - 1] !== ' '
@@ -188,21 +153,57 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     };
 
     this._typewriterTimer = this.time.addEvent({
-      delay: 32,
+      delay: 24,
       loop: true,
       callback: revealNextChar,
     });
 
     const startEpisode = () => {
+      if (this._startingEpisode) return;
+      this._startingEpisode = true;
+      this.promptText?.setText('MEMUAT EPISODE...');
       const sceneKey = this.episodeData?.sceneKey ?? 'Episode1Scene';
-      this.scene.start(sceneKey, { episodeId: this.episodeId });
+
+      let transitioned = false;
+      const proceedToScene = async () => {
+        if (transitioned) return;
+        transitioned = true;
+        if (this._fallbackStartTimer) {
+          clearTimeout(this._fallbackStartTimer);
+          this._fallbackStartTimer = null;
+        }
+        const progressReady = window.__nawasenadaraProgress?.ready;
+        if (progressReady) {
+          try {
+            await Promise.race([
+              progressReady,
+              new Promise((resolve) => setTimeout(resolve, 1200)),
+            ]);
+          } catch {
+            // Abaikan error network agar tidak pernah menahan mulai episode
+          }
+        }
+        if (this.scene) {
+          this.scene.start(sceneKey, { episodeId: this.episodeId });
+        }
+      };
+
+      // PENTING: reset fadeEffect terlebih dahulu supaya jika fadeIn di awal create()
+      // masih berjalan ketika pemain klik cepat, fadeOut tidak diabaikan oleh Phaser!
+      this.cameras.main.fadeEffect?.reset?.();
+      this.cameras.main.once('camerafadeoutcomplete', proceedToScene);
+      this.cameras.main.fadeOut(320, 5, 5, 15);
+
+      // Jaring pengaman: pastikan transisi selalu jalan walau event kamera terlewat
+      this._fallbackStartTimer = setTimeout(proceedToScene, 400);
     };
 
-    // Tap/klik/Space pertama: kalau teks masih berjalan, langsung
-    // tuntaskan (skip ke teks penuh) — TIDAK langsung pindah scene.
-    // Tap/klik/Space berikutnya (setelah teks penuh tampil): baru
-    // benar-benar lanjut ke episode.
+    let lastAdvanceAt = 0;
     const handleAdvance = () => {
+      const now = Date.now();
+      if (now - lastAdvanceAt < 80) return;
+      lastAdvanceAt = now;
+
       if (!this._typewriterDone) {
         this._finishTypewriter();
         return;
@@ -210,24 +211,65 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       startEpisode();
     };
 
-    this.input.keyboard.on('keydown-SPACE', handleAdvance);
+    this.promptText.on('pointerdown', handleAdvance);
+    this.bgRect.on('pointerdown', handleAdvance);
     this.input.on('pointerdown', handleAdvance);
+    this.input.keyboard?.on('keydown-SPACE', handleAdvance);
+    this.input.keyboard?.on('keydown-ENTER', handleAdvance);
 
-    // Reposisi semua teks ke area yang benar-benar terlihat kalau
-    // viewport berubah ukuran/orientasi saat masih di scene ini —
-    // sebelumnya scene ini tidak punya listener resize sama sekali,
-    // jadi kalau HP diputar di sini teks tetap di posisi/lebar lama.
+    // Fallback native DOM listener supaya bila fokus canvas sempat teralihkan oleh
+    // overlay DOM sebelumnya, klik atau tekan Space/Enter tetap tertangkap 100%.
+    const createdAt = Date.now();
+    this._onWindowPointerDown = () => {
+      if (Date.now() - createdAt < 140) return;
+      handleAdvance();
+    };
+    this._onWindowKeyDown = (e) => {
+      if (Date.now() - createdAt < 140 || e.repeat) return;
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
+        handleAdvance();
+      }
+    };
+    window.addEventListener('pointerdown', this._onWindowPointerDown);
+    window.addEventListener('keydown', this._onWindowKeyDown);
+
     this._resizeDebounceTimer = null;
     this._onResize = () => {
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
-      this._resizeDebounceTimer = setTimeout(() => this._reposition(), 150);
+      this._resizeDebounceTimer = setTimeout(() => this._reposition(), 80);
+    };
+    this._onFullscreenChange = () => {
+      this._reposition();
+      setTimeout(() => this._reposition(), 120);
+      setTimeout(() => this._reposition(), 300);
     };
     this.scale.on('resize', this._onResize);
-    this.events.once('shutdown', () => {
+    window.addEventListener('resize', this._onResize);
+    document.addEventListener('fullscreenchange', this._onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this._onFullscreenChange);
+
+    const cleanupIntro = () => {
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
-      this.scale.off('resize', this._onResize);
+      if (this._fallbackStartTimer) {
+        clearTimeout(this._fallbackStartTimer);
+        this._fallbackStartTimer = null;
+      }
+      this.scale?.off('resize', this._onResize);
+      window.removeEventListener('resize', this._onResize);
+      document.removeEventListener('fullscreenchange', this._onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
       this._typewriterTimer?.remove();
-    });
+      if (this._onWindowPointerDown) {
+        window.removeEventListener('pointerdown', this._onWindowPointerDown);
+        this._onWindowPointerDown = null;
+      }
+      if (this._onWindowKeyDown) {
+        window.removeEventListener('keydown', this._onWindowKeyDown);
+        this._onWindowKeyDown = null;
+      }
+    };
+    this.events.once('shutdown', cleanupIntro);
+    this.events.once('destroy', cleanupIntro);
   }
 
   _finishTypewriter() {
@@ -239,17 +281,9 @@ export default class EpisodeIntroScene extends Phaser.Scene {
   }
 
   _reposition() {
-    // Sync ulang juga di sini (bukan cuma di create()) — supaya kalau
-    // rasio aspek berubah SAAT masih di scene ini (mis. user toggle
-    // fullscreen persis waktu di layar intro episode — INI KASUS YANG
-    // DIMINTA: "dari belum fullscreen hingga fullscreen tetap
-    // responsive"), lebar dunia game ikut disesuaikan lagi, bukan cuma
-    // teks-nya yang dipindah tapi background rectangle-nya tetap
-    // ukuran lama (bekas lebar sebelumnya) dan menyisakan celah hitam
-    // di tepi.
+    if (!this.scene?.isActive()) return;
     const { width, height } = syncGameSizeToOrientation(this);
-    this.bgRect?.setPosition(width / 2, height / 2);
-    this.bgRect?.setSize(width, height);
+    this.bgRect?.setPosition(0, 0).setSize(width, height).setDisplaySize(width, height).updateDisplayOrigin();
 
     const bounds = getVisibleBounds(this);
     const baseY = bounds.top + bounds.height * 0.28;

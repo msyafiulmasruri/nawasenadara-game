@@ -24,6 +24,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTokenState('invalid');
       return;
     }

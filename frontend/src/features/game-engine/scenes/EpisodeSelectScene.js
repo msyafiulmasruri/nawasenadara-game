@@ -22,7 +22,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     // dari gameplay episode ke sini, melewati MenuScene).
     startMenuBGM(getSettings());
 
-    this.bgRect = this.add.rectangle(width / 2, height / 2, width, height, 0x12101c).setDepth(0);
+    this.bgRect = this.add.rectangle(0, 0, width, height, 0x12101c).setOrigin(0, 0).setDepth(0);
 
     this.titleText = this.add
       .text(width / 2, 44, 'PILIH EPISODE', {
@@ -52,24 +52,34 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     // terlihat di layar portrait sempit (di-debounce ringan supaya
     // tidak dihitung ulang berkali-kali di tengah animasi resize).
     this._resizeDebounceTimer = null;
+    const applySelectReflow = () => {
+      if (!this.scene?.isActive()) return;
+      const { width: w, height: h } = syncGameSizeToOrientation(this);
+      this.bgRect?.setPosition(0, 0).setSize(w, h).setDisplaySize(w, h).updateDisplayOrigin();
+
+      this._repositionBackButton();
+      this._repositionTitle();
+      this._repositionGrid();
+    };
     this._onResize = () => {
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
-      this._resizeDebounceTimer = setTimeout(() => {
-        // Sync ulang di sini juga — menangani fullscreen di-toggle
-        // sementara masih di layar pilih episode.
-        const { width, height } = syncGameSizeToOrientation(this);
-        this.bgRect?.setPosition(width / 2, height / 2);
-        this.bgRect?.setSize(width, height);
-
-        this._repositionBackButton();
-        this._repositionTitle();
-        this._repositionGrid();
-      }, 150);
+      this._resizeDebounceTimer = setTimeout(applySelectReflow, 80);
+    };
+    this._onFullscreenChange = () => {
+      applySelectReflow();
+      setTimeout(applySelectReflow, 120);
+      setTimeout(applySelectReflow, 300);
     };
     this.scale.on('resize', this._onResize);
+    window.addEventListener('resize', this._onResize);
+    document.addEventListener('fullscreenchange', this._onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this._onFullscreenChange);
     this.events.once('shutdown', () => {
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale.off('resize', this._onResize);
+      window.removeEventListener('resize', this._onResize);
+      document.removeEventListener('fullscreenchange', this._onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
     });
 
     this._repositionBackButton();
@@ -85,14 +95,10 @@ export default class EpisodeSelectScene extends Phaser.Scene {
   // baris atas/bawah kadang terpotong/hilang sebagian.
   _buildGrid() {
     const bounds = getVisibleBounds(this);
-    // Dua kolom lebih mudah disentuh pada ponsel portrait; landscape
-    // memakai tiga kolom. Jumlah baris selalu mengikuti jumlah episode,
-    // jadi layout tidak lagi mengasumsikan struktur grid lama.
+    // Dua kolom pada ponsel portrait; tiga kolom pada landscape.
     const cols = bounds.width < bounds.height * 0.9 ? 2 : 3;
     const rows = Math.ceil(EPISODES.length / cols);
 
-    // Judul ada di y=44 dengan area teks kira-kira 30px tinggi -> beri
-    // ruang aman relatif terhadap TOP yang benar-benar terlihat, bukan 0.
     const headerSpace = 76;
     const bottomMargin = 24;
     const gridTop = Math.max(bounds.top + headerSpace, bounds.top + bounds.height * 0.1);
@@ -100,73 +106,173 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     const availableWidth = bounds.width * 0.92;
     const availableHeight = Math.max(gridBottom - gridTop, bounds.height * 0.5);
 
-    const gap = 16;
-    const cellFromWidth = (availableWidth - gap * (cols - 1)) / cols;
-    const cellFromHeight = (availableHeight - gap * (rows - 1)) / rows;
-    // Kotak PERSEGI: pakai sisi terkecil dari dua batas itu supaya
-    // tetap 1:1 dan tetap muat di ruang yang tersedia.
-    const cellSize = Math.min(cellFromWidth, cellFromHeight);
+    const gap = 18;
+    const maxCardW = (availableWidth - gap * (cols - 1)) / cols;
+    const maxCardH = (availableHeight - gap * (rows - 1)) / rows;
 
-    const gridWidth = cellSize * cols + gap * (cols - 1);
-    const gridHeight = cellSize * rows + gap * (rows - 1);
-    const startX = bounds.centerX - gridWidth / 2 + cellSize / 2;
-    const startY = gridTop + (availableHeight - gridHeight) / 2 + cellSize / 2;
+    // Proporsi landscape 16:10 (~1.55) yang pas dengan aspect ratio cutscene game (16:9)
+    let cardW = maxCardW;
+    let cardH = cardW / 1.55;
+    if (cardH > maxCardH) {
+      cardH = maxCardH;
+      cardW = cardH * 1.55;
+    }
+
+    const gridWidth = cardW * cols + gap * (cols - 1);
+    const gridHeight = cardH * rows + gap * (rows - 1);
+    const startX = bounds.centerX - gridWidth / 2 + cardW / 2;
+    const startY = gridTop + (availableHeight - gridHeight) / 2 + cardH / 2;
 
     this._cells = [];
 
     EPISODES.forEach((ep, index) => {
       const col = index % cols;
       const row = Math.floor(index / cols);
-      const x = startX + col * (cellSize + gap);
-      const y = startY + row * (cellSize + gap);
+      const x = startX + col * (cardW + gap);
+      const y = startY + row * (cardH + gap);
       const unlocked = isEpisodeUnlocked(ep.id);
+      const cellItems = [];
 
+      // Base card rectangle
       const box = this.add
-        .rectangle(x, y, cellSize, cellSize, unlocked ? 0x2a2540 : 0x1a1a24, 1)
-        .setStrokeStyle(2, unlocked ? 0xffdd57 : 0x3a3a44, unlocked ? 0.9 : 0.5)
+        .rectangle(x, y, cardW, cardH, unlocked ? 0x161426 : 0x0c0b14, 1)
+        .setStrokeStyle(2, unlocked ? 0xffdd57 : 0x333344, unlocked ? 0.9 : 0.4)
         .setDepth(1);
+      cellItems.push(box);
 
-      const numberText = this.add
-        .text(x, y - cellSize * 0.18, `${ep.id}`, {
+      // Mask sudut membulat untuk thumbnail agar pas di dalam kartu
+      const maskShape = this.make.graphics();
+      maskShape.fillStyle(0xffffff);
+      maskShape.fillRoundedRect(x - cardW / 2 + 1, y - cardH / 2 + 1, cardW - 2, cardH - 2, 8);
+      const cardMask = maskShape.createGeometryMask();
+      cellItems.push(maskShape);
+
+      // Background cutscene / thumbnail (cover penuh dalam kartu dengan mask)
+      const thumbKey =
+        (ep.cutsceneThumbnail && this.textures.exists(ep.cutsceneThumbnail) && ep.cutsceneThumbnail) ||
+        (ep.bgKey && this.textures.exists(ep.bgKey) && ep.bgKey) ||
+        null;
+
+      let bgImg = null;
+      if (thumbKey) {
+        bgImg = this.add.image(x, y, thumbKey).setDepth(1.5);
+
+        // COVER + Mask: mengisi penuh kartu tanpa ruang kosong, tanpa gepeng/distorsi
+        const scaleX = (cardW - 2) / bgImg.width;
+        const scaleY = (cardH - 2) / bgImg.height;
+        const coverScale = Math.max(scaleX, scaleY);
+        bgImg.setScale(coverScale);
+        bgImg.setMask(cardMask);
+
+        if (!unlocked) {
+          bgImg.setAlpha(0.28).setTint(0x64748b);
+        } else {
+          bgImg.setAlpha(0.92);
+        }
+        cellItems.push(bgImg);
+      }
+
+      // Dark overlay pada bagian bawah kartu agar teks kontras dan tajam
+      const bottomOverlay = this.add
+        .rectangle(
+          x,
+          y + cardH * 0.23,
+          cardW - 2,
+          cardH * 0.54,
+          0x070712,
+          unlocked ? 0.78 : 0.86,
+        )
+        .setDepth(2);
+      bottomOverlay.setMask(cardMask);
+      cellItems.push(bottomOverlay);
+
+      // Episode badge di bagian atas kartu
+      const badge = this.add
+        .text(x, y - cardH * 0.3, `EPISODE ${ep.id}`, {
           fontFamily: '"Jersey 15", monospace',
-          fontSize: `${Math.round(cellSize * 0.32)}px`,
-          color: unlocked ? '#ffdd57' : '#555566',
+          fontSize: `${Math.max(16, Math.round(cardH * 0.18))}px`,
+          color: unlocked ? '#ffdd57' : '#94a3b8',
+          backgroundColor: unlocked ? '#0f0f22d9' : '#090914cc',
+          padding: { x: 10, y: 3 },
         })
         .setOrigin(0.5)
-        .setDepth(2);
+        .setDepth(3);
+      cellItems.push(badge);
 
-      const label = unlocked ? ep.title : '🔒 Terkunci';
+      // Judul episode (tampil baik saat terbuka maupun terkunci)
       const labelText = this.add
-        .text(x, y + cellSize * 0.28, label, {
+        .text(x, y + cardH * 0.18, ep.title, {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${Math.round(cellSize * 0.1)}px`,
-          color: unlocked ? '#ffffff' : '#777788',
+          fontSize: `${Math.max(14, Math.round(cardH * 0.13))}px`,
+          fontStyle: '700',
+          color: unlocked ? '#ffffff' : '#94a3b8',
           align: 'center',
-          wordWrap: { width: cellSize * 0.85 },
+          wordWrap: { width: cardW * 0.9 },
         })
         .setOrigin(0.5)
-        .setDepth(2);
+        .setDepth(3);
+      cellItems.push(labelText);
 
       if (unlocked) {
+        const statusLabel = this.add
+          .text(x, y + cardH * 0.37, 'TERBUKA — KLIK UNTUK MAIN', {
+            fontFamily: '"Pixelify Sans", monospace',
+            fontSize: `${Math.max(11, Math.round(cardH * 0.088))}px`,
+            fontStyle: '600',
+            color: '#4ade80',
+            align: 'center',
+          })
+          .setOrigin(0.5)
+          .setDepth(3);
+        cellItems.push(statusLabel);
+
         box.setInteractive({ useHandCursor: true });
         const goToIntro = () => this.scene.start('EpisodeIntroScene', { episodeId: ep.id });
         box.on('pointerdown', goToIntro);
-        box.on('pointerover', () => box.setFillStyle(0x3a3560, 1));
-        box.on('pointerout', () => box.setFillStyle(0x2a2540, 1));
+        box.on('pointerover', () => {
+          box.setStrokeStyle(3, 0xffea79, 1);
+          box.setFillStyle(0x28233f, 1);
+          if (bgImg) bgImg.setAlpha(1.0);
+        });
+        box.on('pointerout', () => {
+          box.setStrokeStyle(2, 0xffdd57, 0.9);
+          box.setFillStyle(0x161426, 1);
+          if (bgImg) bgImg.setAlpha(0.92);
+        });
+      } else {
+        // Ikon gembok vektor bersih (tanpa emoji) + label TERKUNCI
+        const lockGfx = this.add.graphics().setDepth(3);
+        const r = Math.max(8, Math.round(cardH * 0.065));
+        const lx = x;
+        const ly = y - cardH * 0.04;
+        lockGfx.lineStyle(2.2, 0x94a3b8, 0.85);
+        lockGfx.strokeCircle(lx, ly - r * 0.65, r * 0.55);
+        lockGfx.fillStyle(0x1e293b, 0.95);
+        lockGfx.fillRoundedRect(lx - r * 0.85, ly - r * 0.2, r * 1.7, r * 1.35, 3);
+        lockGfx.strokeRoundedRect(lx - r * 0.85, ly - r * 0.2, r * 1.7, r * 1.35, 3);
+        cellItems.push(lockGfx);
+
+        const lockLabel = this.add
+          .text(x, y + cardH * 0.37, 'TERKUNCI', {
+            fontFamily: '"Jersey 15", monospace',
+            fontSize: `${Math.max(13, Math.round(cardH * 0.11))}px`,
+            color: '#64748b',
+            align: 'center',
+          })
+          .setOrigin(0.5)
+          .setDepth(3);
+        cellItems.push(lockLabel);
       }
 
-      this._cells.push({ box, numberText, labelText, episodeId: ep.id });
+      this._cells.push({ items: cellItems, episodeId: ep.id });
     });
   }
 
   _repositionGrid() {
-    // Cara paling aman & sederhana: hapus kotak lama, bangun ulang
-    // dengan ukuran/posisi baru sesuai viewport saat ini.
-    this._cells?.forEach(({ box, numberText, labelText }) => {
-      box.destroy();
-      numberText.destroy();
-      labelText.destroy();
+    this._cells?.forEach((cell) => {
+      cell.items?.forEach((obj) => obj?.destroy?.());
     });
+    this._cells = [];
     this._buildGrid();
   }
 

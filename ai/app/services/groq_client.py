@@ -484,8 +484,11 @@ ATURAN WAJIB:
 
 4. Pertahankan kepribadian karakter berdasarkan konteks yang diberikan.
 
-5. Gunakan bahasa Indonesia remaja SMP/SMA yang natural,
-   santai, dan mudah dipahami.
+5. Gunakan bahasa obrolan keseharian anak SMP/SMA Indonesia yang luwes,
+   santai, dan tidak kaku (gunakan kata sapaan "aku/kamu", "udah",
+   "nggak", "gitu", "sih", "kok", "aja" sesuai karakter; hindari kata
+   formal/kaku seperti "saya", "Anda", "bias gender", "asertif", atau
+   gaya bahasa buku teks).
 
 6. Panjang dialog kurang lebih sama dengan dialog asli.
 

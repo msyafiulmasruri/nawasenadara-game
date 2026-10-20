@@ -88,6 +88,7 @@ function DashboardContent() {
   }, [getAccessToken]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
     // Polling ringan setiap 60 detik supaya notifikasi darurat terasa
     // "real-time" (proposal 2.2.6) tanpa perlu infrastruktur WebSocket

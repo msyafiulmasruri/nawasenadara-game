@@ -26,6 +26,7 @@ export default class Episode4Scene extends BasePlayerScene {
   create(data) {
     this.episodeId = 4;
     super.create(data);
+    if (data?.preservePlayer) return;
 
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);

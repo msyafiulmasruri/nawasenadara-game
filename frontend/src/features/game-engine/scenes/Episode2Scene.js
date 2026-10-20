@@ -178,6 +178,8 @@ export default class Episode2Scene extends BasePlayerScene {
     // OBJECTIVE BRIEFING
     // ============================================================
 
+    if (data?.preservePlayer) return;
+
     this.uiInputLocked = true;
 
     this.player?.setVelocity(0, 0);

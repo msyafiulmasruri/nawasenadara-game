@@ -50,6 +50,7 @@ export default class StoryEpisodeScene extends BasePlayerScene {
 
   create(data) {
     super.create(data);
+    if (data?.preservePlayer) return;
 
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);

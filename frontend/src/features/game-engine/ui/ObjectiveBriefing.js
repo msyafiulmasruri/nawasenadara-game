@@ -1,155 +1,614 @@
-import { getVisibleBounds, pxToWorld } from '../utils/visibleBounds';
+import { getEpisodeById } from '../config/episodes';
 
-// Overlay "briefing objektif" — tampil di ATAS gameplay (bukan scene
-// terpisah seperti EpisodeEndingScene, karena ini muncul SAAT gameplay
-// baru dimulai, sebelum player dilepas bebas bergerak, jadi lebih
-// murah & sederhana ditumpuk di scene yang sama daripada pindah scene
-// bolak-balik) begitu pemain masuk ke gameplay sebuah episode — WAJIB
-// dibaca dulu sebelum bisa lanjut main. Isinya arahan objektif: apa
-// yang harus dilakukan pemain di episode ini DAN bagaimana cara
-// menjawab/merespons dengan tepat (lihat field `objective` di
-// config/episodes.js).
-//
-// Pola "tap di mana saja untuk lanjut" SENGAJA disamakan dengan
-// EpisodeIntroScene/EpisodeEndingScene (bukan tombol kecil) — sudah
-// terbukti solid dan konsisten di seluruh alur intro->briefing->
-// gameplay->ending.
+/**
+ * ObjectiveBriefing ("Hint Misi")
+ *
+ * Ditampilkan dengan gaya UI & animasi motion yang selaras dengan
+ * pengenalan game di awal (GameIntroGuideScene):
+ * - Hanya berisi 2 slide fokus:
+ *   1. Tujuan Utama Misi (Head teks kuning #ffdd57, isian penjelasan putih #ffffff)
+ *   2. Langkah-Langkah dalam Misi Tersebut (Head teks kuning #ffdd57, isian penjelasan putih #ffffff)
+ * - Ukuran font head teks (kuning) dan ukuran font isian penjelasan (putih)
+ *   dibuat SAMA BESAR di setiap slide agar selaras dan sangat mudah dibaca.
+ * - Tombol navigasi "Lanjut ›" / "Mulai ›" berada di panel sebelah kanan
+ *   (dan "Kembali" untuk melihat slide sebelumnya).
+ */
+
+const ROOT_ID = 'nd-mission-root';
+const STYLE_ID = 'nd-mission-style';
+
+const ICONS = {
+  mission: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"><circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="14"/><circle cx="32" cy="32" r="5" fill="currentColor"/><path d="M32 4v6M32 54v6M4 32h6M54 32h6"/></svg>`,
+  steps: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"><rect x="10" y="8" width="44" height="50" rx="5"/><path d="M20 22l4 4 7-8"/><path d="M20 36l4 4 7-8"/><path d="M38 23h8M38 37h8M20 50h26"/></svg>`,
+};
+
+const CSS = `
+#${ROOT_ID} {
+  position: fixed; inset: 0; z-index: 8800;
+  display: flex; align-items: stretch;
+  font-family: 'Pixelify Sans', monospace;
+  color: #ffffff;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,221,87,0.08), transparent 55%),
+    radial-gradient(ellipse at 70% 90%, rgba(96,165,250,0.08), transparent 60%),
+    rgba(9, 8, 22, 0.90);
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(.4, 0, .2, 1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+#${ROOT_ID}.is-visible { opacity: 1; }
+#${ROOT_ID}.is-closing {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms cubic-bezier(.4, 0, .2, 1);
+}
+#${ROOT_ID} button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.nd-mission__skip {
+  position: absolute; top: 22px; left: 28px; z-index: 2;
+  font-size: 18px; font-weight: 600; color: #cbd5e1 !important; letter-spacing: .04em;
+  padding: 6px 12px; border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.18) !important;
+  background: rgba(255,255,255,0.04) !important;
+  transition: color 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+.nd-mission__skip:hover {
+  color: #ffdd57 !important;
+  border-color: #ffdd57 !important;
+  transform: translateY(-1px);
+}
+
+.nd-mission__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 68px 5vw 40px;
+  min-width: 0;
+}
+
+.nd-mission__slide {
+  width: min(900px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+.nd-mission__slide.is-leaving {
+  opacity: 0;
+  transform: translateY(-14px);
+}
+
+/* Head Teks Kuning Selaras */
+.nd-mission__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 26px;
+  text-align: center;
+}
+.nd-mission__icon {
+  width: clamp(54px, 5.8vw, 74px);
+  height: clamp(54px, 5.8vw, 74px);
+  flex-shrink: 0;
+  color: #ffdd57;
+  filter: drop-shadow(0 0 14px rgba(255,221,87,0.35));
+  animation: ndMissionPop 560ms cubic-bezier(.34,1.56,.64,1) both, ndMissionFloat 3.2s ease-in-out 560ms infinite;
+}
+.nd-mission__icon svg { width: 100%; height: 100%; }
+
+.nd-mission__title {
+  font-family: 'Pixelify Sans', monospace;
+  font-weight: 700;
+  font-size: clamp(28px, 3.5vw, 44px);
+  line-height: 1.18;
+  color: #ffdd57;
+  text-shadow: 0 2px 18px rgba(255,221,87,0.28);
+  animation: ndMissionSlideIn 480ms ease-out 100ms both;
+}
+
+/* Kotak Penjelasan Bergaris Kuning */
+.nd-mission__box {
+  position: relative;
+  width: 100%;
+  border: 2.5px solid #ffdd57;
+  border-radius: 8px;
+  background: rgba(20, 18, 38, 0.94);
+  box-shadow: 0 12px 42px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,221,87,0.05);
+  padding: 36px clamp(24px, 3.2vw, 46px) 32px;
+  animation: ndMissionRise 520ms ease-out 180ms both;
+  cursor: pointer;
+}
+.nd-mission__speaker {
+  position: absolute;
+  top: -16px;
+  left: 24px;
+  background: #ffdd57;
+  color: #14122a;
+  font-weight: 700;
+  font-size: 17px;
+  padding: 3px 14px;
+  border-radius: 4px;
+  letter-spacing: .03em;
+}
+
+/* Isian Penjelasan Teks Putih — Ukuran Sama Besar di Semua Slide */
+.nd-mission__body {
+  margin: 0;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(21px, 2.2vw, 29px);
+  line-height: 1.62;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+  min-height: 3.2em;
+}
+.nd-mission__body.is-steps {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.nd-mission__step-row {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: clamp(21px, 2.2vw, 29px);
+  line-height: 1.52;
+  font-weight: 500;
+  color: #ffffff;
+}
+.nd-mission__caret {
+  display: inline-block;
+  width: .52em;
+  height: .95em;
+  margin-left: 3px;
+  vertical-align: -0.1em;
+  background: #ffdd57;
+  animation: ndMissionBlink 900ms steps(1) infinite;
+}
+
+.nd-mission__dots {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+.nd-mission__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.22);
+  transition: width 280ms ease, background 280ms ease;
+}
+.nd-mission__dot.is-active {
+  width: 32px;
+  background: #ffdd57;
+}
+.nd-mission__dot.is-done {
+  background: rgba(255,221,87,0.5);
+}
+
+/* Panel Kanan "Lanjut" (sama seperti pengenalan game di awal) */
+.nd-mission__side {
+  position: relative;
+  width: clamp(160px, 17vw, 240px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: linear-gradient(to right, rgba(255,221,87,0) 0%, rgba(255,221,87,0.04) 45%, rgba(255,221,87,0.09) 100%);
+}
+.nd-mission__side::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6%;
+  bottom: 6%;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(255,221,87,0.55) 30%, rgba(255,221,87,0.55) 70%, transparent);
+  box-shadow: 0 0 18px rgba(255,221,87,0.35);
+}
+.nd-mission__next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: clamp(26px, 2.6vw, 36px) !important;
+  font-weight: 700;
+  color: #ffdd57 !important;
+  text-shadow: 0 0 14px rgba(255,221,87,0.55), 0 0 32px rgba(255,221,87,0.25);
+  animation: ndMissionBreath 2.2s ease-in-out infinite;
+  transition: transform 220ms ease, color 220ms ease, opacity 260ms ease;
+}
+.nd-mission__next:hover {
+  color: #ffffff !important;
+  transform: scale(1.06);
+  animation-play-state: paused;
+  opacity: 1;
+}
+.nd-mission__next .nd-mission__chev {
+  display: inline-block;
+  animation: ndMissionNudge 1.4s ease-in-out infinite;
+}
+.nd-mission__prev {
+  font-size: 19px !important;
+  font-weight: 600;
+  color: #cbd5e1 !important;
+  padding: 6px 12px;
+  transition: color 200ms ease, opacity 260ms ease;
+}
+.nd-mission__prev:hover { color: #ffdd57 !important; }
+.nd-mission__prev.is-hidden { opacity: 0; pointer-events: none; }
+
+@keyframes ndMissionPop { from { opacity: 0; transform: scale(.4) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes ndMissionFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes ndMissionSlideIn { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes ndMissionRise { from { opacity: 0; transform: translateY(22px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes ndMissionBlink { 50% { opacity: 0; } }
+@keyframes ndMissionBreath { 0%,100% { opacity: .68; } 50% { opacity: 1; } }
+@keyframes ndMissionNudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
+
+@media (max-aspect-ratio: 1/1) {
+  #${ROOT_ID} { flex-direction: column; }
+  .nd-mission__main { padding: 64px 5vw 16px; }
+  .nd-mission__side {
+    width: 100%;
+    height: 116px;
+    flex-direction: row;
+    gap: 32px;
+    background: linear-gradient(to bottom, rgba(255,221,87,0) 0%, rgba(255,221,87,0.09) 100%);
+  }
+  .nd-mission__side::before {
+    left: 6%; right: 6%; top: 0; bottom: auto; width: auto; height: 2px;
+    background: linear-gradient(to right, transparent, rgba(255,221,87,0.55) 30%, rgba(255,221,87,0.55) 70%, transparent);
+  }
+  .nd-mission__prev { order: -1; }
+  .nd-mission__head { gap: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #${ROOT_ID} *, #${ROOT_ID} { animation: none !important; transition: none !important; }
+}
+`;
+
 export default class ObjectiveBriefing {
   constructor(scene) {
     this.scene = scene;
     this.isOpen = false;
+    this._root = null;
+    this._typingTimer = null;
+    this._isTyping = false;
+    this._isTransitioning = false;
+    this._timeouts = [];
+    this.currentSlideIndex = 0;
   }
 
-  show({ title = 'TUJUAN EPISODE', objectiveText, promptLabel = 'TEKAN UNTUK MULAI', onContinue }) {
+  show({
+    objectiveText,
+    episodeData = null,
+    promptLabel = 'MULAI',
+    onContinue,
+  } = {}) {
     if (this.isOpen) return;
     this.isOpen = true;
     this._onContinue = onContinue;
-    this._readyToAdvance = false;
-    this._advancing = false;
+    this._closing = false;
+    this._isTransitioning = false;
+    this.currentSlideIndex = 0;
 
     const scene = this.scene;
-    const bounds = getVisibleBounds(scene);
+    const epId = episodeData?.id || scene?.episodeId || 1;
+    const epData = episodeData || getEpisodeById(epId);
+    const epTitle = epData?.title ? `Episode ${epData.id}: ${epData.title}` : `Episode ${epId}`;
 
-    this._container = scene.add.container(0, 0).setDepth(700).setScrollFactor(0);
+    const mainMissionText =
+      objectiveText ||
+      epData?.objective ||
+      'Pahami situasi di sekitarmu, berani bicara jujur, dan cari bantuan orang yang kamu percaya.';
 
-    const dim = scene.add
-      .rectangle(bounds.centerX, bounds.centerY, bounds.width, bounds.height, 0x05050f, 0.88)
-      .setScrollFactor(0);
-    this._container.add(dim);
+    const aspects = Array.isArray(epData?.aspects) ? epData.aspects : [];
+    const stepsLines =
+      aspects.length > 0
+        ? aspects.map((a, idx) => `${idx + 1}. ${a.title} — ${a.desc || ''}`)
+        : [
+            '1. Kenali situasi yang membuatmu atau temanmu tidak nyaman.',
+            '2. Sampaikan batasan dengan tenang dan tegas tanpa membalas kasar.',
+            '3. Cari tempat aman dan lapor ke Guru BK atau orang dewasa tepercaya.',
+          ];
 
-    const viewportHeight = scene.scale.parentSize?.height || 720;
-    const isCompactLandscape = viewportHeight <= 430;
-    const cardWidth = Math.min(
-      bounds.width * 0.94,
-      pxToWorld(scene, isCompactLandscape ? 780 : 940),
-    );
-    const cardX = bounds.centerX;
+    const finalBtnLabel =
+      promptLabel && promptLabel.toUpperCase().includes('KEMBALI')
+        ? 'Lanjut Main'
+        : 'Mulai';
 
-    // Ukuran diperbesar secara signifikan agar tujuan episode tampil tegas dan
-    // sangat mudah dibaca pada layar HP maupun desktop.
-    const labelFont = pxToWorld(scene, isCompactLandscape ? 36 : 42);
-    const preferredBodyFont = isCompactLandscape ? 26 : 30;
-    const minimumBodyFont = 22;
-    const promptFont = pxToWorld(scene, isCompactLandscape ? 20 : 23);
-    const labelY = bounds.top + bounds.height * (isCompactLandscape ? 0.10 : 0.14);
-    const promptY = bounds.top + bounds.height * 0.90;
+    // Hanya 2 slide:
+    // Slide 1: Tujuan Utama Misi
+    // Slide 2: Langkah-Langkah dalam Misi Tersebut
+    this._slides = [
+      {
+        icon: 'mission',
+        title: `Tujuan Utama Misi — Episode ${epId}`,
+        speaker: `Kak Dara • ${epTitle}`,
+        mode: 'paragraph',
+        text: mainMissionText,
+        nextLabel: 'Lanjut',
+      },
+      {
+        icon: 'steps',
+        title: `Langkah-Langkah Misi — Episode ${epId}`,
+        speaker: `Kak Dara • 3 Langkah Misi`,
+        mode: 'steps',
+        steps: stepsLines,
+        text: stepsLines.join('\n'),
+        nextLabel: finalBtnLabel,
+      },
+    ];
 
-    const label = scene.add
-      .text(cardX, labelY, title, {
-        fontFamily: '"Jersey 15", monospace',
-        fontSize: `${labelFont}px`,
-        color: '#ffdd57',
-        align: 'center',
-      })
-      .setOrigin(0.5, 0);
-    this._container.add(label);
-
-    const promptText = scene.add
-      .text(cardX, promptY, promptLabel, {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${promptFont}px`,
-        color: '#ffffff',
-        align: 'center',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0);
-    this._container.add(promptText);
-    this._promptText = promptText;
-
-    const bodyY = label.y + label.height + pxToWorld(scene, isCompactLandscape ? 14 : 20);
-    const bodyMaxHeight = Math.max(
-      1,
-      promptText.y - promptText.height / 2 - bodyY - pxToWorld(scene, 18),
-    );
-
-    const body = scene.add
-      .text(cardX, bodyY, objectiveText, {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${pxToWorld(scene, preferredBodyFont)}px`,
-        color: '#ffffff',
-        align: 'center',
-        wordWrap: { width: cardWidth },
-        lineSpacing: pxToWorld(scene, isCompactLandscape ? 7 : 11),
-      })
-      .setOrigin(0.5, 0);
-
-    // Turunkan ukuran hanya bila teks episode yang panjang benar-benar
-    // melewati ruang tersedia.
-    let fittedBodyFont = preferredBodyFont;
-    while (body.height > bodyMaxHeight && fittedBodyFont > minimumBodyFont) {
-      fittedBodyFont -= 1;
-      body.setFontSize(pxToWorld(scene, fittedBodyFont));
-    }
-    this._container.add(body);
-
-    // Kunci "harus dibaca" sederhana: tombol lanjut baru aktif setelah
-    // jeda singkat (cukup untuk minimal sempat membaca 1-2 baris
-    // pertama), bukan bisa langsung di-skip sepersekian detik begitu
-    // muncul.
-    scene.time.delayedCall(900, () => {
-      if (!this.isOpen) return;
-      this._readyToAdvance = true;
-      scene.tweens.add({
-        targets: promptText,
-        alpha: 1,
-        duration: 400,
-      });
-      scene.tweens.add({
-        targets: promptText,
-        alpha: 0.3,
-        duration: 700,
-        yoyo: true,
-        repeat: -1,
-        delay: 400,
-      });
-    });
-
-    this._handleAdvance = () => {
-      if (!this._readyToAdvance || this._advancing) return;
-      this._advancing = true;
-      this.close();
-    };
-    scene.input.keyboard?.on('keydown-SPACE', this._handleAdvance);
-    scene.input.keyboard?.on('keydown-E', this._handleAdvance);
-    scene.input.on('pointerdown', this._handleAdvance);
+    this._mountOverlay();
+    this._renderSlide(0);
 
     this._shutdownHandler = () => this.close(true);
-    scene.events.once('shutdown', this._shutdownHandler);
+    scene?.events?.once('shutdown', this._shutdownHandler);
+    scene?.events?.once('destroy', this._shutdownHandler);
+  }
+
+  _mountOverlay() {
+    if (typeof document === 'undefined') return;
+    document.getElementById(ROOT_ID)?.remove();
+
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = CSS;
+      document.head.appendChild(style);
+    }
+
+    const root = document.createElement('div');
+    root.id = ROOT_ID;
+    root.innerHTML = `
+      <button type="button" class="nd-mission__skip" id="nd-mission-skip">Lewati</button>
+      <div class="nd-mission__main">
+        <div class="nd-mission__slide" id="nd-mission-slide"></div>
+        <div class="nd-mission__dots" id="nd-mission-dots">
+          ${this._slides.map(() => '<span class="nd-mission__dot"></span>').join('')}
+        </div>
+      </div>
+      <div class="nd-mission__side">
+        <button type="button" class="nd-mission__next" id="nd-mission-next">
+          <span id="nd-mission-next-label">Lanjut</span><span class="nd-mission__chev">&rsaquo;</span>
+        </button>
+        <button type="button" class="nd-mission__prev is-hidden" id="nd-mission-prev">Kembali</button>
+      </div>
+    `;
+
+    document.body.appendChild(root);
+    this._root = root;
+    this._slideEl = root.querySelector('#nd-mission-slide');
+    this._nextBtn = root.querySelector('#nd-mission-next');
+    this._nextLabel = root.querySelector('#nd-mission-next-label');
+    this._prevBtn = root.querySelector('#nd-mission-prev');
+    this._dots = Array.from(root.querySelectorAll('.nd-mission__dot'));
+
+    root.querySelector('#nd-mission-skip')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.close();
+    });
+
+    // Tombol Lanjut / Mulai di bagian kanan:
+    // Langsung pindah ke slide berikutnya / mulai game tanpa pernah nyangkut!
+    this._nextBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._advanceSlideImmediate();
+    });
+
+    this._prevBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._prevSlide();
+    });
+
+    this._onKeyDown = (e) => {
+      if (e.repeat) return;
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._advanceSlideImmediate();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._prevSlide();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.close();
+      }
+    };
+    window.addEventListener('keydown', this._onKeyDown, true);
+
+    requestAnimationFrame(() => root.classList.add('is-visible'));
+  }
+
+  _renderSlide(idx) {
+    const slide = this._slides[idx];
+    if (!slide || !this._slideEl) return;
+
+    const isSteps = slide.mode === 'steps';
+
+    this._slideEl.innerHTML = `
+      <div class="nd-mission__head">
+        <div class="nd-mission__icon">${ICONS[slide.icon] || ICONS.mission}</div>
+        <div class="nd-mission__title" role="heading" aria-level="1">${slide.title}</div>
+      </div>
+      <div class="nd-mission__box" id="nd-mission-box">
+        <span class="nd-mission__speaker">${slide.speaker}</span>
+        <div class="nd-mission__body ${isSteps ? 'is-steps' : ''}" id="nd-mission-body"></div>
+      </div>
+    `;
+
+    // Klik pada kotak teks: jika sedang mengetik, langsung tampilkan penuh;
+    // jika sudah penuh, lanjut ke slide berikutnya.
+    this._slideEl.querySelector('#nd-mission-box')?.addEventListener('click', () => {
+      if (this._isTyping) {
+        this._completeTyping();
+      } else {
+        this._advanceSlideImmediate();
+      }
+    });
+
+    this._dots.forEach((d, i) => {
+      d.classList.toggle('is-active', i === idx);
+      d.classList.toggle('is-done', i < idx);
+    });
+    this._prevBtn?.classList.toggle('is-hidden', idx === 0);
+    if (this._nextLabel) {
+      this._nextLabel.textContent = slide.nextLabel || 'Lanjut';
+    }
+
+    this._later(() => this._startSlideTyping(slide), 220);
+  }
+
+  _startSlideTyping(slide) {
+    const bodyEl = this._root?.querySelector('#nd-mission-body');
+    if (!bodyEl) return;
+    this._stopTyping();
+    this._isTyping = true;
+    this._currentSlide = slide;
+
+    const caret = '<span class="nd-mission__caret"></span>';
+
+    if (slide.mode === 'steps' && Array.isArray(slide.steps)) {
+      const fullJoined = slide.steps.join('\n');
+      let charCount = 0;
+      this._typingTimer = window.setInterval(() => {
+        charCount += 2;
+        const partial = fullJoined.slice(0, charCount).split('\n');
+        bodyEl.innerHTML = partial
+          .map(
+            (line, idx) =>
+              `<div class="nd-mission__step-row">${line}${idx === partial.length - 1 ? caret : ''}</div>`,
+          )
+          .join('');
+        if (charCount >= fullJoined.length) {
+          this._completeTyping();
+        }
+      }, 18);
+      return;
+    }
+
+    const fullText = slide.text || '';
+    let i = 0;
+    this._typingTimer = window.setInterval(() => {
+      i += 2;
+      bodyEl.innerHTML = `${fullText.slice(0, i)}${caret}`;
+      if (i >= fullText.length) {
+        this._completeTyping();
+      }
+    }, 18);
+  }
+
+  _completeTyping() {
+    this._stopTyping();
+    this._isTyping = false;
+    const bodyEl = this._root?.querySelector('#nd-mission-body');
+    const slide = this._currentSlide || this._slides?.[this.currentSlideIndex];
+    if (!bodyEl || !slide) return;
+
+    if (slide.mode === 'steps' && Array.isArray(slide.steps)) {
+      bodyEl.innerHTML = slide.steps
+        .map((line) => `<div class="nd-mission__step-row">${line}</div>`)
+        .join('');
+    } else {
+      bodyEl.textContent = slide.text || '';
+    }
+  }
+
+  _stopTyping() {
+    if (this._typingTimer) {
+      window.clearInterval(this._typingTimer);
+      this._typingTimer = null;
+    }
+  }
+
+  _advanceSlideImmediate() {
+    if (this._closing || this._isTransitioning) return;
+    this._stopTyping();
+    this._isTyping = false;
+
+    if (this.currentSlideIndex < this._slides.length - 1) {
+      this._goToSlide(this.currentSlideIndex + 1);
+    } else {
+      this.close();
+    }
+  }
+
+  _prevSlide() {
+    if (this._closing || this._isTransitioning || this.currentSlideIndex <= 0) return;
+    this._goToSlide(this.currentSlideIndex - 1);
+  }
+
+  _goToSlide(targetIdx) {
+    this._isTransitioning = true;
+    this._stopTyping();
+    this._isTyping = false;
+    this._slideEl?.classList.add('is-leaving');
+
+    this._later(() => {
+      this.currentSlideIndex = targetIdx;
+      this._renderSlide(targetIdx);
+      this._slideEl?.classList.remove('is-leaving');
+      this._later(() => {
+        this._isTransitioning = false;
+      }, 220);
+    }, 220);
+  }
+
+  _later(fn, ms) {
+    const id = window.setTimeout(fn, ms);
+    this._timeouts.push(id);
+    return id;
   }
 
   close(silent = false) {
     if (!this.isOpen) return;
     this.isOpen = false;
-    const scene = this.scene;
-    scene.input.keyboard?.off('keydown-SPACE', this._handleAdvance);
-    scene.input.keyboard?.off('keydown-E', this._handleAdvance);
-    scene.input.off('pointerdown', this._handleAdvance);
-    if (this._shutdownHandler) {
-      scene.events.off('shutdown', this._shutdownHandler);
+    this._closing = true;
+    this._stopTyping();
+
+    this._timeouts?.forEach((id) => window.clearTimeout(id));
+    this._timeouts = [];
+
+    if (this._onKeyDown) {
+      window.removeEventListener('keydown', this._onKeyDown, true);
+      this._onKeyDown = null;
+    }
+
+    if (this._shutdownHandler && this.scene?.events) {
+      this.scene.events.off('shutdown', this._shutdownHandler);
+      this.scene.events.off('destroy', this._shutdownHandler);
       this._shutdownHandler = null;
     }
-    this._container?.destroy();
-    this._container = null;
-    if (!silent) this._onContinue?.();
+
+    const rootEl = this._root;
+    this._root = null;
+    if (rootEl) {
+      if (silent) {
+        rootEl.remove();
+      } else {
+        rootEl.classList.add('is-closing');
+        window.setTimeout(() => rootEl.remove(), 260);
+      }
+    }
+
+    if (!silent) {
+      this._onContinue?.();
+      this.scene?.startControlTutorial?.({ force: false });
+    }
   }
 }

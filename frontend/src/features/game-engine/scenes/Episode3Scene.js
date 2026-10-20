@@ -78,6 +78,8 @@ export default class Episode3Scene extends BasePlayerScene {
       this.physics.world.setBounds(0, 0, this.levelWidth, 720);
     }
 
+    if (data?.preservePlayer) return;
+
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
     this.player?.anims.stop();

@@ -16,6 +16,10 @@
  *   audio.stopBGM();
  */
 
+// Global singleton tracker untuk memastikan maksimal hanya SATU BGM
+// yang aktif di seluruh game pada satu waktu (mencegah tabrakan audio antar-scene).
+let _activeBgmInstance = null;
+
 export default class AudioManager {
   constructor() {
     this.ctx = null;
@@ -550,16 +554,21 @@ export default class AudioManager {
     }
   }
 
-  // ─── BGM: Chill Lo-fi Loop ─────────────────────────────────────────
-  // Background music yang chill dan relaxing, di-generate secara
-  // real-time menggunakan oscillator + scheduled notes.
-  startBGM() {
-    if (!this._initialized) return;
+  _claimActiveBGM(defaultVol = 0.25) {
+    if (_activeBgmInstance && _activeBgmInstance !== this) {
+      _activeBgmInstance.stopBGM();
+    }
     this.stopBGM();
     this.resume();
     this.bgmPlaying = true;
+    _activeBgmInstance = this;
+    this._restoreBGMGain(defaultVol);
+  }
 
-    this._restoreBGMGain(0.25);
+  // ─── BGM: Chill Lo-fi Loop (Gameplay Episode 1, 2, 4) ──────────────
+  startBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.25);
     this._scheduleBGMLoop();
   }
 
@@ -756,10 +765,7 @@ export default class AudioManager {
   // musik latar saat bermain.
   startMenuBGM() {
     if (!this._initialized) return;
-    this.stopBGM();
-    this.resume();
-    this.bgmPlaying = true;
-    this._restoreBGMGain(0.25);
+    this._claimActiveBGM(0.25);
 
     this._scheduleMenuBGMLoop();
   }
@@ -782,22 +788,18 @@ export default class AudioManager {
     const beatsPerChord = 4;
     const cycleDuration = chords.length * beatsPerChord * beatDuration;
 
-    // Melody jarang & mengambang (banyak jeda) — kesan menunggu/tenang,
-    // cocok untuk layar judul & menu, bukan mengiringi aksi seperti versi
-    // gameplay.
     const melodyNotes = [
       { freq: 440.00, beat: 0, dur: 3 },
-      { freq: 0, beat: 3, dur: 2 },        // rest
+      { freq: 0, beat: 3, dur: 2 },
       { freq: 523.25, beat: 5, dur: 2.5 },
       { freq: 493.88, beat: 8, dur: 3 },
-      { freq: 0, beat: 11, dur: 2 },       // rest
+      { freq: 0, beat: 11, dur: 2 },
       { freq: 440.00, beat: 13, dur: 2 },
-      { freq: 0, beat: 15, dur: 1 },       // rest
+      { freq: 0, beat: 15, dur: 1 },
     ];
 
     const now = ctx.currentTime + 0.05;
 
-    // --- Pad / Chord layer (lebih lembut & panjang decay-nya) ---
     chords.forEach((chord, ci) => {
       const chordStart = now + ci * beatsPerChord * beatDuration;
       const chordLen = beatsPerChord * beatDuration;
@@ -827,8 +829,6 @@ export default class AudioManager {
         osc2.stop(chordStart + chordLen + 0.05);
       });
 
-      // Bass halus, satu tahan panjang per chord (bukan tiap 2 ketuk
-      // seperti versi gameplay) — lebih "mengambang".
       const bassOsc = ctx.createOscillator();
       bassOsc.type = 'sine';
       bassOsc.frequency.value = chord.bass;
@@ -845,9 +845,8 @@ export default class AudioManager {
       bassOsc.stop(chordStart + chordLen + 0.05);
     });
 
-    // --- Melody layer (nada tunggal lembut, decay panjang) ---
     melodyNotes.forEach((note) => {
-      if (note.freq === 0) return; // rest
+      if (note.freq === 0) return;
       const noteStart = now + note.beat * beatDuration;
       const noteDur = note.dur * beatDuration;
 
@@ -868,10 +867,6 @@ export default class AudioManager {
       osc.stop(noteStart + noteDur + 0.05);
     });
 
-    // Catatan: sengaja TIDAK ada hi-hat / vinyl crackle di tema menu —
-    // itu ciri khas tema gameplay (startBGM()) supaya keduanya terasa
-    // jelas berbeda konteks bagi pemain.
-
     this._bgmTimeout = setTimeout(() => {
       if (this.bgmPlaying) {
         this._scheduleMenuBGMLoop();
@@ -879,17 +874,12 @@ export default class AudioManager {
     }, cycleDuration * 1000 - 100);
   }
 
-  // ─── BGM: Episode Intro Theme ───────────────────────────────────────
-  // Tema transisi singkat sebelum gameplay dimulai — lebih membangun
-  // ketegangan/antisipasi dibanding tema menu (progresi minor, tempo
-  // sedang, drone bass menahan), beda juga dari tema gameplay yang lebih
-  // ringan/riang.
+  // ─── BGM: Episode Intro Theme (Sinopsis Episode) ────────────────────
+  // Tema transisi singkat sebelum gameplay dimulai — nuansa prelude
+  // cerita dengan arpeggio kristal lembut dan pad sinematik.
   startIntroBGM() {
     if (!this._initialized) return;
-    this.stopBGM();
-    this.resume();
-    this.bgmPlaying = true;
-    this._restoreBGMGain(0.25);
+    this._claimActiveBGM(0.25);
     this._scheduleIntroBGMLoop();
   }
 
@@ -900,18 +890,25 @@ export default class AudioManager {
     const bpm = 64;
     const beatDuration = 60 / bpm;
 
-    // Progresi minor menegangkan: Dm - Bbmaj7 - Am - Gm
+    // Progresi minor sinematik: Dm9 - Bbmaj7 - Gm7 - A7sus4
     const chords = [
-      { notes: [146.83, 174.61, 220.00], bass: 73.42 },  // Dm
-      { notes: [116.54, 146.83, 220.00, 261.63], bass: 58.27 }, // Bbmaj7
-      { notes: [110.00, 130.81, 164.81], bass: 55.00 },  // Am
-      { notes: [98.00, 116.54, 146.83], bass: 49.00 },   // Gm
+      { notes: [146.83, 174.61, 220.00, 329.63], bass: 73.42 },  // Dm9
+      { notes: [116.54, 146.83, 220.00, 261.63], bass: 58.27 },  // Bbmaj7
+      { notes: [98.00, 116.54, 146.83, 174.61], bass: 49.00 },   // Gm7
+      { notes: [110.00, 146.83, 164.81, 196.00], bass: 55.00 },  // A7sus4
+    ];
+    const arpeggioBell = [
+      { freq: 587.33, beat: 0, dur: 1.5 },
+      { freq: 659.25, beat: 1.5, dur: 1.5 },
+      { freq: 523.25, beat: 4, dur: 2.0 },
+      { freq: 587.33, beat: 6, dur: 1.5 },
+      { freq: 440.00, beat: 8, dur: 2.5 },
+      { freq: 392.00, beat: 12, dur: 2.5 },
     ];
     const beatsPerChord = 4;
     const cycleDuration = chords.length * beatsPerChord * beatDuration;
     const now = ctx.currentTime + 0.05;
 
-    // Drone bass menahan sepanjang siklus — beri kesan "menanti".
     chords.forEach((chord, ci) => {
       const chordStart = now + ci * beatsPerChord * beatDuration;
       const chordLen = beatsPerChord * beatDuration;
@@ -928,8 +925,8 @@ export default class AudioManager {
 
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0.001, chordStart);
-        gain.gain.linearRampToValueAtTime(0.03, chordStart + 0.4);
-        gain.gain.setValueAtTime(0.03, chordStart + chordLen - 0.4);
+        gain.gain.linearRampToValueAtTime(0.028, chordStart + 0.4);
+        gain.gain.setValueAtTime(0.028, chordStart + chordLen - 0.4);
         gain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
 
         osc.connect(filter);
@@ -945,13 +942,29 @@ export default class AudioManager {
       bassOsc.frequency.value = chord.bass;
       const bassGain = ctx.createGain();
       bassGain.gain.setValueAtTime(0.001, chordStart);
-      bassGain.gain.linearRampToValueAtTime(0.1, chordStart + 0.5);
-      bassGain.gain.setValueAtTime(0.1, chordStart + chordLen - 0.4);
+      bassGain.gain.linearRampToValueAtTime(0.09, chordStart + 0.5);
+      bassGain.gain.setValueAtTime(0.09, chordStart + chordLen - 0.4);
       bassGain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
       bassOsc.connect(bassGain);
       bassGain.connect(this.bgmGain);
       bassOsc.start(chordStart);
       bassOsc.stop(chordStart + chordLen + 0.05);
+    });
+
+    arpeggioBell.forEach((n) => {
+      const ns = now + n.beat * beatDuration;
+      const nd = n.dur * beatDuration;
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = n.freq;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, ns);
+      gain.gain.linearRampToValueAtTime(0.055, ns + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, ns + nd);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(ns);
+      osc.stop(ns + nd + 0.05);
     });
 
     this._bgmTimeout = setTimeout(() => {
@@ -962,15 +975,9 @@ export default class AudioManager {
   }
 
   // ─── BGM: Episode 3 Suspense / Thriller Theme ───────────────────────
-  // Tema audio khusus untuk Episode 3: "Pesan dari Orang Asing"
-  // Nuansa: Dark psychological suspense, kamar tidur sunyi malam hari,
-  // detak jantung pelan, drone bass dalam, dan denting melodi dingin.
   startSuspenseBGM() {
     if (!this._initialized) return;
-    this.stopBGM();
-    this.resume();
-    this.bgmPlaying = true;
-    this._restoreBGMGain(0.28);
+    this._claimActiveBGM(0.28);
     this._scheduleSuspenseBGMLoop();
   }
 
@@ -1142,24 +1149,330 @@ export default class AudioManager {
     }, cycleDuration * 1000 - 100);
   }
 
+  // ─── BGM: Kak Dara Game Intro Guide Theme ───────────────────────────
+  // Tema musik khusus saat pengenalan awal game bersama Kak Dara:
+  // hangat, ceria, bersahabat (marimba/kalimba di F Major, 84 BPM).
+  startGuideBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.24);
+    this._scheduleGuideBGMLoop();
+  }
+
+  _scheduleGuideBGMLoop() {
+    if (!this.bgmPlaying) return;
+    const ctx = this.ctx;
+    const bpm = 84;
+    const beatDuration = 60 / bpm;
+
+    // Progresi hangat & ceria: Fmaj7 - Bbmaj7 - Gm7 - C7
+    const chords = [
+      { notes: [174.61, 220.00, 261.63, 329.63], bass: 87.31 },  // Fmaj7
+      { notes: [233.08, 293.66, 349.23, 440.00], bass: 116.54 }, // Bbmaj7
+      { notes: [196.00, 233.08, 293.66, 349.23], bass: 98.00 },  // Gm7
+      { notes: [130.81, 164.81, 196.00, 233.08], bass: 65.41 },  // C7
+    ];
+    const marimbaNotes = [
+      { freq: 523.25, beat: 0, dur: 1.0 },
+      { freq: 659.25, beat: 1, dur: 1.0 },
+      { freq: 587.33, beat: 2, dur: 1.5 },
+      { freq: 440.00, beat: 4, dur: 1.0 },
+      { freq: 587.33, beat: 5, dur: 1.0 },
+      { freq: 523.25, beat: 6, dur: 1.5 },
+      { freq: 392.00, beat: 8, dur: 1.0 },
+      { freq: 440.00, beat: 9, dur: 1.0 },
+      { freq: 523.25, beat: 10, dur: 1.5 },
+      { freq: 587.33, beat: 12, dur: 1.5 },
+      { freq: 523.25, beat: 14, dur: 1.5 },
+    ];
+
+    const beatsPerChord = 4;
+    const cycleDuration = chords.length * beatsPerChord * beatDuration;
+    const now = ctx.currentTime + 0.05;
+
+    chords.forEach((chord, ci) => {
+      const chordStart = now + ci * beatsPerChord * beatDuration;
+      const chordLen = beatsPerChord * beatDuration;
+
+      chord.notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, chordStart);
+        gain.gain.linearRampToValueAtTime(0.032, chordStart + 0.25);
+        gain.gain.setValueAtTime(0.028, chordStart + chordLen - 0.3);
+        gain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+        osc.connect(gain);
+        gain.connect(this.bgmGain);
+        osc.start(chordStart);
+        osc.stop(chordStart + chordLen + 0.05);
+      });
+
+      const bassOsc = ctx.createOscillator();
+      bassOsc.type = 'triangle';
+      bassOsc.frequency.value = chord.bass;
+      const bassGain = ctx.createGain();
+      bassGain.gain.setValueAtTime(0.001, chordStart);
+      bassGain.gain.linearRampToValueAtTime(0.075, chordStart + 0.15);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, chordStart + chordLen);
+      bassOsc.connect(bassGain);
+      bassGain.connect(this.bgmGain);
+      bassOsc.start(chordStart);
+      bassOsc.stop(chordStart + chordLen + 0.05);
+    });
+
+    marimbaNotes.forEach((n) => {
+      const ns = now + n.beat * beatDuration;
+      const nd = n.dur * beatDuration;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, ns);
+      gain.gain.linearRampToValueAtTime(0.065, ns + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ns + nd);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(ns);
+      osc.stop(ns + nd + 0.05);
+    });
+
+    this._bgmTimeout = setTimeout(() => {
+      if (this.bgmPlaying) this._scheduleGuideBGMLoop();
+    }, cycleDuration * 1000 - 100);
+  }
+
+  // ─── BGM: Episode 5 Garden Empathy Theme ────────────────────────────
+  // Tema musik khusus taman sekolah (Episode 5): petikan harpa/akustik lembut
+  startGardenBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.25);
+    this._scheduleGardenBGMLoop();
+  }
+
+  _scheduleGardenBGMLoop() {
+    if (!this.bgmPlaying) return;
+    const ctx = this.ctx;
+    const bpm = 70;
+    const beatDuration = 60 / bpm;
+
+    // Progresi G Major teduh: Gmaj7 - Em7 - Cmaj7 - D7sus4
+    const chords = [
+      { notes: [196.00, 246.94, 293.66, 369.99], bass: 98.00 },  // Gmaj7
+      { notes: [164.81, 196.00, 246.94, 293.66], bass: 82.41 },  // Em7
+      { notes: [130.81, 164.81, 196.00, 246.94], bass: 65.41 },  // Cmaj7
+      { notes: [146.83, 196.00, 220.00, 261.63], bass: 73.42 },  // D7sus4
+    ];
+    const beatsPerChord = 4;
+    const cycleDuration = chords.length * beatsPerChord * beatDuration;
+    const now = ctx.currentTime + 0.05;
+
+    chords.forEach((chord, ci) => {
+      const chordStart = now + ci * beatsPerChord * beatDuration;
+      const chordLen = beatsPerChord * beatDuration;
+
+      chord.notes.forEach((freq, ni) => {
+        const pluckTime = chordStart + ni * 0.45 * beatDuration;
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = freq * 2;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, pluckTime);
+        gain.gain.linearRampToValueAtTime(0.045, pluckTime + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, chordStart + chordLen);
+        osc.connect(gain);
+        gain.connect(this.bgmGain);
+        osc.start(pluckTime);
+        osc.stop(chordStart + chordLen + 0.05);
+      });
+
+      const bassOsc = ctx.createOscillator();
+      bassOsc.type = 'sine';
+      bassOsc.frequency.value = chord.bass;
+      const bassGain = ctx.createGain();
+      bassGain.gain.setValueAtTime(0.001, chordStart);
+      bassGain.gain.linearRampToValueAtTime(0.08, chordStart + 0.3);
+      bassGain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+      bassOsc.connect(bassGain);
+      bassGain.connect(this.bgmGain);
+      bassOsc.start(chordStart);
+      bassOsc.stop(chordStart + chordLen + 0.05);
+    });
+
+    this._bgmTimeout = setTimeout(() => {
+      if (this.bgmPlaying) this._scheduleGardenBGMLoop();
+    }, cycleDuration * 1000 - 100);
+  }
+
+  // ─── BGM: Episode 6 Afternoon Courage Theme ─────────────────────────
+  // Tema musik khusus Episode 6 (Langkah Berani Bersama): hangat & penuh harapan
+  startCourageBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.25);
+    this._scheduleCourageBGMLoop();
+  }
+
+  _scheduleCourageBGMLoop() {
+    if (!this.bgmPlaying) return;
+    const ctx = this.ctx;
+    const bpm = 86;
+    const beatDuration = 60 / bpm;
+
+    // Progresi D Major penuh harapan: Dmaj7 - Bm7 - Gmaj7 - A7
+    const chords = [
+      { notes: [146.83, 185.00, 220.00, 277.18], bass: 73.42 },  // Dmaj7
+      { notes: [123.47, 146.83, 185.00, 220.00], bass: 61.74 },  // Bm7
+      { notes: [196.00, 246.94, 293.66, 369.99], bass: 98.00 },  // Gmaj7
+      { notes: [110.00, 138.59, 164.81, 196.00], bass: 55.00 },  // A7
+    ];
+    const leadNotes = [
+      { freq: 587.33, beat: 0, dur: 1.5 },
+      { freq: 659.25, beat: 1.5, dur: 1.5 },
+      { freq: 739.99, beat: 3, dur: 1.0 },
+      { freq: 587.33, beat: 4, dur: 2.5 },
+      { freq: 493.88, beat: 8, dur: 1.5 },
+      { freq: 587.33, beat: 9.5, dur: 1.5 },
+      { freq: 659.25, beat: 12, dur: 3.0 },
+    ];
+    const beatsPerChord = 4;
+    const cycleDuration = chords.length * beatsPerChord * beatDuration;
+    const now = ctx.currentTime + 0.05;
+
+    chords.forEach((chord, ci) => {
+      const chordStart = now + ci * beatsPerChord * beatDuration;
+      const chordLen = beatsPerChord * beatDuration;
+
+      chord.notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, chordStart);
+        gain.gain.linearRampToValueAtTime(0.035, chordStart + 0.25);
+        gain.gain.setValueAtTime(0.03, chordStart + chordLen - 0.25);
+        gain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+        osc.connect(gain);
+        gain.connect(this.bgmGain);
+        osc.start(chordStart);
+        osc.stop(chordStart + chordLen + 0.05);
+      });
+
+      const bassOsc = ctx.createOscillator();
+      bassOsc.type = 'triangle';
+      bassOsc.frequency.value = chord.bass;
+      const bassGain = ctx.createGain();
+      bassGain.gain.setValueAtTime(0.001, chordStart);
+      bassGain.gain.linearRampToValueAtTime(0.085, chordStart + 0.2);
+      bassGain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+      bassOsc.connect(bassGain);
+      bassGain.connect(this.bgmGain);
+      bassOsc.start(chordStart);
+      bassOsc.stop(chordStart + chordLen + 0.05);
+    });
+
+    leadNotes.forEach((n) => {
+      const ns = now + n.beat * beatDuration;
+      const nd = n.dur * beatDuration;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, ns);
+      gain.gain.linearRampToValueAtTime(0.06, ns + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ns + nd);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(ns);
+      osc.stop(ns + nd + 0.05);
+    });
+
+    this._bgmTimeout = setTimeout(() => {
+      if (this.bgmPlaying) this._scheduleCourageBGMLoop();
+    }, cycleDuration * 1000 - 100);
+  }
+
+  // ─── BGM: Episode Ending / Evaluation Theme ─────────────────────────
+  // Tema musik reflektif & menenangkan saat layar Hasil Akhir & Evaluasi Misi
+  startEndingBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.24);
+    this._scheduleEndingBGMLoop();
+  }
+
+  _scheduleEndingBGMLoop() {
+    if (!this.bgmPlaying) return;
+    const ctx = this.ctx;
+    const bpm = 62;
+    const beatDuration = 60 / bpm;
+
+    // Progresi reflektif Eb Major: Ebmaj7 - Cm7 - Abmaj7 - Bb7sus4
+    const chords = [
+      { notes: [155.56, 196.00, 233.08, 293.66], bass: 77.78 },  // Ebmaj7
+      { notes: [130.81, 155.56, 196.00, 233.08], bass: 65.41 },  // Cm7
+      { notes: [207.65, 261.63, 311.13, 392.00], bass: 103.83 }, // Abmaj7
+      { notes: [116.54, 155.56, 174.61, 207.65], bass: 58.27 },  // Bb7sus4
+    ];
+    const chimeNotes = [
+      { freq: 622.25, beat: 0, dur: 2.5 },
+      { freq: 587.33, beat: 4, dur: 2.5 },
+      { freq: 523.25, beat: 8, dur: 2.5 },
+      { freq: 466.16, beat: 12, dur: 3.0 },
+    ];
+    const beatsPerChord = 4;
+    const cycleDuration = chords.length * beatsPerChord * beatDuration;
+    const now = ctx.currentTime + 0.05;
+
+    chords.forEach((chord, ci) => {
+      const chordStart = now + ci * beatsPerChord * beatDuration;
+      const chordLen = beatsPerChord * beatDuration;
+
+      chord.notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, chordStart);
+        gain.gain.linearRampToValueAtTime(0.032, chordStart + 0.5);
+        gain.gain.setValueAtTime(0.03, chordStart + chordLen - 0.5);
+        gain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+        osc.connect(gain);
+        gain.connect(this.bgmGain);
+        osc.start(chordStart);
+        osc.stop(chordStart + chordLen + 0.05);
+      });
+    });
+
+    chimeNotes.forEach((n) => {
+      const ns = now + n.beat * beatDuration;
+      const nd = n.dur * beatDuration;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, ns);
+      gain.gain.linearRampToValueAtTime(0.05, ns + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ns + nd);
+      osc.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(ns);
+      osc.stop(ns + nd + 0.05);
+    });
+
+    this._bgmTimeout = setTimeout(() => {
+      if (this.bgmPlaying) this._scheduleEndingBGMLoop();
+    }, cycleDuration * 1000 - 100);
+  }
+
   stopBGM() {
     this.bgmPlaying = false;
+    if (_activeBgmInstance === this) {
+      _activeBgmInstance = null;
+    }
     if (this._bgmTimeout) {
       clearTimeout(this._bgmTimeout);
       this._bgmTimeout = null;
     }
 
-    // PENTING: clearTimeout() di atas cuma membatalkan penjadwalan
-    // SIKLUS BERIKUTNYA. Siklus yang SEDANG berjalan sudah terlanjur
-    // di-schedule penuh di muka lewat osc.start()/stop() dengan
-    // timestamp absolut (bisa sampai belasan detik ke depan) — node-node
-    // itu TIDAK ikut berhenti hanya karena flag bgmPlaying jadi false,
-    // makanya sebelumnya BGM lama masih terdengar bertumpuk beberapa
-    // detik dengan BGM baru saat pindah scene (Title/Menu -> Intro ->
-    // Gameplay). Fix: senyapkan gain BGM SAAT INI JUGA — semua chord,
-    // bass, melody, hi-hat, dan crackle yang sudah kadung terjadwal
-    // tetap "berbunyi" secara teknis, tapi tidak terdengar sama sekali
-    // karena melewati bgmGain yang sudah 0.
     if (this.bgmGain && this.ctx) {
       const t = this._now();
       this.bgmGain.gain.cancelScheduledValues(t);

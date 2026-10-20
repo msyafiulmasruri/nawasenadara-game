@@ -14,7 +14,8 @@ import Phaser from 'phaser';
  */
 export function drawStarfieldBackground(scene, width, height) {
   const bgRect = scene.add
-    .rectangle(width / 2, height / 2, width, height, 0x05050f)
+    .rectangle(0, 0, width, height, 0x05050f)
+    .setOrigin(0, 0)
     .setDepth(0);
 
   const stars = [];
@@ -39,11 +40,10 @@ export function drawStarfieldBackground(scene, width, height) {
     bgRect,
     stars,
     reposition(newWidth, newHeight) {
-      bgRect.setPosition(newWidth / 2, newHeight / 2);
+      bgRect.setPosition(0, 0);
       bgRect.setSize(newWidth, newHeight);
-      // Bintang sengaja TIDAK direposisi ulang satu-satu (posisi acak
-      // baru tiap resize akan terasa "berkedip pindah" secara aneh) —
-      // cukup background rect-nya yang menutupi area baru sepenuhnya.
+      bgRect.setDisplaySize(newWidth, newHeight);
+      bgRect.updateDisplayOrigin();
     },
   };
 }

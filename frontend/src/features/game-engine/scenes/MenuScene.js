@@ -231,12 +231,20 @@ export default class MenuScene extends Phaser.Scene {
           } catch (err) {
             console.warn('Gagal mereset progres di server:', err);
           }
+          // Pemain memilih mulai baru -> tampilkan motion slide pengenalan game,
+          // yang setelah selesai akan otomatis langsung masuk ke Episode 1
+          this.scene.start('GameIntroGuideScene');
+          return;
+        } else {
+          // Pemain memilih lanjutkan -> buka daftar episode
+          this.scene.start('EpisodeSelectScene');
+          return;
         }
-        // choice === 'continue' -> lanjut apa adanya, tidak perlu
-        // aksi tambahan.
       }
 
-      this.scene.start('EpisodeSelectScene');
+      // Pemain baru: langsung masuk ke motion slide pengenalan game,
+      // yang setelah selesai akan otomatis langsung masuk ke Episode 1
+      this.scene.start('GameIntroGuideScene');
     } finally {
       this._startingStory = false;
       this._menuLocked = false;

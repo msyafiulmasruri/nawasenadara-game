@@ -8,6 +8,7 @@ import SettingsScene from './scenes/SettingsScene';
 import EpisodeSelectScene from './scenes/EpisodeSelectScene';
 import EpisodeIntroScene from './scenes/EpisodeIntroScene';
 import EpisodeEndingScene from './scenes/EpisodeEndingScene';
+import GameIntroGuideScene from './scenes/GameIntroGuideScene';
 import Episode1Scene from './scenes/Episode1Scene';
 import Episode2Scene from './scenes/Episode2Scene';
 import Episode3Scene from './scenes/Episode3Scene';
@@ -96,6 +97,7 @@ export default function PhaserGame() {
           EpisodeSelectScene,
           EpisodeIntroScene,
           EpisodeEndingScene,
+          GameIntroGuideScene,
           Episode1Scene,
           Episode2Scene,
           Episode3Scene,

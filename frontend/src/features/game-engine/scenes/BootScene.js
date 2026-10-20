@@ -109,7 +109,7 @@ export default class BootScene extends Phaser.Scene {
       }
     });
 
-    // Aset cutscene bercabang Episode 1 — koridor depan kelas
+    // Aset cutscene bercabang Episode 1
     this.load.image('ep1-corridor-choice-a', '/scenes/ep1-corridor-choice-a.jpg');
     this.load.image('ep1-corridor-choice-b', '/scenes/ep1-corridor-choice-b.jpg');
     this.load.image('ep1-corridor-choice-c', '/scenes/ep1-corridor-choice-c.jpg');
@@ -134,8 +134,8 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ep4-canteen-choice-c', '/scenes/ep4-canteen-choice-c.jpg');
 
     // Aset khusus Episode 5: Sprite Kirana, Potret, Background & 5 Cutscene CG Layar Penuh
-    this.load.image('kirana', '/characters/kirana.png');
-    this.load.image('kirana-portrait', '/characters/kirana-portrait.png');
+    this.load.image('kirana', '/characters/kirana.png?v=4');
+    this.load.image('kirana-portrait', '/characters/kirana-portrait.png?v=4');
     this.load.image('episode-5-bg', '/scenes/episode-5-bg.jpg');
     this.load.image('episode5-bg', '/scenes/episode-5-bg.jpg');
     this.load.image('ep5-garden-bench-cg', '/scenes/ep5-garden-bench-cg.jpg');
@@ -145,9 +145,9 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ep5-halte-cg', '/scenes/ep5-halte-cg.jpg');
 
     // Aset khusus Episode 6: Sprite Naya, Potret, Background & Cutscene CG Layar Penuh
-    this.load.image('naya', '/characters/naya.png?v=2');
-    this.load.image('naya-portrait', '/characters/naya-portrait.png?v=2');
-    this.load.image('npc-naya-portrait', '/characters/naya-portrait.png?v=2');
+    this.load.image('naya', '/characters/naya.png?v=4');
+    this.load.image('naya-portrait', '/characters/naya-portrait.png?v=4');
+    this.load.image('npc-naya-portrait', '/characters/naya-portrait.png?v=4');
     this.load.image('episode-6-bg', '/scenes/episode-6-bg.jpg?v=2');
     this.load.image('episode6-bg', '/scenes/episode-6-bg.jpg?v=2');
     this.load.image('ep6-corridor-chat-cg', '/scenes/ep6-corridor-chat-cg.jpg?v=3');

@@ -92,10 +92,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n1_naya',
       speaker: 'naya',
       text:
-        '"{PLAYER_NAME}, tulisanmu di mading keren banget! Eh, kunci ruang mading masih kubawa. Aku kembalikan ke piket sebentar ya, tunggu aku di pos satpam depan!"',
+        '"{PLAYER_NAME}, tulisanmu di mading keren banget! Eh, kunci ruang mading masih kubawa. Aku balikin ke ruang piket bentar ya, tungguin aku di pos satpam depan!"',
       dynamic: true,
       situationHint:
-        'Aku Naya, mengapresiasi karya Dara di mading, lalu pamit sebentar mengembalikan kunci dan memintanya menunggu di pos satpam.',
+        'Aku Naya, memuji karya sahabatku di mading dengan gaya santai anak sekolah, lalu pamit sebentar mengembalikan kunci dan memintanya menunggu di pos satpam.',
       next: 'n2',
     },
 
@@ -107,7 +107,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n2',
       speaker: 'narration',
       text:
-        'Saat menunggu di dekat gerbang, seorang siswa senior tiba-tiba melangkah menghalangi jalanmu.',
+        'Saat menunggu di dekat gerbang, seorang kakak kelas tiba-tiba melangkah menghalangi jalanmu.',
       next: 'n2_senior',
     },
 
@@ -115,40 +115,40 @@ export const EPISODE6_DIALOGUE = {
       id: 'n2_senior',
       speaker: 'senior',
       text:
-        '"Hei, {PLAYER_NAME}. Ikut aku sebentar ke belakang kantin, ada hal penting berdua saja. Nggak usah lebay, hargai senior dikit dong."',
+        '"Eh, {PLAYER_NAME}. Ikut aku bentar ke belakang kantin yuk, ada omongan penting berdua aja. Nggak usah lebay, hargai kakak kelas dikit dong."',
       next: 'n3',
     },
 
-    // Titik Pilihan 1: Penolakan asertif, penjagaan batas, dan keselamatan diri (3 Pilihan)
+    // Titik Pilihan 1: Penolakan tegas, jaga jarak, dan keselamatan diri (3 Pilihan)
     n3: {
       id: 'n3',
       speaker: 'narration',
-      text: 'Tekanan itu semakin nyata. Bagaimana tindakanmu?',
+      text: 'Kakak kelas itu makin mendesakmu. Apa yang kamu lakukan?',
       choices: [
         {
           id: 'a',
           label:
-            '"Tidak, tolong mundur!" (Tegas melangkah ke pos satpam)',
+            '"Nggak mau, tolong minggir!" (Langsung jalan ke pos satpam)',
           chatReply:
-            'Saya menyatakan batasan diri dengan tenang dan tegas agar dia mundur, lalu segera melangkah ke arah pos satpam yang aman.',
+            'Aku nolak tegas dan minta dia minggir, terus langsung jalan cepat ke arah pos satpam yang aman.',
           emotion: 'aman',
           next: 'n4a',
         },
         {
           id: 'b',
           label:
-            '"Aku ada urusan piket." (Menjaga jarak dan mencari keramaian)',
+            '"Maaf Kak, aku dipanggil piket." (Jaga jarak dan cari tempat ramai)',
           chatReply:
-            'Saya beralasan harus segera piket sambil terus melangkah mundur mencari keramaian.',
+            'Aku alasan dipanggil piket sambil mundur jaga jarak dan jalan ke tempat ramai.',
           emotion: 'netral',
           next: 'n4b',
         },
         {
           id: 'c',
           label:
-            '(Membeku ragu karena takut membuatnya tersinggung)',
+            '(Diam mematung karena takut dia tersinggung)',
           chatReply:
-            'Saya membeku dan sempat ragu melangkah karena takut penolakan akan membuatnya semakin tersinggung.',
+            'Aku sempat diam mematung dan bingung mau jalan ke mana karena takut bikin dia marah.',
           emotion: 'takut',
           next: 'n4c',
         },
@@ -159,7 +159,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n4a',
       speaker: 'narration',
       text:
-        'Kamu berdiri tegak dan bersuara tegas: "Tolong mundur!" Senior itu terkejut melihat ketegasanmu dan langkahnya terhenti.',
+        'Kamu berdiri tegak dan menjawab tegas: "Nggak mau, tolong minggir!" Kakak kelas itu kaget melihat sikap tegasmu dan langsung mundur.',
       next: 'n5_rescue',
     },
 
@@ -167,7 +167,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n4b',
       speaker: 'narration',
       text:
-        'Alasanmu memberimu celah untuk menjaga jarak. Kamu bergerak cepat menjauh menuju area pos satpam yang ramai.',
+        'Alasanmu memberimu ruang untuk jaga jarak. Kamu langsung melangkah cepat menuju area pos satpam yang ramai.',
       next: 'n5_rescue',
     },
 
@@ -175,7 +175,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n4c',
       speaker: 'narration',
       text:
-        'Kamu sempat membeku ragu, namun berusaha terus melangkah menjauh mencari tempat aman.',
+        'Kamu sempat mematung karena takut, tapi berusaha mundur pelan-pelan mencari tempat yang lebih ramai.',
       next: 'n5_rescue',
     },
 
@@ -187,7 +187,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n5_rescue',
       speaker: 'narration',
       text:
-        '"{PLAYER_NAME}! Di sini!" seru Naya dari pos satpam bersama Pak Joko. Melihat satpam bersiaga, senior itu panik dan langsung pergi.',
+        '"{PLAYER_NAME}! Sini!" panggil Naya dari pos satpam bersama Pak Joko. Melihat satpam memperhatikan, kakak kelas itu panik dan buru-buru pergi.',
       next: 'n5_naya',
     },
 
@@ -195,10 +195,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n5_naya',
       speaker: 'naya',
       text:
-        '"{PLAYER_NAME}, kamu aman di sini. Tarik napas dulu... Tidak ada yang berhak melanggar batasanmu! Langkah apa yang ingin kita ambil sekarang?"',
+        '"{PLAYER_NAME}, syukurlah kamu udah aman di sini! Tarik napas dulu ya... Nggak ada yang boleh maksa kamu kayak tadi!"',
       dynamic: true,
       situationHint:
-        'Aku menenangkan Dara di pos satpam bersama Pak Joko, memvalidasi perasaannya, dan menanyakan langkah perlindungan berikutnya.',
+        'Aku menenangkan sahabatku di pos satpam bersama Pak Joko dengan bahasa anak sekolah yang hangat.',
       next: 'n6',
     },
 
@@ -207,35 +207,35 @@ export const EPISODE6_DIALOGUE = {
       id: 'n6',
       speaker: 'naya',
       text:
-        '"Setelah napasmu tenang di tempat aman ini, langkah apa yang ingin kita ambil berikutnya?"',
+        '"Sekarang kamu udah aman di pos satpam. Menurutmu langkah apa yang paling pas kita lakuin habis ini?"',
       dynamic: true,
       situationHint:
-        'Aku menawarkan pendampingan penuh kepada Dara untuk menentukan langkah pelaporan yang terpercaya.',
+        'Aku mengajak sahabatku menentukan langkah melapor yang aman dengan gaya obrolan akrab.',
       choices: [
         {
           id: 'a',
           label:
-            '"Catat kronologi kejadian, lalu lapor ke BK dan orang tua."',
+            '"Catat kejadiannya sekarang, terus lapor ke BK dan orang tua."',
           chatReply:
-            'Kita catat kronologi kejadian dengan tenang sekarang, lapor ke satpam dan guru BK besok, serta kabari orang tua agar terlindungi. Temani aku ya, Naya.',
+            'Kita catat kejadian tadi selagi ingat, lapor ke Pak Satpam dan guru BK besok, terus kabari orang tua. Temani aku ya, Nay.',
           emotion: 'aman',
           next: 'n7a',
         },
         {
           id: 'b',
           label:
-            '"Temani aku pulang dulu, besok pagi baru kita temui BK."',
+            '"Temani aku pulang dulu ya, besok pagi baru kita ke ruang BK."',
           chatReply:
-            'Temani aku pulang dulu ya, Naya. Malam ini aku mau menenangkan diri, besok pagi baru kita temui guru BK.',
+            'Temani aku pulang dulu ya, Nay. Malam ini aku mau nenangin diri dulu, besok pagi baru kita ke ruang BK.',
           emotion: 'netral',
           next: 'n7b',
         },
         {
           id: 'c',
           label:
-            '"Aku marah banget! Mau kusebar di medsos biar dia jera!"',
+            '"Aku kesel banget! Mau kusebar di medsos biar dia malu!"',
           chatReply:
-            'Aku marah sekali dan besok ingin kusebarkan di media sosial sekolah supaya dia dipermalukan dan jera.',
+            'Aku marah banget dan pengen nyebarin kelakuan dia ke medsos sekolah biar dia malu dan kapok.',
           emotion: 'marah',
           next: 'n7c',
         },
@@ -246,10 +246,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n7a',
       speaker: 'naya',
       text:
-        '"Pilihan tepat! Kita catat buktinya selagi segar. Besok pagi aku dan orang tua akan mendampingimu langsung ke ruang BK."',
+        '"Setuju banget! Kita catat sekarang biar nggak lupa. Besok pagi aku sama orang tuamu siap nemenin kamu langsung ke ruang BK."',
       dynamic: true,
       situationHint:
-        'Dara memilih mencatat bukti dan melapor secara terstruktur ke guru BK dan orang tua dengan pendampinganku.',
+        'Sahabatku memilih mencatat bukti dan melapor ke guru BK serta orang tua. Aku mendukung penuh dengan bahasa santai.',
       next: 'n8_movement',
     },
 
@@ -257,10 +257,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n7b',
       speaker: 'naya',
       text:
-        '"Tentu, rasa amanmu yang utama. Malam ini tenangkan diri dulu di rumah, besok pagi kita langsung temui Bu Ratih bersama."',
+        '"Oke, yang penting kamu tenang dulu malam ini. Istirahat ya di rumah, besok pagi kita langsung ke ruangan Bu Ratih bareng-bareng."',
       dynamic: true,
       situationHint:
-        'Dara memilih menenangkan diri sebelum melapor besok. Aku menghargai kesiapannya dan berjanji mendampingi besok pagi.',
+        'Sahabatku memilih menenangkan diri dulu sebelum melapor besok. Aku mengerti dan berjanji menemani besok pagi.',
       next: 'n8_movement',
     },
 
@@ -268,10 +268,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n7c',
       speaker: 'naya',
       text:
-        '"Wajar kamu marah! Tapi menyebar di medsos rawan serangan balik dan masalah hukum. Melapor resmi ke BK jauh lebih aman dan melindungi kita."',
+        '"Wajar banget kamu kesel! Tapi kalau disebar di medsos, takutnya malah balik nyerang kamu. Lebih aman kita lapor resmi ke guru BK biar sekolah yang nindak."',
       dynamic: true,
       situationHint:
-        'Dara marah dan ingin mempermalukan pelaku di medsos. Aku menenangkan dengan rasional dan menjelaskan pentingnya jalur resmi BK.',
+        'Sahabatku marah dan ingin menyebar di medsos. Aku menenangkan dan mengajak lapor resmi ke guru BK.',
       next: 'n8_movement',
     },
 
@@ -283,7 +283,7 @@ export const EPISODE6_DIALOGUE = {
       id: 'n8_movement',
       speaker: 'narration',
       text:
-        'Laporanmu ditindaklanjuti secara resmi oleh pihak sekolah. Dari keberanianmu menetapkan batas, lahirlah inisiatif solidaritas siswa: gerakan "TEMAN AMAN".',
+        'Laporanmu langsung ditindaklanjuti oleh pihak sekolah. Dari keberanianmu bersuara, muncullah gerakan bareng teman-teman di sekolah: "TEMAN AMAN".',
       next: 'n8_ceremony',
     },
 
@@ -291,10 +291,10 @@ export const EPISODE6_DIALOGUE = {
       id: 'n8_ceremony',
       speaker: 'naya',
       text:
-        '"Lihat panggung aula ini, {PLAYER_NAME}! Spanduk \\"Teman Aman\\" terpasang megah. Keberanianmu telah menginspirasi seluruh sekolah untuk berani bersuara dan saling menjaga!"',
+        '"Lihat deh panggung aula ini, {PLAYER_NAME}! Spanduk \\"Teman Aman\\" udah kepasang. Keberanianmu bikin teman-teman satu sekolah ikut berani bicara dan saling jaga!"',
       dynamic: true,
       situationHint:
-        'Aku dan Dara berdiri di panggung aula sekolah dalam deklarasi "Teman Aman". Aku mengungkapkan rasa bangga atas keberanian Dara.',
+        'Aku dan sahabatku berdiri di aula sekolah melihat spanduk Teman Aman. Aku bangga atas keberaniannya.',
       next: 'n8_final',
     },
 

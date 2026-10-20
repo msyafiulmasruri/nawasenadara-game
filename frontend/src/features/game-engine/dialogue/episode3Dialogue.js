@@ -310,8 +310,8 @@ export const EPISODE3_DIALOGUE = {
       id: 'n_cb3_choice',
       speaker: 'narration',
       text:
-        'Tangan {PLAYER_NAME} gemetar. Ini pola klasik manipulasi: memancing dengan "bukti", ' +
-        'lalu mengancam untuk memaksa memberikan data pribadi atau foto. ' +
+        'Tangan {PLAYER_NAME} gemetar. Orang ini jelas berniat jahat: memancing dengan "bukti" ' +
+        'supaya bisa memaksamu kirim nomor atau foto pribadi. ' +
         'Apa yang {PLAYER_NAME} lakukan?',
       choices: [
         {
@@ -344,8 +344,8 @@ export const EPISODE3_DIALOGUE = {
       speaker: 'narration',
       text:
         '{PLAYER_NAME} mengambil screenshot seluruh percakapan dengan cepat. ' +
-        'Jempolnya menekan "Laporkan" → "Peniruan identitas & pelecehan" → kirim. ' +
-        'Akun itu lalu diblokir. Sebuah keputusan tepat: bukti tersimpan, pelaku dilaporkan.',
+        'Jempolnya menekan "Laporkan" → "Akun palsu dan mengganggu" → kirim. ' +
+        'Akun itu lalu diblokir. Sebuah keputusan tepat: bukti tersimpan, akun dilaporkan.',
       next: 'n_cb3_report2',
     },
     n_cb3_report2: {

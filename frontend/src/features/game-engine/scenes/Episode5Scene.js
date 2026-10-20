@@ -38,6 +38,10 @@ export default class Episode5Scene extends BasePlayerScene {
     this._currentCutsceneKey = null;
   }
 
+  _startSceneBGM() {
+    this.audioManager.startGardenBGM();
+  }
+
   create(data) {
     this._cutsceneContainer = null;
     this._cutsceneBg = null;
@@ -57,12 +61,13 @@ export default class Episode5Scene extends BasePlayerScene {
       this._currentCutsceneKey = null;
     });
 
+    // Tambahkan partikel lembut dedaunan melayang di taman sekolah
+    this._createGardenAtmosphere();
+    if (data?.preservePlayer) return;
+
     this.uiInputLocked = true;
     this.player?.setVelocity(0, 0);
     this.player?.anims.stop();
-
-    // Tambahkan partikel lembut dedaunan melayang di taman sekolah
-    this._createGardenAtmosphere();
 
     const episodeData = getEpisodeById(5);
     this.objectiveBriefing = new ObjectiveBriefing(this);

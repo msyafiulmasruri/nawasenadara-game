@@ -808,74 +808,76 @@ export default function GameUIBridge() {
 
       <style>{`
         @keyframes nawasenadaraTypingDot {
-          0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-          30% { opacity: 1; transform: translateY(-3px); }
+          0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+          30% { opacity: 1; transform: translateY(-4px); }
         }
-        /* FIX: jendela chat SEBELUMNYA dianchor dari bottom dengan
-           tinggi tetap (460px) / persentase viewport (72vh) — di layar
-           pendek (mis. HP landscape saat main) itu bisa membuat tepi
-           ATAS jendela naik sampai menimpa HUD profil di pojok kiri
-           atas. Makanya overlay-nya di-anchor dari top:50% (persis
-           tengah layar) SAMPAI bottom, dan kartu di dalamnya mengisi
-           penuh area itu (height:100%, dibatasi max-height) — jadi
-           tepi atas jendela dijamin TIDAK PERNAH naik melewati tengah
-           layar, di ukuran layar berapa pun (posisi vertikal TETAP di
-           tengah/mid, tidak diubah lagi).
-           FIX (permintaan ini): horizontalnya dulu nempel ke kanan layar
-           (kanan layar), jadi visualnya berat sebelah / "ke tengah"
-           dibanding HUD profil yang ada di pojok KIRI atas. Sekarang
-           dipindah ke sisi kiri — sejajar satu kolom vertikal yang sama
-           dengan HUD profil — supaya kedua elemen UI (profil & chat)
-           konsisten nempel di sisi kiri. */
+        @keyframes nawasenadaraChatSlideIn {
+          from { opacity: 0; transform: translateY(14px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .nawasenadaraChatOverlay {
           position: fixed;
-          left: 16px;
-          top: 50%;
-          bottom: 16px;
+          left: 20px;
+          top: 96px;
+          bottom: 20px;
           z-index: 200;
           display: flex;
-          align-items: stretch;
+          align-items: flex-end;
           justify-content: flex-start;
-          transition: left 0.2s ease, top 0.2s ease, bottom 0.2s ease, right 0.2s ease;
+          transition: left 0.22s ease, top 0.22s ease, bottom 0.22s ease, right 0.22s ease;
         }
         .nawasenadaraChatCard {
-          width: 340px;
-          max-width: calc(100vw - 32px);
+          width: 430px;
+          max-width: calc(100vw - 40px);
           height: 100%;
-          max-height: 460px;
-          background: #1a1a2e;
-          border: 2px solid rgba(255, 221, 87, 0.4);
+          max-height: 560px;
+          background: linear-gradient(180deg, #171530 0%, #100e22 100%);
+          border: 2.5px solid #ffdd57;
           border-radius: 16px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
           font-family: 'Pixelify Sans', monospace;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-          transition: width 0.2s ease, height 0.2s ease, max-width 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease;
+          box-shadow: 0 18px 48px rgba(0, 0, 0, 0.72), 0 0 28px rgba(255, 221, 87, 0.14);
+          animation: nawasenadaraChatSlideIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: width 0.22s ease, height 0.22s ease, max-width 0.22s ease, max-height 0.22s ease, border-radius 0.22s ease;
         }
-        /* Maximize ala jendela desktop — kartu chat mengisi (hampir)
-           seluruh layar, dipicu tombol ⛶ di header. Diminta khusus
-           untuk antisipasi layar HP kecil, tapi berlaku juga di
-           desktop. */
         .nawasenadaraChatOverlay--maximized {
-          left: 12px;
-          right: 12px;
-          top: 12px;
-          bottom: 12px;
+          left: 16px;
+          right: 16px;
+          top: 16px;
+          bottom: 16px;
         }
         .nawasenadaraChatOverlay--maximized .nawasenadaraChatCard {
           width: 100%;
-          max-width: 100%;
+          max-width: 820px;
           height: 100%;
           max-height: none;
-          border-radius: 16px;
+          border-radius: 18px;
           margin: 0 auto;
         }
-        @media (max-width: 520px) {
+        .nawasenadaraQuickChip {
+          background: rgba(255, 221, 87, 0.1);
+          color: #ffdd57;
+          border: 1.5px solid rgba(255, 221, 87, 0.45);
+          border-radius: 999px;
+          padding: 7px 14px;
+          font-family: inherit;
+          font-size: 16px;
+          cursor: pointer;
+          transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+          text-align: left;
+        }
+        .nawasenadaraQuickChip:hover {
+          background: rgba(255, 221, 87, 0.22);
+          border-color: #ffdd57;
+          transform: translateY(-1px);
+        }
+        @media (max-width: 560px) {
           .nawasenadaraChatOverlay {
             right: 0;
             left: 0;
-            top: 50%;
+            top: 28%;
             bottom: 0;
           }
           .nawasenadaraChatCard {
@@ -883,13 +885,10 @@ export default function GameUIBridge() {
             max-width: 100%;
             height: 100%;
             max-height: none;
-            border-radius: 18px 18px 0 0;
+            border-radius: 20px 20px 0 0;
             border-bottom: none;
             margin: 0 auto;
           }
-          /* Di HP, maximize dibuat memenuhi layar TOTAL (bukan cuma
-             margin kecil seperti desktop) — paling berguna justru di
-             sini, layar kecil dapat ruang ketik maksimal. */
           .nawasenadaraChatOverlay--maximized {
             left: 0;
             right: 0;
@@ -905,22 +904,25 @@ export default function GameUIBridge() {
       {chat?.open ? (
         <div
           className={`nawasenadaraChatOverlay${chatMaximized ? ' nawasenadaraChatOverlay--maximized' : ''}`}
-          // FIX: sebelumnya jendela chat bisa ketutup separuh oleh
-          // keyboard virtual HP saat kotak ketik di-fokus (posisi
-          // `bottom` dihitung dari innerHeight yang TIDAK berubah
-          // walau keyboard muncul). `keyboardInset` (dari
-          // window.visualViewport, lihat useEffect di atas) dipakai
-          // untuk mengangkat jendela persis setinggi keyboard yang
-          // menutupi layar.
           style={keyboardInset > 0 ? { bottom: keyboardInset + 16 } : undefined}
         >
           <div className="nawasenadaraChatCard">
             <div style={styles.chatHeader}>
-              <span style={styles.chatHeaderTitle}>💬 Kak Dara — Konseling</span>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={styles.chatHeaderLeft}>
+                <div style={styles.chatAvatarBadge} aria-hidden="true">
+                  <svg viewBox="0 0 64 64" width="24" height="24" fill="none" stroke="#14122a" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="round">
+                    <path d="M32 10c13.2 0 23 8.4 23 19.5S45.2 49 32 49c-2.5 0-4.9-.3-7.1-.9L13 55l3-11C11.6 40.3 9 35 9 29.5 9 18.4 18.8 10 32 10z" />
+                  </svg>
+                </div>
+                <div>
+                  <div style={styles.chatHeaderTitle}>Kak Dara</div>
+                  <div style={styles.chatHeaderSubtitle}>Ruang Cerita & Konseling Aman</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button
                   type="button"
-                  style={styles.closeBtn}
+                  style={styles.headerActionBtn}
                   onClick={() => setChatMaximized((v) => !v)}
                   aria-label={chatMaximized ? 'Kecilkan jendela chat' : 'Perbesar jendela chat'}
                   title={chatMaximized ? 'Kecilkan' : 'Perbesar'}
@@ -929,7 +931,7 @@ export default function GameUIBridge() {
                 </button>
                 <button
                   type="button"
-                  style={styles.closeBtn}
+                  style={styles.headerActionBtn}
                   onClick={closeChatbot}
                   aria-label="Tutup chat"
                   title="Tutup chat"
@@ -940,14 +942,32 @@ export default function GameUIBridge() {
             </div>
             {pendingEpisodeCompletion ? (
               <div style={styles.chatPendingNotice}>
-                🌸 Episode dijeda sementara. Selesai mengobrol, klik tombol di bawah untuk lanjut.
+                Episode dijeda sementara. Selesai mengobrol, tekan tombol di bawah untuk melanjutkan cerita.
               </div>
             ) : null}
             <div style={styles.chatMessages} ref={chatScrollRef}>
               {chatMessages.length === 0 ? (
-                <p style={styles.chatEmpty}>
-                  Halo, aku Kak Dara. Cerita apa saja yang kamu rasakan, aku dengarkan kok.
-                </p>
+                <div style={styles.chatWelcomeBox}>
+                  <div style={styles.bubbleAssistant}>
+                    Halo! Aku Kak Dara. Di sini kamu bebas cerita apa saja yang sedang kamu rasakan. Tenang saja, ceritamu aman dan aku siap mendengarkan.
+                  </div>
+                  <div style={styles.quickChipGroup}>
+                    {[
+                      'Aku merasa nggak nyaman tadi',
+                      'Gimana cara menolak dengan sopan?',
+                      'Aku bingung harus cerita ke siapa',
+                    ].map((promptText) => (
+                      <button
+                        key={promptText}
+                        type="button"
+                        className="nawasenadaraQuickChip"
+                        onClick={() => setChatInput(promptText)}
+                      >
+                        {promptText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 chatMessages.map((m, i) => (
                   <div
@@ -959,7 +979,7 @@ export default function GameUIBridge() {
                 ))
               )}
               {chatSending ? (
-                <div style={styles.bubbleAssistant} aria-label="Kak Dara sedang mengetik">
+                <div style={styles.bubbleAssistantTyping} aria-label="Kak Dara sedang mengetik">
                   <span style={styles.typingDot} />
                   <span style={{ ...styles.typingDot, animationDelay: '0.15s' }} />
                   <span style={{ ...styles.typingDot, animationDelay: '0.3s' }} />
@@ -980,16 +1000,19 @@ export default function GameUIBridge() {
                     sendChatMessage();
                   }
                 }}
-                placeholder="Ketik pesan…"
+                placeholder="Tulis ceritamu ke Kak Dara…"
                 disabled={chatSending}
               />
               <button
                 type="button"
-                style={styles.sendBtn}
+                style={{
+                  ...styles.sendBtn,
+                  opacity: chatSending || !chatInput.trim() ? 0.55 : 1,
+                }}
                 onClick={sendChatMessage}
                 disabled={chatSending || !chatInput.trim()}
               >
-                Kirim
+                Kirim ▸
               </button>
             </div>
             {pendingEpisodeCompletion ? (
@@ -1072,13 +1095,13 @@ const styles = {
     boxShadow: '0 4px 14px rgba(255, 107, 107, 0.4)',
   },
   chatPendingNotice: {
-    padding: '8px 12px',
-    background: 'rgba(255, 221, 87, 0.15)',
+    padding: '10px 14px',
+    background: 'rgba(255, 221, 87, 0.14)',
     color: '#ffdd57',
-    fontSize: 13,
-    borderBottom: '1px solid rgba(255, 221, 87, 0.25)',
+    fontSize: 16,
+    borderBottom: '1px solid rgba(255, 221, 87, 0.28)',
     textAlign: 'center',
-    lineHeight: 1.4,
+    lineHeight: 1.45,
   },
   journalCard: {
     width: '100%',
@@ -1208,96 +1231,162 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px 14px',
-    background: '#243b55',
+    padding: '14px 16px',
+    background: 'linear-gradient(90deg, #1d1a3b 0%, #15132b 100%)',
+    borderBottom: '2px solid rgba(255, 221, 87, 0.35)',
     color: '#fff',
   },
-  chatHeaderTitle: { fontSize: 16, fontWeight: 600 },
-  closeBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#fff',
+  chatHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  chatAvatarBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    background: '#ffdd57',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 0 14px rgba(255, 221, 87, 0.35)',
+    flexShrink: 0,
+  },
+  chatHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: '#ffdd57',
+    lineHeight: 1.15,
+  },
+  chatHeaderSubtitle: {
+    fontSize: 14,
+    color: '#cbd5e1',
+    marginTop: 2,
+  },
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: 'rgba(255, 255, 255, 0.07)',
+    border: '1.5px solid rgba(255, 221, 87, 0.4)',
+    color: '#ffdd57',
     fontSize: 18,
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     lineHeight: 1,
   },
   chatMessages: {
     flex: 1,
     overflowY: 'auto',
-    padding: 12,
+    padding: '16px 14px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
+    gap: 12,
   },
-  chatEmpty: { color: '#999', fontSize: 15, textAlign: 'center', marginTop: 20 },
+  chatWelcomeBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+  },
+  quickChipGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 2,
+  },
   bubbleUser: {
     alignSelf: 'flex-end',
     background: '#ffdd57',
-    color: '#1a1a2e',
-    padding: '8px 12px',
-    borderRadius: '12px 12px 2px 12px',
-    fontSize: 15,
-    maxWidth: '80%',
+    color: '#14122a',
+    padding: '12px 16px',
+    borderRadius: '14px 14px 4px 14px',
+    fontSize: 18,
+    fontWeight: 600,
+    lineHeight: 1.5,
+    maxWidth: '85%',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+    wordBreak: 'break-word',
   },
   bubbleAssistant: {
     alignSelf: 'flex-start',
-    background: '#2a3f54',
-    color: '#fff',
-    padding: '8px 12px',
-    borderRadius: '12px 12px 12px 2px',
-    fontSize: 15,
-    maxWidth: '80%',
-    display: 'flex',
+    background: '#222042',
+    border: '1.5px solid rgba(255, 221, 87, 0.35)',
+    color: '#f8fafc',
+    padding: '12px 16px',
+    borderRadius: '14px 14px 14px 4px',
+    fontSize: 18,
+    lineHeight: 1.55,
+    maxWidth: '88%',
+    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)',
+    wordBreak: 'break-word',
+  },
+  bubbleAssistantTyping: {
+    alignSelf: 'flex-start',
+    background: '#222042',
+    border: '1.5px solid rgba(255, 221, 87, 0.35)',
+    color: '#f8fafc',
+    padding: '14px 18px',
+    borderRadius: '14px 14px 14px 4px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
   },
   typingDot: {
-    width: 6,
-    height: 6,
+    width: 8,
+    height: 8,
     margin: '0 2px',
     borderRadius: '50%',
-    background: '#ffffff',
+    background: '#ffdd57',
     display: 'inline-block',
     animation: 'nawasenadaraTypingDot 1s infinite ease-in-out',
   },
   chatInputRow: {
     display: 'flex',
-    gap: 8,
-    padding: 10,
-    borderTop: '1px solid rgba(255,255,255,0.08)',
+    gap: 10,
+    padding: '12px 14px',
+    background: '#131126',
+    borderTop: '1.5px solid rgba(255, 221, 87, 0.22)',
   },
   chatContinueRow: {
-    padding: '0 10px 10px',
+    padding: '0 14px 14px',
+    background: '#131126',
   },
   episodeContinueBtn: {
     width: '100%',
     background: '#ffdd57',
-    color: '#1a1a2e',
+    color: '#14122a',
     border: 'none',
-    borderRadius: 8,
-    padding: '10px 14px',
+    borderRadius: 10,
+    padding: '12px 16px',
     fontWeight: 700,
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 15,
+    fontSize: 18,
   },
   chatInput: {
     flex: 1,
-    background: '#0f0f22',
-    border: '1px solid #444',
-    borderRadius: 8,
-    color: '#fff',
-    padding: '8px 10px',
-    fontSize: 15,
+    background: '#0b0a18',
+    border: '1.5px solid rgba(255, 221, 87, 0.45)',
+    borderRadius: 10,
+    color: '#ffffff',
+    padding: '11px 14px',
+    fontSize: 18,
     fontFamily: 'inherit',
+    outline: 'none',
   },
   sendBtn: {
     background: '#ffdd57',
-    color: '#1a1a2e',
+    color: '#14122a',
     border: 'none',
-    borderRadius: 8,
-    padding: '8px 14px',
+    borderRadius: 10,
+    padding: '11px 18px',
     fontWeight: 700,
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 15,
+    fontSize: 18,
+    flexShrink: 0,
   },
 };
