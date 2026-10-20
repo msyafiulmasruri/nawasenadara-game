@@ -157,6 +157,26 @@ export default class EpisodeSelectScene extends Phaser.Scene {
 
       this._cells.push({ box, numberText, labelText, episodeId: ep.id });
     });
+
+    // Tombol Akses Cepat Mini Boss Battle di bawah grid episode
+    const bossBtnY = Math.min(bounds.bottom - 22, startY + gridHeight / 2 + 28);
+    this._bossBtn = this.add.rectangle(bounds.centerX, bossBtnY, Math.min(bounds.width * 0.72, 320), 34, 0x4c0519, 0.92)
+      .setStrokeStyle(1.5, 0xf43f5e)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(5);
+
+    this._bossBtnText = this.add.text(bounds.centerX, bossBtnY, '⚔️ TANTANG MINI BOSS (EPISODE 6)', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: `${Math.round(pxToWorld(this, 12))}px`,
+      fontStyle: '700',
+      color: '#fecdd3',
+    }).setOrigin(0.5).setDepth(6);
+
+    this._bossBtn.on('pointerdown', () => {
+      this.scene.start('FinalBossScene', { episodeId: 6, isLastEpisode: true });
+    });
+    this._bossBtn.on('pointerover', () => this._bossBtn.setFillStyle(0x881337, 1));
+    this._bossBtn.on('pointerout', () => this._bossBtn.setFillStyle(0x4c0519, 0.92));
   }
 
   _repositionGrid() {
@@ -167,6 +187,8 @@ export default class EpisodeSelectScene extends Phaser.Scene {
       numberText.destroy();
       labelText.destroy();
     });
+    this._bossBtn?.destroy();
+    this._bossBtnText?.destroy();
     this._buildGrid();
   }
 

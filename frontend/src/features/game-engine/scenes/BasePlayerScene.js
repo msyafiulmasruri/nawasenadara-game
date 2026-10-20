@@ -1224,13 +1224,15 @@ export default class BasePlayerScene extends Phaser.Scene {
 
   /** Ganti ikon & warna tombol fullscreen sesuai status saat ini. */
   _updateFullscreenIcon() {
-    if (!this._fsBtn || !this._fsBtnText) return;
+    if (!this.scene?.isActive() || !this._fsBtn?.active || !this._fsBtnText?.active) return;
     const isFs = !!(
       document.fullscreenElement || document.webkitFullscreenElement
     );
-    this._fsBtnText.setText(isFs ? '⤢' : '⛶');
-    this._fsBtn.setFillStyle(isFs ? 0xffdd57 : 0x1a1a2e, isFs ? 0.85 : 0.6);
-    this._fsBtnText.setColor(isFs ? '#1a1a2e' : '#ffffff');
+    try {
+      this._fsBtnText.setText(isFs ? '⤢' : '⛶');
+      this._fsBtn.setFillStyle(isFs ? 0xffdd57 : 0x1a1a2e, isFs ? 0.85 : 0.6);
+      this._fsBtnText.setColor(isFs ? '#1a1a2e' : '#ffffff');
+    } catch (_) {}
   }
 
   createPauseMenu() {

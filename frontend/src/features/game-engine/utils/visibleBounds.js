@@ -73,7 +73,12 @@ export function syncGameSizeToOrientation(scene) {
   const { width: pw, height: ph } = scene.scale.parentSize;
   const aspect = ph > 0 ? pw / ph : WORLD_WIDTH / WORLD_HEIGHT;
   const dynamicWidth = Math.max(1, Math.round(WORLD_HEIGHT * aspect));
-  scene.scale.setGameSize(dynamicWidth, WORLD_HEIGHT);
+
+  const currentW = scene.scale.gameSize?.width;
+  const currentH = scene.scale.gameSize?.height;
+  if (currentW !== dynamicWidth || currentH !== WORLD_HEIGHT) {
+    scene.scale.setGameSize(dynamicWidth, WORLD_HEIGHT);
+  }
 
   return {
     width: scene.scale.gameSize.width,
