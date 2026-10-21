@@ -83,22 +83,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.all('*', (req, res, next) => {
-  if (req.query?.debug === '1') {
-    return res.json({
-      method: req.method,
-      url: req.url,
-      originalUrl: req.originalUrl,
-      query: req.query,
-      headers: {
-        'x-matched-path': req.headers['x-matched-path'],
-        'x-forwarded-url': req.headers['x-forwarded-url'],
-      },
-    });
-  }
-  next();
-});
-
 // Vercel serverless rewrite support: restore original requested path
 app.use((req, res, next) => {
   const matchedPath =
