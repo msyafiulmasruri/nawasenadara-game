@@ -3,8 +3,10 @@
 // Access token hanya disimpan di memori AuthContext. Refresh token berada
 // di cookie httpOnly dan otomatis dikirim lewat `credentials: 'include'`.
 
-export const API_URL =
+const rawApiUrl =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export const API_URL = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
 
 class ApiError extends Error {
   constructor(message, statusCode, details) {

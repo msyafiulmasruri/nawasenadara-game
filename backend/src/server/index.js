@@ -127,7 +127,9 @@ app.get('/', (req, res) => {
   );
 });
 
+app.use('/api/api', routes);
 app.use('/api', routes);
+app.use(routes);
 
 app.use(notFound);
 app.use(errorHandler);

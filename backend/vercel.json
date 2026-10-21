@@ -2,6 +2,10 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "/api/[...slug]"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api"
     }
