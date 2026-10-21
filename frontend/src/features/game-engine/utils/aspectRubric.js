@@ -256,14 +256,14 @@ export function evaluateEpisodeAspects(episodeId, choices = []) {
   let feedbackSummary = '';
 
   if (fulfilledCount === totalCount) {
-    endingTitle = 'Misi Berhasil — Semua 3 Langkah Terpenuhi (Ending Sejati)';
+    endingTitle = 'Misi Berhasil - Semua 3 Langkah Terpenuhi (Ending Sejati)';
     endingSummary =
       'Hebat! Kamu sudah memenuhi ketiga langkah tujuan di episode ini:\n' +
       fulfilledAspects.map((a) => `${a.id}. ${a.title}`).join('\n');
     feedbackSummary =
       'Luar biasa! Semua 3 langkah tujuan di episode ini sudah kamu penuhi dengan tepat. Kamu mendapatkan Ending Sejati!';
   } else if (fulfilledCount > 0) {
-    endingTitle = `Misi Cukup Baik — ${fulfilledCount} dari ${totalCount} Langkah Terpenuhi (Ending Baik)`;
+    endingTitle = `Misi Cukup Baik - ${fulfilledCount} dari ${totalCount} Langkah Terpenuhi (Ending Baik)`;
     endingSummary =
       `Kamu sudah memenuhi:\n` +
       fulfilledAspects.map((a) => `${a.id}. ${a.title}`).join('\n') +
@@ -273,7 +273,7 @@ export function evaluateEpisodeAspects(episodeId, choices = []) {
       `Kamu sudah memenuhi: ${fulfilledAspects.map((a) => `(${a.id}) ${a.title}`).join(', ')}.\n` +
       `Langkah belum terpenuhi: ${pendingAspects.map((a) => `(${a.id}) ${a.title}`).join(', ')}. Kamu mendapatkan Ending Baik.`;
   } else {
-    endingTitle = 'Misi Belum Berhasil — 0 Langkah Terpenuhi (Ending Buruk)';
+    endingTitle = 'Misi Belum Berhasil - 0 Langkah Terpenuhi (Ending Buruk)';
     endingSummary =
       'Sayang sekali kamu belum memenuhi satu pun dari 3 langkah tujuan di episode ini:\n' +
       aspectItems.map((a) => `${a.id}. ${a.title}`).join('\n') +

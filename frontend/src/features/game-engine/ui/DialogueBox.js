@@ -1391,7 +1391,7 @@ export default class DialogueBox {
           .text(
             bounds.centerX,
             hintY,
-            'Mode Layar Penuh — Ketuk di mana saja atau tekan [H] untuk menampilkan dialog',
+            'Mode Layar Penuh - Ketuk di mana saja atau tekan [H] untuk menampilkan dialog',
             {
               fontFamily: '"Pixelify Sans", monospace',
               fontSize: `${fontSz}px`,

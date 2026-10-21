@@ -404,7 +404,7 @@ export default class Episode5Scene extends BasePlayerScene {
     ) {
       this._showCutscene(
         'ep5-garden-bench-cg',
-        '✦ Bangku Taman Sekolah — Ruang Aman untuk Bercerita ✦'
+        '✦ Bangku Taman Sekolah - Ruang Aman untuk Bercerita ✦'
       );
     }
     // 2. Ponsel bergetar ancaman, bekas cengkeraman tampak, hingga Kirana curhat & meminta bantuan
@@ -426,40 +426,40 @@ export default class Episode5Scene extends BasePlayerScene {
     else if (id === 'revisit_chat') {
       this._showCutscene(
         'ep5-library-cg',
-        '✦ Perpustakaan Sekolah — Persahabatan yang Kembali Hangat ✦'
+        '✦ Perpustakaan Sekolah - Persahabatan yang Kembali Hangat ✦'
       );
     }
     // 4. Cutscene Cabang A: Ruang BK Bu Ratih (cutsceneA1..A3) lalu Halte Bus Senja (cutsceneA4..A5, n8a)
     else if (id === 'cutsceneA1' || id === 'cutsceneA2' || id === 'cutsceneA3') {
       this._showCutscene(
         'ep5-bk-room-cg',
-        '✦ Ruang Bimbingan Konseling (BK) — Ruang Aman Bersama Bu Ratih ✦'
+        '✦ Ruang Bimbingan Konseling (BK) - Ruang Aman Bersama Bu Ratih ✦'
       );
     } else if (id === 'cutsceneA4' || id === 'cutsceneA5' || id === 'n8a') {
       this._showCutscene(
         'ep5-halte-cg',
-        '✦ Menanti di Halte Sepulang Sekolah — Berdua di Ujung Senja ✦'
+        '✦ Menanti di Halte Sepulang Sekolah - Berdua di Ujung Senja ✦'
       );
     }
     // 5. Cutscene Cabang B: Halte Bus Senja (cutsceneB1..B4, n8b)
     else if (id.startsWith('cutsceneB') || id === 'n8b') {
       this._showCutscene(
         'ep5-halte-cg',
-        '✦ Menanti di Halte Sepulang Sekolah — Ruang Bernapas yang Teduh ✦'
+        '✦ Menanti di Halte Sepulang Sekolah - Ruang Bernapas yang Teduh ✦'
       );
     }
     // 6. Cutscene Cabang C: Ancaman & Bahaya Melabrak (cutsceneC1..C4, n8c)
     else if (id.startsWith('cutsceneC') || id === 'n8c') {
       this._showCutscene(
         'ep5-phone-threat-cg',
-        '✦ Bahaya Konfrontasi Gegabah — Mengutamakan Keselamatan Korban ✦'
+        '✦ Bahaya Konfrontasi Gegabah - Mengutamakan Keselamatan Korban ✦'
       );
     }
     // 7. Cutscene Cabang D: Kepasrahan di Bangku Taman (cutsceneD1..D4, n8d)
     else if (id.startsWith('cutsceneD') || id === 'n8d') {
       this._showCutscene(
         'ep5-garden-bench-cg',
-        '✦ Bayang-Bayang Ketakutan — Bahaya Membiarkan Kekerasan ✦'
+        '✦ Bayang-Bayang Ketakutan - Bahaya Membiarkan Kekerasan ✦'
       );
     }
     // Di luar node cutscene, sembunyikan cutscene

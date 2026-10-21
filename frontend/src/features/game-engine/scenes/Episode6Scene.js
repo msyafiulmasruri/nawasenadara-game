@@ -393,7 +393,7 @@ export default class Episode6Scene extends BasePlayerScene {
     ) {
       this._showCutscene(
         'ep6-corridor-chat-cg',
-        '✦ Babak 1: Mading Sekolah — Batasan Diri dan Berani Bersuara ✦'
+        '✦ Babak 1: Mading Sekolah - Batasan Diri dan Berani Bersuara ✦'
       );
     }
     // Babak 2: Halaman Dekat Gerbang Sekolah (Tekanan Senior & Batasan Asertif)
@@ -405,7 +405,7 @@ export default class Episode6Scene extends BasePlayerScene {
     ) {
       this._showCutscene(
         'ep6-gate-pressure-cg',
-        '✦ Babak 2: Gerbang Depan Sekolah — Batasan Asertif "Ini Batasan Saya!" ✦'
+        '✦ Babak 2: Gerbang Depan Sekolah - Batasan Asertif "Ini Batasan Saya!" ✦'
       );
     }
     // Babak 3: Pos Satpam (Perlindungan Aman & Perencanaan Bersama)
@@ -416,7 +416,7 @@ export default class Episode6Scene extends BasePlayerScene {
     ) {
       this._showCutscene(
         'ep6-safety-haven-cg',
-        '✦ Babak 3: Pos Satpam SMA Negeri 1 — Ruang Aman & Rencana Perlindungan ✦'
+        '✦ Babak 3: Pos Satpam SMA Negeri 1 - Ruang Aman & Rencana Perlindungan ✦'
       );
     }
     // Babak 4: Aula Sekolah (Puncak Epik: Deklarasi "Teman Aman")
@@ -426,7 +426,7 @@ export default class Episode6Scene extends BasePlayerScene {
     ) {
       this._showCutscene(
         'ep6-teman-aman-cg',
-        '✦ Babak 4: Aula SMA Negeri 1 — Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
+        '✦ Babak 4: Aula SMA Negeri 1 - Deklarasi Gerakan Solidaritas "Teman Aman" ✦'
       );
     } else {
       this._hideCutscene();

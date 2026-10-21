@@ -500,7 +500,7 @@ export default class ObjectiveBriefing {
     this._slides = [
       {
         icon: 'mission',
-        title: `Tujuan Utama Misi — Episode ${epId}`,
+        title: `Tujuan Utama Misi - Episode ${epId}`,
         speaker: `Kak Dara • ${epTitle}`,
         mode: 'paragraph',
         text: mainMissionText,
@@ -508,7 +508,7 @@ export default class ObjectiveBriefing {
       },
       {
         icon: 'steps',
-        title: `Langkah-Langkah Misi — Episode ${epId}`,
+        title: `Langkah-Langkah Misi - Episode ${epId}`,
         speaker: `Kak Dara • 3 Langkah Misi`,
         mode: 'steps',
         steps: stepsLines,

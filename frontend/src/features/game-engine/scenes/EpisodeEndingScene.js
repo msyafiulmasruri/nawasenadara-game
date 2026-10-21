@@ -1158,7 +1158,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       <div class="nd-report-content">
         <div class="nd-report-header">
           <span class="nd-report-tag">RAPOR 6 EPISODE</span>
-          <h1 class="nd-report-title">CAPAIAN EVALUASI 6 EPISODE — NAWASENA DARA</h1>
+          <h1 class="nd-report-title">CAPAIAN EVALUASI 6 EPISODE - NAWASENA DARA</h1>
           <p class="nd-report-subtitle">Rangkuman pemenuhan langkah tujuan di setiap episode perjalananmu di sekolah:</p>
         </div>
 
@@ -1342,7 +1342,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         'Komentar soal bentuk tubuh yang dibungkus candaan itu sama sekali tidak lucu. Kamu berhak merasa tidak nyaman, bilang tidak suka dengan tegas, menjauh ke tempat aman, dan lapor ke guru kalau terus diganggu.';
     } else if (this.episodeId === 5) {
       learningText =
-        'Saat sahabatmu sedang takut dan tertekan, dengarkan ceritanya dengan sabar tanpa menyalahkannya. Jangan nekat melabrak pelakunya sendirian karena berbahaya—temani sahabatmu menemui Guru BK atau orang tua.';
+        'Saat sahabatmu sedang takut dan tertekan, dengarkan ceritanya dengan sabar tanpa menyalahkannya. Jangan nekat melabrak pelakunya sendirian karena berbahaya - temani sahabatmu menemui Guru BK atau orang tua.';
     } else if (this.episodeId === 6) {
       learningText =
         'Kalau ada yang memaksa atau menghadangmu di tempat sepi, jangan diam membeku atau membalas emosi sendirian. Tolak dengan tegas, segera pindah ke tempat ramai yang ada satpam atau guru, lalu catat kejadiannya dan lapor bersama teman.';

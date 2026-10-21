@@ -52,7 +52,7 @@ function EndingBadge({ endingKey, hasData }) {
 }
 
 function RiskBadge({ level }) {
-  if (!level) return <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>;
+  if (!level) return <span style={{ color: '#94a3b8', fontSize: 13 }}>-</span>;
   return (
     <span
       style={{
@@ -244,7 +244,7 @@ function DetailContent({ studentId }) {
         </div>
       </section>
 
-      {/* Akumulasi Keseluruhan Episode — Kualitatif & Mudah Dipahami */}
+      {/* Akumulasi Keseluruhan Episode - Kualitatif & Mudah Dipahami */}
       <section style={styles.section}>
         <div style={styles.sectionTitleRow}>
           <div>

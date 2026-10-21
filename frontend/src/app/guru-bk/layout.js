@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Portal Guru BK — Nawasena Dara',
+  title: 'Portal Guru BK - Nawasena Dara',
   description: 'Dashboard pendampingan konseling dan pemantauan capaian emosi siswa.',
 };
 

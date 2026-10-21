@@ -72,73 +72,73 @@ const ENDING_DEFINITIONS = {
   1: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Suara yang Didengar"',
+      title: 'Ending Sejati - "Suara yang Didengar"',
       plusText:
         'Kamu konsisten berani menyuarakan ketidaknyamanan dengan cara yang tenang dan mengedukasi teman-teman sekelas soal kesetaraan gender, dari awal sampai akhir percakapan.',
       minusText:
-        'Tetap perlu waspada — tidak semua orang akan langsung berubah hanya dari satu percakapan, sikap ini perlu terus dijaga ke depannya.',
+        'Tetap perlu waspada - tidak semua orang akan langsung berubah hanya dari satu percakapan, sikap ini perlu terus dijaga ke depannya.',
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Belajar Bersikap"',
+      title: 'Ending Baik - "Belajar Bersikap"',
       plusText:
-        'Kamu sudah menunjukkan sikap yang cukup seimbang — tidak memperkeruh suasana, dan di beberapa titik berani menyampaikan pandanganmu.',
+        'Kamu sudah menunjukkan sikap yang cukup seimbang - tidak memperkeruh suasana, dan di beberapa titik berani menyampaikan pandanganmu.',
       minusText:
         'Masih ada momen di mana ketidaknyamananmu belum sepenuhnya tersampaikan, jadi respons serupa berisiko terulang lagi.',
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Terjebak Pola Lama"',
+      title: 'Ending Buruk - "Terjebak Pola Lama"',
       plusText:
         'Perasaanmu (sesak, kesal, atau takut) itu valid dan wajar dirasakan saat direndahkan berulang kali.',
       minusText:
-        'Pola responsmu lebih banyak diam menahan diri atau justru meledak marah — keduanya berisiko: yang satu membuat perilaku serupa dianggap wajar, yang satu lagi memperkeruh hubungan tanpa menyelesaikan akar masalah. Kamu tidak wajib memilih salah satu dari keduanya.',
+        'Pola responsmu lebih banyak diam menahan diri atau justru meledak marah - keduanya berisiko: yang satu membuat perilaku serupa dianggap wajar, yang satu lagi memperkeruh hubungan tanpa menyelesaikan akar masalah. Kamu tidak wajib memilih salah satu dari keduanya.',
     },
   },
   2: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Tidak Sendirian"',
+      title: 'Ending Sejati - "Tidak Sendirian"',
       plusText:
-        'Kamu tidak cuma diam melihat Kirana di-bully — kamu bertindak nyata untuk membantunya, dan tetap tenang/asertif sepanjang percakapan dengan Rafi.',
+        'Kamu tidak cuma diam melihat Kirana di-bully - kamu bertindak nyata untuk membantunya, dan tetap tenang/asertif sepanjang percakapan dengan Rafi.',
       minusText:
-        'Membantu satu kali bukan akhir cerita — Kirana tetap butuh dukungan berkelanjutan, bukan cuma sekali bantu lalu selesai.',
+        'Membantu satu kali bukan akhir cerita - Kirana tetap butuh dukungan berkelanjutan, bukan cuma sekali bantu lalu selesai.',
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Mulai Peduli"',
+      title: 'Ending Baik - "Mulai Peduli"',
       plusText: 'Kamu menunjukkan kepedulian terhadap apa yang dialami Kirana, walau belum semua langkahmu tegas.',
       minusText:
-        'Ada momen kamu ragu-ragu atau memilih menunggu dulu — keraguan itu wajar, tapi bisa membuat bantuan datang lebih lambat.',
+        'Ada momen kamu ragu-ragu atau memilih menunggu dulu - keraguan itu wajar, tapi bisa membuat bantuan datang lebih lambat.',
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Ikut Diam, Ikut Bersalah"',
+      title: 'Ending Buruk - "Ikut Diam, Ikut Bersalah"',
       plusText: 'Setidaknya kamu jujur dengan reaksi pertamamu, walau reaksi itu belum tepat.',
       minusText:
-        'Memilih diam/menghindar atau bahkan ikut mengomentari negatif sama-sama membuat bully-an ke Kirana terus dianggap wajar — padahal dia butuh dibantu, bukan ditonton atau ditambah beban.',
+        'Memilih diam/menghindar atau bahkan ikut mengomentari negatif sama-sama membuat bully-an ke Kirana terus dianggap wajar - padahal dia butuh dibantu, bukan ditonton atau ditambah beban.',
     },
   },
   3: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Batas yang Tegas"',
+      title: 'Ending Sejati - "Batas yang Tegas"',
       plusText:
         'Kamu membuat keputusan terbaik dengan memblokir akun mencurigakan, mengamankan bukti tangkapan layar, dan langsung terbuka menceritakan kejadian ini kepada orang tua.',
       minusText:
-        'Kewaspadaan digital tetap harus dijaga — pelaku kejahatan siber dapat berganti akun, namun ketegasanmu menetapkan batasan adalah perlindungan terbaik.',
+        'Kewaspadaan digital tetap harus dijaga - pelaku kejahatan siber dapat berganti akun, namun ketegasanmu menetapkan batasan adalah perlindungan terbaik.',
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Pelajaran Berharga"',
+      title: 'Ending Baik - "Pelajaran Berharga"',
       plusText:
         'Kamu sempat ragu atau mencoba merespons orang asing tersebut, namun pada akhirnya kamu menyadari bahaya manipulasi dan berhasil mengambil langkah aman.',
       minusText:
-        'Menjawab atau menantang akun anonim yang mencurigakan dapat memberi mereka celah — ke depannya, jangan ragu untuk langsung memutus komunikasi sejak tanda bahaya pertama.',
+        'Menjawab atau menantang akun anonim yang mencurigakan dapat memberi mereka celah - ke depannya, jangan ragu untuk langsung memutus komunikasi sejak tanda bahaya pertama.',
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Terjerat Jebakan Manipulasi"',
+      title: 'Ending Buruk - "Terjerat Jebakan Manipulasi"',
       plusText:
         'Ketakutan dan kepanikan yang kamu rasakan sangat wajar ketika dihadapkan pada ancaman siber dan situasi yang mencekam.',
       minusText:
@@ -148,7 +148,7 @@ const ENDING_DEFINITIONS = {
   4: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Batas yang Dihormati"',
+      title: 'Ending Sejati - "Batas yang Dihormati"',
       plusText:
         'Kamu menyampaikan ketidaknyamanan dengan jelas, menjaga jarak, dan tahu kapan perlu meminta bantuan tanpa merendahkan orang lain.',
       minusText:
@@ -156,7 +156,7 @@ const ENDING_DEFINITIONS = {
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Berani Menjauh"',
+      title: 'Ending Baik - "Berani Menjauh"',
       plusText:
         'Kamu berhasil keluar dari situasi yang tidak nyaman dan mulai melindungi ruang amanmu.',
       minusText:
@@ -164,9 +164,9 @@ const ENDING_DEFINITIONS = {
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Candaan yang Tertinggal"',
+      title: 'Ending Buruk - "Candaan yang Tertinggal"',
       plusText:
-        'Rasa kesal, takut, atau tidak nyaman yang kamu alami tetap valid—kejadian ini bukan salahmu.',
+        'Rasa kesal, takut, atau tidak nyaman yang kamu alami tetap valid - kejadian ini bukan salahmu.',
       minusText:
         'Menyalahkan diri atau membalas dengan hinaan membuat inti masalah kabur. Menjauh, nyatakan batas, lalu cari bantuan yang aman.',
     },
@@ -174,7 +174,7 @@ const ENDING_DEFINITIONS = {
   5: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Teman yang Aman"',
+      title: 'Ending Sejati - "Teman yang Aman"',
       plusText:
         'Kamu mendengar tanpa menghakimi, percaya kepada Kirana, memeriksa keselamatannya, dan menemaninya mencari bantuan pilihan dirinya.',
       minusText:
@@ -182,7 +182,7 @@ const ENDING_DEFINITIONS = {
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Tetap Menemani"',
+      title: 'Ending Baik - "Tetap Menemani"',
       plusText:
         'Kamu memberi Kirana ruang dan membuatnya merasa tidak sendirian.',
       minusText:
@@ -190,7 +190,7 @@ const ENDING_DEFINITIONS = {
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Niat Baik, Risiko Baru"',
+      title: 'Ending Buruk - "Niat Baik, Risiko Baru"',
       plusText:
         'Keinginanmu melindungi Kirana menunjukkan bahwa kamu peduli pada keselamatannya.',
       minusText:
@@ -200,7 +200,7 @@ const ENDING_DEFINITIONS = {
   6: {
     true: {
       key: 'true',
-      title: 'Ending Sejati — "Suara yang Menjadi Cahaya"',
+      title: 'Ending Sejati - "Suara yang Menjadi Cahaya"',
       plusText:
         'Sepanjang perjalanan, kamu konsisten menetapkan batas, melindungi diri dan teman, mencari bantuan, serta membangun dukungan bersama.',
       minusText:
@@ -208,7 +208,7 @@ const ENDING_DEFINITIONS = {
     },
     good: {
       key: 'good',
-      title: 'Ending Baik — "Berani Melangkah"',
+      title: 'Ending Baik - "Berani Melangkah"',
       plusText:
         'Kamu sudah mengenali banyak pilihan aman dan mulai berani meminta dukungan ketika membutuhkannya.',
       minusText:
@@ -216,7 +216,7 @@ const ENDING_DEFINITIONS = {
     },
     bad: {
       key: 'bad',
-      title: 'Ending Buruk — "Masih Mencari Suara"',
+      title: 'Ending Buruk - "Masih Mencari Suara"',
       plusText:
         'Takut, marah, membeku, atau bingung adalah respons yang manusiawi; pengalaman buruk bukan kesalahanmu.',
       minusText:

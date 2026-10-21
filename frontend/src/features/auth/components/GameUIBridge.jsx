@@ -173,7 +173,7 @@ export default function GameUIBridge() {
         {
           role: 'assistant',
           content:
-            'Halo, aku Kak Dara. Aku dengar kamu lagi butuh teman cerita — aku di sini, ceritakan saja apa yang kamu rasakan.',
+            'Halo, aku Kak Dara. Aku dengar kamu lagi butuh teman cerita - aku di sini, ceritakan saja apa yang kamu rasakan.',
         },
       ]);
       return;
@@ -208,7 +208,7 @@ export default function GameUIBridge() {
           {
             role: 'assistant',
             content:
-              'Halo, aku Kak Dara. Sepertinya ada gangguan koneksi barusan — boleh cerita ulang apa yang baru saja terjadi?',
+              'Halo, aku Kak Dara. Sepertinya ada gangguan koneksi barusan - boleh cerita ulang apa yang baru saja terjadi?',
           },
         ]);
       } finally {

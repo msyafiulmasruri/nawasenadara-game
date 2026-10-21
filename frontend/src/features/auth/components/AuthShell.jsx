@@ -6,7 +6,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
     <main className="auth-page">
       <StarField />
       <div className="auth-viewport">
-        <Link href="/" className="auth-logo" aria-label="Nawasena Dara — kembali ke beranda">
+        <Link href="/" className="auth-logo" aria-label="Nawasena Dara - kembali ke beranda">
           NAWASENA DARA
         </Link>
 

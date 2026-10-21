@@ -215,7 +215,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
 
       if (unlocked) {
         const statusLabel = this.add
-          .text(x, y + cardH * 0.37, 'TERBUKA — KLIK UNTUK MAIN', {
+          .text(x, y + cardH * 0.37, 'TERBUKA - KLIK UNTUK MAIN', {
             fontFamily: '"Pixelify Sans", monospace',
             fontSize: `${Math.max(11, Math.round(cardH * 0.088))}px`,
             fontStyle: '600',

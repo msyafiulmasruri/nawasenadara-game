@@ -63,7 +63,7 @@ function EndingBadge({ endingKey, hasData }) {
 
 function AspectBadge({ fulfilled, total, completedCount }) {
   if (!completedCount || completedCount === 0 || total === 0) {
-    return <span style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic' }}>—</span>;
+    return <span style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic' }}>-</span>;
   }
   const isPerfect = fulfilled === total;
   const isGood = fulfilled >= total * 0.5;
@@ -92,7 +92,7 @@ function AspectBadge({ fulfilled, total, completedCount }) {
 }
 
 function RiskBadge({ level }) {
-  if (!level) return <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>;
+  if (!level) return <span style={{ color: '#94a3b8', fontSize: 13 }}>-</span>;
   return (
     <span
       style={{
@@ -167,7 +167,7 @@ function DashboardContent() {
 
         {error ? <div style={styles.errorBox}>{error}</div> : null}
 
-        {/* Kartu Ringkasan Cepat — Tanpa Border Warna-Warni Tambahan */}
+        {/* Kartu Ringkasan Cepat - Tanpa Border Warna-Warni Tambahan */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <span style={styles.statLabel}>Total Siswa Terdaftar</span>
@@ -177,7 +177,7 @@ function DashboardContent() {
           <div style={styles.statCard}>
             <span style={styles.statLabel}>Tuntas Seluruh Episode</span>
             <span style={{ ...styles.statValue, color: '#16a34a' }}>{completedAllCount}</span>
-            <span style={styles.statSub}>Menyelesaikan Episode 1 — 6</span>
+            <span style={styles.statSub}>Menyelesaikan Episode 1 - 6</span>
           </div>
           <div style={styles.statCard}>
             <span style={styles.statLabel}>Perlu Perhatian Khusus</span>
@@ -200,7 +200,7 @@ function DashboardContent() {
               </p>
             </div>
 
-            {/* Kotak Pencarian Nama — Menggunakan SVG Icon Web */}
+            {/* Kotak Pencarian Nama - Menggunakan SVG Icon Web */}
             <div style={styles.searchWrapper}>
               <span style={styles.searchIcon}>{ICONS.search}</span>
               <input
@@ -277,7 +277,7 @@ function DashboardContent() {
                             {s.unacknowledged_count} Belum Ditinjau
                           </span>
                         ) : (
-                          <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>
+                          <span style={{ color: '#94a3b8', fontSize: 13 }}>-</span>
                         )}
                       </td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>

@@ -592,7 +592,7 @@ export default class ControlTutorialOverlay {
         }, 1400);
       }
     } else {
-      this._statusEl.textContent = `Kontrol dicoba (${count}/3) — Coba tekan jalan (A/D), lari (Shift), dan lompat (Space)`;
+      this._statusEl.textContent = `Kontrol dicoba (${count}/3) - Coba tekan jalan (A/D), lari (Shift), dan lompat (Space)`;
     }
   }
 
