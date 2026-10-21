@@ -91,7 +91,8 @@ app.use((req, res, next) => {
     matchedPath &&
     typeof matchedPath === 'string' &&
     matchedPath.startsWith('/') &&
-    req.url !== matchedPath
+    !matchedPath.includes('[') &&
+    (req.url === '/' || req.url === '/api')
   ) {
     req.url = matchedPath;
   }
