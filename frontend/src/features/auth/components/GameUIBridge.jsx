@@ -378,33 +378,6 @@ export default function GameUIBridge() {
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight });
   }, [chatMessages]);
 
-  // Deteksi keyboard virtual HP terbuka lewat window.visualViewport —
-  // API browser yang melaporkan ukuran viewport yang BENAR-BENAR
-  // terlihat (di luar area yang ketutup keyboard), beda dari
-  // window.innerHeight yang tidak berubah sama sekali saat keyboard
-  // muncul. Selisihnya dipakai untuk mengangkat jendela chat & form jurnal
-  // ke atas supaya kotak ketik & tombol kirim tidak ketutup keyboard.
-  useEffect(() => {
-    if (!chat?.open && !journal) return undefined;
-    if (typeof window === 'undefined' || !window.visualViewport) return undefined;
-
-    const vv = window.visualViewport;
-    const handleViewportChange = () => {
-      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardInset(inset);
-    };
-
-    handleViewportChange();
-    vv.addEventListener('resize', handleViewportChange);
-    vv.addEventListener('scroll', handleViewportChange);
-
-    return () => {
-      vv.removeEventListener('resize', handleViewportChange);
-      vv.removeEventListener('scroll', handleViewportChange);
-      setKeyboardInset(0);
-    };
-  }, [chat?.open, Boolean(journal)]);
-
   // Satu status primitif menjaga dependency useEffect tetap berukuran
   // tetap ketika jenis overlay bertambah. Ini juga menghindari warning
   // React Fast Refresh "dependency array changed size" saat form baru
@@ -425,6 +398,34 @@ export default function GameUIBridge() {
     !feedback &&
     !pendingEpisodeCompletion;
   const overlayLockMode = !anyOverlayOpen ? 'unlocked' : onlyChatOpen ? 'chat-only' : 'locked';
+
+  // Deteksi keyboard virtual HP terbuka lewat window.visualViewport —
+  // API browser yang melaporkan ukuran viewport yang BENAR-BENAR
+  // terlihat (di luar area yang ketutup keyboard), beda dari
+  // window.innerHeight yang tidak berubah sama sekali saat keyboard
+  // muncul. Selisihnya dipakai untuk mengangkat form modal (masukan game,
+  // jurnal refleksi, nama tokoh, dan jendela chat) ke atas supaya kotak ketik &
+  // tombol kirim tidak pernah tertutup keyboard.
+  useEffect(() => {
+    if (!anyOverlayOpen) return undefined;
+    if (typeof window === 'undefined' || !window.visualViewport) return undefined;
+
+    const vv = window.visualViewport;
+    const handleViewportChange = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+    };
+
+    handleViewportChange();
+    vv.addEventListener('resize', handleViewportChange);
+    vv.addEventListener('scroll', handleViewportChange);
+
+    return () => {
+      vv.removeEventListener('resize', handleViewportChange);
+      vv.removeEventListener('scroll', handleViewportChange);
+      setKeyboardInset(0);
+    };
+  }, [anyOverlayOpen]);
 
   // Matikan keyboard Phaser (WASD/panah/dll) selama overlay terbuka,
   // supaya input formulir tidak ikut menggerakkan karakter.
@@ -551,9 +552,28 @@ export default function GameUIBridge() {
   return (
     <>
       {feedback ? (
-        <div style={styles.overlay}>
+        <div
+          style={{
+            ...styles.overlay,
+            ...(keyboardInset > 0
+              ? {
+                  alignItems: 'flex-start',
+                  paddingTop: 8,
+                  paddingBottom: keyboardInset + 16,
+                }
+              : {}),
+          }}
+        >
           <div
-            style={{ ...styles.journalCard, ...styles.feedbackCard }}
+            style={{
+              ...styles.journalCard,
+              ...styles.feedbackCard,
+              ...(keyboardInset > 0
+                ? {
+                    maxHeight: `calc(100dvh - ${keyboardInset + 20}px)`,
+                  }
+                : {}),
+            }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="game-feedback-title"
@@ -634,6 +654,11 @@ export default function GameUIBridge() {
                     setFeedbackMessage(event.target.value);
                     setFeedbackError(null);
                   }}
+                  onFocus={(event) => {
+                    setTimeout(() => {
+                      event.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 220);
+                  }}
                   onKeyDown={(event) => event.stopPropagation()}
                 />
                 <div style={styles.feedbackMetaRow}>
@@ -697,8 +722,28 @@ export default function GameUIBridge() {
       ) : null}
 
       {namePrompt ? (
-        <div style={styles.overlay}>
-          <div style={styles.journalCard}>
+        <div
+          style={{
+            ...styles.overlay,
+            ...(keyboardInset > 0
+              ? {
+                  alignItems: 'flex-start',
+                  paddingTop: 10,
+                  paddingBottom: keyboardInset + 16,
+                }
+              : {}),
+          }}
+        >
+          <div
+            style={{
+              ...styles.journalCard,
+              ...(keyboardInset > 0
+                ? {
+                    maxHeight: `calc(100dvh - ${keyboardInset + 28}px)`,
+                  }
+                : {}),
+            }}
+          >
             <h2 style={styles.title}>Siapa namamu di cerita ini?</h2>
             <p style={styles.bodyText}>
               Ini nama tokoh utama yang akan dipanggil sepanjang cerita — boleh nama asli, boleh
@@ -709,6 +754,11 @@ export default function GameUIBridge() {
               style={styles.textInput}
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
+              onFocus={(e) => {
+                setTimeout(() => {
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 220);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !nameSubmitting) submitCharacterName();
               }}
@@ -1154,39 +1204,40 @@ const styles = {
     boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65), 0 0 25px rgba(255, 221, 87, 0.12)',
   },
   feedbackCard: {
-    maxWidth: 560,
-    maxHeight: 'calc(100dvh - 32px)',
+    maxWidth: 520,
+    maxHeight: 'calc(100dvh - 24px)',
     overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
   },
   title: { fontFamily: "'Jersey 15', monospace", color: '#ffdd57', fontSize: 23, margin: '0 0 8px' },
-  bodyText: { fontSize: 16, lineHeight: 1.6, color: '#ddd', margin: '0 0 14px' },
+  bodyText: { fontSize: 16, lineHeight: 1.55, color: '#ddd', margin: '0 0 10px' },
   fieldLabel: {
     display: 'block',
     color: '#fff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 700,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ratingFieldset: {
     border: 0,
     padding: 0,
-    margin: '0 0 18px',
+    margin: '0 0 12px',
   },
   ratingRow: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(5, minmax(42px, 1fr))',
+    gridTemplateColumns: 'repeat(5, minmax(38px, 1fr))',
     gap: 8,
   },
   ratingBtn: {
-    minHeight: 46,
+    minHeight: 40,
     background: '#0f0f22',
     color: '#fff',
     borderWidth: 2,
     borderStyle: 'solid',
     borderColor: '#555',
-    borderRadius: 9,
+    borderRadius: 8,
     fontFamily: 'inherit',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: 700,
     cursor: 'pointer',
   },
@@ -1219,9 +1270,9 @@ const styles = {
     outline: 'none',
   },
   feedbackTextarea: {
-    minHeight: 130,
-    fontSize: 17,
-    lineHeight: 1.5,
+    minHeight: 84,
+    fontSize: 16,
+    lineHeight: 1.45,
   },
   feedbackMetaRow: {
     display: 'flex',
