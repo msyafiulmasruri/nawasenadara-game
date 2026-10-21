@@ -537,6 +537,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       this._teardownInput();
       this._cleanupFinalReport();
+      this._cleanupMiniBossModal();
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale.off('resize', this._onResize);
       window.removeEventListener('resize', this._onResize);
@@ -1326,53 +1327,133 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this.promptText?.setVisible(false);
     this._aspectContainer?.setVisible(false);
 
-    const bounds = getVisibleBounds(this);
-    const centerX = bounds.centerX;
-    const centerY = bounds.centerY;
-    const compact = isCompactLandscape(this);
+    this._cleanupMiniBossModal();
 
-    const container = this.add.container(centerX, centerY).setDepth(20);
+    const overlay = document.createElement('div');
+    overlay.id = 'nd-miniboss-intro-modal';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      z-index: 8900;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94), rgba(5, 5, 15, 0.98));
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      font-family: 'Pixelify Sans', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+      animation: ndFadeIn 0.25s ease-out forwards;
+    `;
 
-    const cardW = Math.min(bounds.width * 0.9, compact ? 420 : 460);
-    const cardH = compact ? 190 : 220;
+    overlay.innerHTML = `
+      <style>
+        @keyframes ndFadeIn {
+          from { opacity: 0; transform: scale(0.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .nd-mb-card {
+          width: min(620px, 94vw);
+          background: rgba(15, 23, 42, 0.96);
+          border: 2px solid #818cf8;
+          border-radius: 12px;
+          padding: 24px 28px 22px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(129, 140, 248, 0.2);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          text-align: center;
+          box-sizing: border-box;
+        }
+        .nd-mb-badge {
+          align-self: center;
+          background: #ffdd57;
+          color: #0f172a;
+          font-family: 'Jersey 15', monospace;
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          padding: 4px 14px;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .nd-mb-title {
+          font-family: 'Pixelify Sans', monospace;
+          font-size: clamp(22px, 3.5vw, 28px);
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0;
+          letter-spacing: 0.04em;
+        }
+        .nd-mb-desc {
+          font-size: clamp(14px, 1.8vw, 16px);
+          line-height: 1.6;
+          color: #cbd5e1;
+          margin: 0;
+          text-align: center;
+        }
+        .nd-mb-highlight {
+          color: #fef08a;
+          font-weight: 700;
+        }
+        .nd-mb-box {
+          background: rgba(30, 41, 59, 0.7);
+          border: 1px solid #475569;
+          border-radius: 8px;
+          padding: 12px 16px;
+          text-align: left;
+          font-size: clamp(13px, 1.6vw, 15px);
+          color: #e2e8f0;
+          line-height: 1.5;
+        }
+        .nd-mb-btn {
+          font-family: 'Pixelify Sans', monospace;
+          font-size: clamp(17px, 2.2vw, 20px);
+          font-weight: 700;
+          color: #ffffff;
+          background: linear-gradient(135deg, #16a34a, #15803d);
+          border: 2px solid #86efac;
+          border-radius: 8px;
+          padding: 12px 28px;
+          cursor: pointer;
+          letter-spacing: 0.04em;
+          box-shadow: 0 4px 18px rgba(22, 163, 74, 0.45);
+          transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+          align-self: center;
+          margin-top: 4px;
+        }
+        .nd-mb-btn:hover {
+          transform: translateY(-2px);
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          box-shadow: 0 6px 24px rgba(34, 197, 94, 0.6);
+        }
+        .nd-mb-btn:active {
+          transform: translateY(1px);
+        }
+      </style>
+      <div class="nd-mb-card">
+        <div class="nd-mb-badge">EPISODE SPESIAL TERBUKA</div>
+        <h2 class="nd-mb-title">TANTANGAN AKHIR: MINI BOSS</h2>
+        <p class="nd-mb-desc">
+          Dara berhasil menuntaskan Episode 6! Namun saat hendak keluar gerbang sekolah,
+          <span class="nd-mb-highlight">Reno</span> (siswa yang suka meremehkan batasan orang lain) menghadang langkahmu.
+        </p>
+        <div class="nd-mb-box">
+          💬 Hadapi 5 provokasi Reno secara tatap muka dengan <strong>respon asertif yang tenang, lugas, dan tegas</strong>. Jaga emosimu tetap stabil agar tidak terpancing!
+        </div>
+        <button id="nd-mb-start-btn" class="nd-mb-btn">
+          TANTANG MINI BOSS ›
+        </button>
+      </div>
+    `;
 
-    const cardBg = this.add.rectangle(0, 0, cardW, cardH, 0x0f172a, 0.98)
-      .setStrokeStyle(2, 0xa855f7);
+    document.body.appendChild(overlay);
+    this._miniBossModalEl = overlay;
 
-    const badge = this.add.text(0, compact ? -60 : -70, 'EPISODE SPESIAL TERBUKA', {
-      fontFamily: '"Jersey 15", monospace',
-      fontSize: compact ? '16px' : '18px',
-      color: '#ffdd57',
-    }).setOrigin(0.5);
-
-    const title = this.add.text(0, compact ? -32 : -38, 'TANTANGAN AKHIR: MINI BOSS', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: compact ? '15px' : '17px',
-      fontStyle: '700',
-      color: '#f8fafc',
-    }).setOrigin(0.5);
-
-    const desc = this.add.text(0, compact ? 10 : 12, 'Dara berhasil menyelesaikan Episode 6! Namun di depan gerbang sekolah, Reno (siswa nakal) sedang menghadang dan mencoba memprovokasimu.\n\nHadapi provokasinya secara tatap muka dengan respon asertif dan kepala dingin!', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: compact ? '11px' : '12px',
-      color: '#cbd5e1',
-      align: 'center',
-      lineSpacing: 4,
-      wordWrap: { width: cardW - 36 },
-    }).setOrigin(0.5);
-
-    const startBtn = this.add.rectangle(0, compact ? 60 : 72, 220, compact ? 28 : 34, 0x064e3b, 1)
-      .setStrokeStyle(1.5, 0x10b981)
-      .setInteractive({ useHandCursor: true });
-
-    const startBtnText = this.add.text(0, compact ? 60 : 72, 'TANTANG MINI BOSS >', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: compact ? '11px' : '13px',
-      fontStyle: '700',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    startBtn.on('pointerdown', () => {
+    const startBtn = overlay.querySelector('#nd-mb-start-btn');
+    startBtn?.addEventListener('click', () => {
+      this._cleanupMiniBossModal();
       this.audioManager?.stopBGM?.();
       this.scene.start('MiniBossScene', {
         episodeId: 6,
@@ -1380,12 +1461,13 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         choices: this.choices || [],
       });
     });
-    startBtn.on('pointerover', () => startBtn.setFillStyle(0x047857));
-    startBtn.on('pointerout', () => startBtn.setFillStyle(0x064e3b));
+  }
 
-    container.add([cardBg, badge, title, desc, startBtn, startBtnText]);
-    container.setAlpha(0);
-    this.tweens.add({ targets: container, alpha: 1, duration: 280 });
+  _cleanupMiniBossModal() {
+    if (this._miniBossModalEl) {
+      this._miniBossModalEl.remove();
+      this._miniBossModalEl = null;
+    }
   }
 
   _showLearningMenu() {

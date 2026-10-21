@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import AudioManager from '../audio/AudioManager';
+import ObjectiveBriefing from '../ui/ObjectiveBriefing';
 import { getVisibleBounds, syncGameSizeToOrientation, isPortrait } from '../utils/visibleBounds';
 import { completeEpisode } from '../utils/progressStore';
 
@@ -86,12 +87,44 @@ export default class MiniBossScene extends Phaser.Scene {
 
     this.isEvaluating = false;
     this.isBattleOver = false;
+    this.isPaused = false;
 
-    // DOM & UI elemen
+    // DOM & UI elemen - Inisialisasi bersih untuk mencegah reuse objek lama
     this.domInputWrapper = null;
+    this.objectiveBriefing = null;
+    this.pauseContainer = null;
     this.daraHpPips = [];
     this.bossHpPips = [];
     this.meterLabels = [];
+
+    this.hudContainer = null;
+    this.daraGroup = null;
+    this.bossGroup = null;
+    this.roundInfoText = null;
+    this.fsGroup = null;
+    this.fsBtnBg = null;
+    this.fsBtnText = null;
+    this.menuGroup = null;
+    this.menuBtnBg = null;
+    this.menuBtnText = null;
+
+    this.emotionMeterContainer = null;
+    this.meterTrack = null;
+    this.meterFill = null;
+    this.meterHeader = null;
+
+    this.dialogueContainer = null;
+    this.dialogueBg = null;
+    this.npcNameBox = null;
+    this.npcNameLabel = null;
+    this.topicLabel = null;
+    this.npcSpeechText = null;
+    this.tapHintText = null;
+
+    this.bgConfrontation = null;
+    this.bgDefeated = null;
+    this.topVignette = null;
+    this.bottomVignette = null;
   }
 
   create() {
@@ -100,9 +133,23 @@ export default class MiniBossScene extends Phaser.Scene {
     this.audioManager.init();
     this.audioManager.startBossBGM();
 
-    // 2. Responsive viewport resize
+    // 2. Responsive viewport resize & Fullscreen change dengan multi-stage debounce
     syncGameSizeToOrientation(this);
-    this.scale.on('resize', this._handleResize, this);
+    this._onResize = () => this._handleResize();
+    this._onFullscreenChange = () => {
+      this._updateFullscreenIcon();
+      if (this._fsTimer1) clearTimeout(this._fsTimer1);
+      if (this._fsTimer2) clearTimeout(this._fsTimer2);
+      if (this._fsTimer3) clearTimeout(this._fsTimer3);
+      this._fsTimer1 = setTimeout(() => this._handleResize(), 80);
+      this._fsTimer2 = setTimeout(() => this._handleResize(), 200);
+      this._fsTimer3 = setTimeout(() => this._handleResize(), 350);
+    };
+
+    this.scale.on('resize', this._onResize);
+    window.addEventListener('resize', this._onResize);
+    document.addEventListener('fullscreenchange', this._onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this._onFullscreenChange);
 
     // 3. Render Background Cutscenes
     this._createBackgrounds();
@@ -116,11 +163,14 @@ export default class MiniBossScene extends Phaser.Scene {
     // 6. Render Kotak Dialog Reno di area ATAS
     this._createTopDialogueUI();
 
-    // 7. Muat dialog dinamis dari AI backend jika tersedia
+    // 7. Lakukan layout awal posisi seluruh elemen secara serentak
+    this._layoutElements();
+
+    // 8. Muat dialog dinamis dari AI backend jika tersedia
     this._fetchAiDialogues();
 
-    // 8. Mulai Ronde 1
-    this._startRound(1);
+    // 9. Berikan tujuan misi (Objective Briefing) sebelum Ronde 1 dimulai
+    this._showMissionBriefing();
 
     // Cleanup saat scene ditutup/berpindah
     this.events.once('shutdown', () => {
@@ -130,14 +180,25 @@ export default class MiniBossScene extends Phaser.Scene {
 
   _cleanupScene() {
     this._removeHtmlInput();
+    this._closePauseMenu();
+    if (this.objectiveBriefing?.isOpen) {
+      this.objectiveBriefing.close();
+      this.objectiveBriefing = null;
+    }
     if (this.typewriterTimer) {
       this.typewriterTimer.remove();
       this.typewriterTimer = null;
     }
+    if (this._fsTimer1) clearTimeout(this._fsTimer1);
+    if (this._fsTimer2) clearTimeout(this._fsTimer2);
+    if (this._fsTimer3) clearTimeout(this._fsTimer3);
     this.audioManager?.stopBGM();
     this.audioManager?.destroy();
     this.audioManager = null;
-    this.scale.off('resize', this._handleResize, this);
+    this.scale.off('resize', this._onResize);
+    window.removeEventListener('resize', this._onResize);
+    document.removeEventListener('fullscreenchange', this._onFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
     window.__nawasenadaraInput?.enableGameKeyboard?.();
   }
 
@@ -186,10 +247,10 @@ export default class MiniBossScene extends Phaser.Scene {
       this.bgDefeated.setPosition(bounds.centerX, bounds.centerY).setScale(bgScale);
     }
 
-    if (this.topVignette) {
+    if (this.topVignette && typeof this.topVignette.setSize === 'function') {
       this.topVignette.setPosition(bounds.centerX, bounds.top + 75).setSize(bounds.width + 20, 150);
     }
-    if (this.bottomVignette) {
+    if (this.bottomVignette && typeof this.bottomVignette.setSize === 'function') {
       this.bottomVignette.setPosition(bounds.centerX, bounds.bottom - 45).setSize(bounds.width + 20, 90);
     }
   }
@@ -248,14 +309,45 @@ export default class MiniBossScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.hudContainer.add(this.roundInfoText);
 
-    this._layoutElements();
+    // ── KANAN: TOMBOL FULLSCREEN ──
+    this.fsBtnBg = this.add.rectangle(0, 0, 36, 32, 0x0f172a, 0.95)
+      .setStrokeStyle(1.5, 0x334155)
+      .setInteractive({ useHandCursor: true });
+    this.fsBtnText = this.add.text(0, 0, '⛶', {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      color: '#f8fafc',
+    }).setOrigin(0.5);
+    this.fsBtnBg.on('pointerdown', () => this.toggleFullscreen());
+    this.fsBtnBg.on('pointerover', () => this.fsBtnBg.setFillStyle(0x1e293b));
+    this.fsBtnBg.on('pointerout', () => this.fsBtnBg.setFillStyle(0x0f172a));
+    this.fsGroup = this.add.container(0, 0, [this.fsBtnBg, this.fsBtnText]);
+    this.hudContainer.add(this.fsGroup);
+
+    // ── KANAN: TOMBOL MENU ──
+    this.menuBtnBg = this.add.rectangle(0, 0, 54, 32, 0x0f172a, 0.95)
+      .setStrokeStyle(1.5, 0x334155)
+      .setInteractive({ useHandCursor: true });
+    this.menuBtnText = this.add.text(0, 0, 'MENU', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '13px',
+      fontStyle: '700',
+      color: '#ffdd57',
+    }).setOrigin(0.5);
+    this.menuBtnBg.on('pointerdown', () => this._togglePauseMenu());
+    this.menuBtnBg.on('pointerover', () => this.menuBtnBg.setFillStyle(0x1e293b));
+    this.menuBtnBg.on('pointerout', () => this.menuBtnBg.setFillStyle(0x0f172a));
+    this.menuGroup = this.add.container(0, 0, [this.menuBtnBg, this.menuBtnText]);
+    this.hudContainer.add(this.menuGroup);
+
+    this._updateFullscreenIcon();
   }
 
   _createVerticalEmotionMeter() {
     this.emotionMeterContainer = this.add.container(0, 0).setDepth(18);
 
-    this.meterTrackW = 20;
-    this.meterTrackH = 132;
+    this.meterTrackW = 22;
+    this.meterTrackH = 136;
 
     // Header teks vertikal
     this.meterHeader = this.add.text(0, -this.meterTrackH / 2 - 12, 'EMOSI', {
@@ -270,15 +362,21 @@ export default class MiniBossScene extends Phaser.Scene {
       .setStrokeStyle(1.5, 0x334155);
 
     // Bar pengisian vertikal (tumbuh dari bawah ke atas)
-    // Titik tumpu origin Y = 1 (bawah track)
+    // Tinggi fisik dasar = trackH - 4. Origin (0.5, 1) agar scaleY tumbuh dari bawah ke atas tanpa merusak geometri.
+    const fillMaxH = this.meterTrackH - 4;
+    const initialScaleY = Math.min(1, Math.max(0.1, this.currentEmotionTier / 6));
+    const tierMeta = EMOTION_TIERS.find((t) => t.id === this.currentEmotionTier) || EMOTION_TIERS[1];
+
     this.meterFill = this.add.rectangle(
       0,
       this.meterTrackH / 2 - 2,
       this.meterTrackW - 4,
-      Math.round((this.meterTrackH - 4) * (2 / 6)),
-      0x22c55e,
+      fillMaxH,
+      tierMeta.color,
       1
-    ).setOrigin(0.5, 1);
+    )
+      .setOrigin(0.5, 1)
+      .setScale(1, initialScaleY);
 
     this.emotionMeterContainer.add([this.meterHeader, this.meterTrack, this.meterFill]);
 
@@ -288,11 +386,11 @@ export default class MiniBossScene extends Phaser.Scene {
 
     EMOTION_TIERS.forEach((tier, index) => {
       // index 0 = tier 1 (Aman) di paling bawah
-      const labelY = this.meterTrackH / 2 - 6 - (index * stepH);
-      const text = this.add.text(this.meterTrackW / 2 + 6, labelY, `${tier.id} ${tier.name}`, {
+      const labelY = (this.meterTrackH / 2 - 4) - (index + 0.5) * stepH;
+      const text = this.add.text(this.meterTrackW / 2 + 8, labelY, `${tier.id} ${tier.name}`, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '10px',
-        color: tier.id === this.currentEmotionTier ? '#f8fafc' : '#64748b',
+        fontSize: '11px',
+        color: tier.id === this.currentEmotionTier ? '#ffffff' : '#64748b',
         fontStyle: tier.id === this.currentEmotionTier ? '700' : '400',
       }).setOrigin(0, 0.5);
 
@@ -371,31 +469,185 @@ export default class MiniBossScene extends Phaser.Scene {
     // Posisi Bar HUD di paling atas
     const topMargin = bounds.top + 20;
     if (this.daraGroup) this.daraGroup.setPosition(bounds.left + 72, topMargin);
-    if (this.bossGroup) this.bossGroup.setPosition(bounds.right - 80, topMargin);
     if (this.roundInfoText) this.roundInfoText.setPosition(bounds.centerX, topMargin);
+
+    // Area kanan: Menu, Fullscreen, Reno HP
+    if (this.menuGroup) this.menuGroup.setPosition(bounds.right - 34, topMargin);
+    if (this.fsGroup) this.fsGroup.setPosition(bounds.right - 84, topMargin);
+    if (this.bossGroup) this.bossGroup.setPosition(bounds.right - 188, topMargin);
 
     // Posisi Loading Bar Vertikal di sebelah KIRI
     if (this.emotionMeterContainer) {
-      this.emotionMeterContainer.setPosition(bounds.left + 36, bounds.centerY + 8);
+      const meterX = Math.max(bounds.left + 42, 48);
+      const meterY = bounds.centerY + 8;
+      this.emotionMeterContainer.setPosition(meterX, meterY);
+      this._updateVerticalEmotionMeter(false);
     }
 
     // Posisi Kotak Dialog di ATAS
-    if (this.dialogueContainer) {
+    if (this.dialogueContainer && this.dialogueBg && typeof this.dialogueBg.setSize === 'function') {
       const boxW = Math.min(bounds.width - 24, 600);
       const boxH = 82;
       const boxY = topMargin + 54;
 
       this.dialogueContainer.setPosition(bounds.centerX, boxY);
       this.dialogueBg.setSize(boxW, boxH);
-      this.npcNameBox.setPosition(-boxW / 2 + 52, -boxH / 2);
-      this.npcNameLabel.setPosition(-boxW / 2 + 52, -boxH / 2);
-      this.topicLabel.setPosition(-boxW / 2 + 104, -boxH / 2);
-      this.npcSpeechText.setPosition(-boxW / 2 + 16, -14).setStyle({ wordWrap: { width: boxW - 32 } });
-      this.tapHintText.setPosition(boxW / 2 - 14, boxH / 2 - 12);
+      if (this.npcNameBox) this.npcNameBox.setPosition(-boxW / 2 + 52, -boxH / 2);
+      if (this.npcNameLabel) this.npcNameLabel.setPosition(-boxW / 2 + 52, -boxH / 2);
+      if (this.topicLabel) this.topicLabel.setPosition(-boxW / 2 + 104, -boxH / 2);
+      if (this.npcSpeechText) {
+        this.npcSpeechText.setPosition(-boxW / 2 + 16, -14).setStyle({ wordWrap: { width: boxW - 32 } });
+      }
+      if (this.tapHintText) this.tapHintText.setPosition(boxW / 2 - 14, boxH / 2 - 12);
     }
 
     // Reposisi input HTML jika sedang aktif
     this._repositionHtmlInput();
+  }
+
+  toggleFullscreen() {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (!isFs) {
+      const el = document.documentElement;
+      const req = el.requestFullscreen ?? el.webkitRequestFullscreen ?? el.msRequestFullscreen;
+      req?.call(el).catch(() => {});
+    } else {
+      const exit = document.exitFullscreen ?? document.webkitExitFullscreen ?? document.msExitFullscreen;
+      exit?.call(document).catch(() => {});
+    }
+  }
+
+  _updateFullscreenIcon() {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (this.fsBtnText) {
+      this.fsBtnText.setText(isFs ? '✕' : '⛶');
+    }
+  }
+
+  _togglePauseMenu() {
+    if (this.isBattleOver) return;
+    if (this.isPaused) {
+      this._closePauseMenu();
+    } else {
+      this._openPauseMenu();
+    }
+  }
+
+  _openPauseMenu() {
+    this.isPaused = true;
+    if (this.domInputWrapper) {
+      this.domInputWrapper.style.visibility = 'hidden';
+    }
+
+    const bounds = getVisibleBounds(this);
+    this.pauseContainer = this.add.container(0, 0).setDepth(200);
+
+    const overlay = this.add.rectangle(bounds.centerX, bounds.centerY, bounds.width + 60, bounds.height + 60, 0x000000, 0.75)
+      .setInteractive();
+
+    const panelW = Math.min(bounds.width * 0.85, 340);
+    const panelH = 260;
+    const panelBg = this.add.rectangle(bounds.centerX, bounds.centerY, panelW, panelH, 0x0f172a, 0.98)
+      .setStrokeStyle(2, 0x38bdf8);
+
+    const title = this.add.text(bounds.centerX, bounds.centerY - panelH / 2 + 30, 'MENU JEDA', {
+      fontFamily: '"Jersey 15", monospace',
+      fontSize: '26px',
+      color: '#ffdd57',
+    }).setOrigin(0.5);
+
+    const menuOptions = [
+      {
+        label: 'Lanjutkan Pertarungan',
+        color: 0x1e293b,
+        hover: 0x334155,
+        action: () => this._closePauseMenu(),
+      },
+      {
+        label: 'Mulai Ulang Tantangan',
+        color: 0x1e293b,
+        hover: 0x334155,
+        action: () => {
+          this._cleanupScene();
+          this.scene.restart();
+        },
+      },
+      {
+        label: 'Pilih Episode',
+        color: 0x1e293b,
+        hover: 0x334155,
+        action: () => {
+          this._cleanupScene();
+          this.scene.start('EpisodeSelectScene');
+        },
+      },
+      {
+        label: 'Menu Utama',
+        color: 0x1e293b,
+        hover: 0x334155,
+        action: () => {
+          this._cleanupScene();
+          this.scene.start('MenuScene');
+        },
+      },
+    ];
+
+    const btnStartX = bounds.centerX;
+    const btnStartY = bounds.centerY - 30;
+    const btnGap = 42;
+
+    const optButtons = menuOptions.map((opt, i) => {
+      const btnY = btnStartY + i * btnGap;
+      const btnBg = this.add.rectangle(btnStartX, btnY, panelW - 44, 34, opt.color, 1)
+        .setStrokeStyle(1.5, 0x475569)
+        .setInteractive({ useHandCursor: true });
+      const btnTxt = this.add.text(btnStartX, btnY, opt.label, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '14px',
+        fontStyle: '700',
+        color: '#ffffff',
+      }).setOrigin(0.5);
+
+      btnBg.on('pointerover', () => btnBg.setFillStyle(opt.hover));
+      btnBg.on('pointerout', () => btnBg.setFillStyle(opt.color));
+      btnBg.on('pointerdown', opt.action);
+
+      return [btnBg, btnTxt];
+    }).flat();
+
+    this.pauseContainer.add([overlay, panelBg, title, ...optButtons]);
+  }
+
+  _closePauseMenu() {
+    this.isPaused = false;
+    if (this.pauseContainer) {
+      this.pauseContainer.destroy(true);
+      this.pauseContainer = null;
+    }
+    if (this.domInputWrapper && !this.isBattleOver) {
+      this.domInputWrapper.style.visibility = 'visible';
+      this._repositionHtmlInput();
+    }
+  }
+
+  _showMissionBriefing() {
+    this.objectiveBriefing = new ObjectiveBriefing(this);
+    this.objectiveBriefing.show({
+      episodeData: {
+        id: 'Mini Boss',
+        title: 'Pertahankan Batasan Diri',
+        objective: 'Hadapi provokasi dan candaan seksis Reno di lorong sekolah. Berikan tanggapan asertif secara langsung dengan kepala dingin, tegas membela batasan diri, tanpa bersikap kasar atau menghindar.',
+        aspects: [
+          { desc: 'Pahami perkataan provokasi Reno tanpa langsung terpancing emosi.' },
+          { desc: 'Ketik respon kalimat asertif yang tenang, lugas, dan menghargai diri.' },
+          { desc: 'Jaga indikator kestabilan emosi tetap terkendali hingga percakapan tuntas.' },
+        ],
+      },
+      promptLabel: 'Mulai Tantangan',
+      onContinue: () => {
+        this._startRound(1);
+      },
+    });
   }
 
   async _fetchAiDialogues() {
@@ -484,7 +736,7 @@ export default class MiniBossScene extends Phaser.Scene {
     const parentEl = this.game.canvas.parentElement || document.body;
     const wrapper = document.createElement('div');
     wrapper.id = 'miniboss-input-overlay';
-    wrapper.style.position = 'absolute';
+    wrapper.style.position = 'fixed';
     wrapper.style.zIndex = '999';
     wrapper.style.display = 'flex';
     wrapper.style.flexDirection = 'column';
@@ -612,13 +864,15 @@ export default class MiniBossScene extends Phaser.Scene {
   _repositionHtmlInput() {
     if (!this.domInputWrapper) return;
     const canvas = this.game.canvas;
+    if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const isPort = isPortrait(this);
 
     const inputWidth = Math.min(rect.width - 24, isPort ? 440 : 540);
     const leftPos = rect.left + (rect.width - inputWidth) / 2;
-    const bottomPos = window.innerHeight - rect.bottom + 16;
+    const bottomPos = Math.max(16, window.innerHeight - rect.bottom + 16);
 
+    this.domInputWrapper.style.position = 'fixed';
     this.domInputWrapper.style.width = `${inputWidth}px`;
     this.domInputWrapper.style.left = `${leftPos}px`;
     this.domInputWrapper.style.bottom = `${bottomPos}px`;
@@ -785,20 +1039,23 @@ export default class MiniBossScene extends Phaser.Scene {
     });
   }
 
-  _updateVerticalEmotionMeter() {
+  _updateVerticalEmotionMeter(animate = true) {
     if (!this.meterFill) return;
 
-    const maxH = this.meterTrackH - 4;
-    const targetH = Math.max(12, Math.round(maxH * (this.currentEmotionTier / 6)));
+    const targetScaleY = Math.min(1, Math.max(0.1, this.currentEmotionTier / 6));
     const tierMeta = EMOTION_TIERS.find((t) => t.id === this.currentEmotionTier) || EMOTION_TIERS[1];
 
-    // Animasi tinggi bar vertikal
-    this.tweens.add({
-      targets: this.meterFill,
-      height: targetH,
-      duration: 300,
-      ease: 'Back.easeOut',
-    });
+    if (animate) {
+      this.tweens.killTweensOf(this.meterFill);
+      this.tweens.add({
+        targets: this.meterFill,
+        scaleY: targetScaleY,
+        duration: 320,
+        ease: 'Cubic.easeOut',
+      });
+    } else {
+      this.meterFill.setScale(1, targetScaleY);
+    }
 
     this.meterFill.setFillStyle(tierMeta.color, 1);
 
@@ -841,31 +1098,30 @@ export default class MiniBossScene extends Phaser.Scene {
     const winContainer = this.add.container(bounds.centerX, bounds.centerY).setDepth(50);
 
     const backdrop = this.add.rectangle(0, 0, bounds.width + 40, bounds.height + 40, 0x000000, 0.85);
-    const card = this.add.rectangle(0, 0, Math.min(bounds.width - 32, 420), 220, 0x0f172a, 0.98)
-      .setStrokeStyle(1.5, 0x10b981);
+    const card = this.add.rectangle(0, 0, Math.min(bounds.width - 32, 460), 230, 0x0f172a, 0.98)
+      .setStrokeStyle(1.8, 0x10b981);
 
-    const title = this.add.text(0, -60, 'Tantangan Selesai - Dara Berhasil', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '16px',
-      fontStyle: '700',
+    const title = this.add.text(0, -64, 'TANTANGAN SELESAI', {
+      fontFamily: '"Jersey 15", monospace',
+      fontSize: '24px',
       color: '#34d399',
     }).setOrigin(0.5);
 
-    const desc = this.add.text(0, -14, 'Dara berhasil menghadapi seluruh provokasi Reno dengan komunikasi asertif yang tenang, lugas, dan berwibawa.\n\nReno tertegun dan tidak berani lagi meremehkan batasan dirimu.', {
+    const desc = this.add.text(0, -16, 'Dara berhasil menghadapi seluruh provokasi Reno dengan respon asertif yang tenang, lugas, dan berwibawa.\n\nReno tertegun dan tidak berani lagi meremehkan batasan dirimu.', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
-      color: '#cbd5e1',
+      fontSize: '14px',
+      color: '#e2e8f0',
       align: 'center',
-      lineSpacing: 4,
-      wordWrap: { width: 370 },
+      lineSpacing: 5,
+      wordWrap: { width: 400 },
     }).setOrigin(0.5);
 
     // Tombol 1: Lihat Rapor Evaluasi Akhir Keseluruhan (Membuka Rapor 6 Episode Landscape)
-    const reportBtn = this.add.rectangle(0, 36, 250, 30, 0x064e3b, 1)
-      .setStrokeStyle(1.2, 0x10b981).setInteractive({ useHandCursor: true });
-    const reportBtnText = this.add.text(0, 36, 'Lihat Evaluasi & Rapor Akhir', {
+    const reportBtn = this.add.rectangle(0, 42, 270, 34, 0x064e3b, 1)
+      .setStrokeStyle(1.5, 0x10b981).setInteractive({ useHandCursor: true });
+    const reportBtnText = this.add.text(0, 42, 'Lihat Evaluasi & Rapor Akhir ›', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
+      fontSize: '14px',
       fontStyle: '700',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -879,13 +1135,15 @@ export default class MiniBossScene extends Phaser.Scene {
         choices: this.choices || [],
       });
     });
+    reportBtn.on('pointerover', () => reportBtn.setFillStyle(0x047857));
+    reportBtn.on('pointerout', () => reportBtn.setFillStyle(0x064e3b));
 
     // Tombol 2: Pilih Episode Lain
-    const exitBtn = this.add.rectangle(0, 72, 250, 28, 0x1e293b, 1)
+    const exitBtn = this.add.rectangle(0, 82, 270, 30, 0x1e293b, 1)
       .setStrokeStyle(1, 0x475569).setInteractive({ useHandCursor: true });
-    const exitBtnText = this.add.text(0, 72, 'Pilih Episode Lain', {
+    const exitBtnText = this.add.text(0, 82, 'Kembali ke Pemilihan Episode', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '11px',
+      fontSize: '12px',
       fontStyle: '700',
       color: '#f8fafc',
     }).setOrigin(0.5);
@@ -894,6 +1152,8 @@ export default class MiniBossScene extends Phaser.Scene {
       this._cleanupScene();
       this.scene.start('EpisodeSelectScene');
     });
+    exitBtn.on('pointerover', () => exitBtn.setFillStyle(0x334155));
+    exitBtn.on('pointerout', () => exitBtn.setFillStyle(0x1e293b));
 
     winContainer.add([backdrop, card, title, desc, reportBtn, reportBtnText, exitBtn, exitBtnText]);
     winContainer.setAlpha(0);
@@ -908,31 +1168,30 @@ export default class MiniBossScene extends Phaser.Scene {
     const loseContainer = this.add.container(bounds.centerX, bounds.centerY).setDepth(50);
 
     const backdrop = this.add.rectangle(0, 0, bounds.width + 40, bounds.height + 40, 0x000000, 0.85);
-    const card = this.add.rectangle(0, 0, Math.min(bounds.width - 32, 400), 200, 0x0f172a, 0.98)
-      .setStrokeStyle(1.5, 0xdc2626);
+    const card = this.add.rectangle(0, 0, Math.min(bounds.width - 32, 440), 220, 0x0f172a, 0.98)
+      .setStrokeStyle(1.8, 0xdc2626);
 
-    const title = this.add.text(0, -50, 'Tantangan Belum Berhasil', {
-      fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '15px',
-      fontStyle: '700',
+    const title = this.add.text(0, -56, 'TANTANGAN BELUM BERHASIL', {
+      fontFamily: '"Jersey 15", monospace',
+      fontSize: '24px',
       color: '#f87171',
     }).setOrigin(0.5);
 
-    const desc = this.add.text(0, -10, 'Dara kehabisan ketenangan emosional saat menghadapi provokasi Reno.\nTarik napas, tetap tenang, dan nyatakan batasanmu dengan lugas tanpa terpancing emosi.', {
+    const desc = this.add.text(0, -12, 'Dara kehabisan ketenangan emosional saat menghadapi provokasi Reno.\nTarik napas, tetap tenang, dan nyatakan batasanmu dengan lugas tanpa terpancing emosi.', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#cbd5e1',
       align: 'center',
-      lineSpacing: 4,
-      wordWrap: { width: 350 },
+      lineSpacing: 5,
+      wordWrap: { width: 380 },
     }).setOrigin(0.5);
 
     // Tombol Coba Lagi
-    const retryBtn = this.add.rectangle(0, 44, 220, 30, 0x991b1b, 1)
-      .setStrokeStyle(1.2, 0xef4444).setInteractive({ useHandCursor: true });
-    const retryBtnText = this.add.text(0, 44, 'Coba Lagi', {
+    const retryBtn = this.add.rectangle(0, 46, 240, 34, 0x991b1b, 1)
+      .setStrokeStyle(1.5, 0xef4444).setInteractive({ useHandCursor: true });
+    const retryBtnText = this.add.text(0, 46, 'Coba Lagi Tantangan', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
+      fontSize: '13px',
       fontStyle: '700',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -941,13 +1200,15 @@ export default class MiniBossScene extends Phaser.Scene {
       this._cleanupScene();
       this.scene.restart();
     });
+    retryBtn.on('pointerover', () => retryBtn.setFillStyle(0xb91c1c));
+    retryBtn.on('pointerout', () => retryBtn.setFillStyle(0x991b1b));
 
     // Tombol Kembali
-    const exitBtn = this.add.rectangle(0, 80, 220, 28, 0x1e293b, 0.9)
+    const exitBtn = this.add.rectangle(0, 84, 240, 30, 0x1e293b, 1)
       .setStrokeStyle(1, 0x475569).setInteractive({ useHandCursor: true });
-    const exitBtnText = this.add.text(0, 80, 'Kembali ke Menu', {
+    const exitBtnText = this.add.text(0, 84, 'Kembali ke Pemilihan Episode', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '11px',
+      fontSize: '12px',
       fontStyle: '700',
       color: '#94a3b8',
     }).setOrigin(0.5);
@@ -956,6 +1217,8 @@ export default class MiniBossScene extends Phaser.Scene {
       this._cleanupScene();
       this.scene.start('EpisodeSelectScene');
     });
+    exitBtn.on('pointerover', () => exitBtn.setFillStyle(0x334155));
+    exitBtn.on('pointerout', () => exitBtn.setFillStyle(0x1e293b));
 
     loseContainer.add([backdrop, card, title, desc, retryBtn, retryBtnText, exitBtn, exitBtnText]);
     loseContainer.setAlpha(0);
