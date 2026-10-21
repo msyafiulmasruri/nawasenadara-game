@@ -83,11 +83,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Vercel serverless rewrite support: restore original requested path
+app.use((req, res, next) => {
+  const matchedPath =
+    req.headers['x-matched-path'] || req.headers['x-forwarded-url'];
+  if (
+    matchedPath &&
+    typeof matchedPath === 'string' &&
+    matchedPath.startsWith('/') &&
+    req.url !== matchedPath
+  ) {
+    req.url = matchedPath;
+  }
+  next();
+});
+
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-app.get('/health', (req, res) => {
+const healthHandler = (req, res) => {
   return success(
     res,
     {
@@ -96,15 +111,19 @@ app.get('/health', (req, res) => {
       version: '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-      databaseUrlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0,
-      envKeys: Object.keys(process.env).filter((k) => !k.startsWith('npm_') && !k.startsWith('__') && !k.startsWith('VERCEL_')),
+      databaseHost: process.env.DATABASE_URL
+        ? process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'configured'
+        : 'none',
       timestamp: new Date().toISOString(),
     },
     'Server is running',
   );
-});
+};
 
-app.get('/', (req, res) => {
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
+const rootHandler = (req, res) => {
   return success(
     res,
     {
@@ -128,29 +147,10 @@ app.get('/', (req, res) => {
     },
     'Nawasena Dara API',
   );
-});
+};
 
-app.get('/debug-headers', (req, res) => {
-  res.json({
-    url: req.url,
-    originalUrl: req.originalUrl,
-    headers: req.headers,
-  });
-});
-
-app.use((req, res, next) => {
-  const matchedPath =
-    req.headers['x-matched-path'] || req.headers['x-forwarded-url'];
-  if (
-    matchedPath &&
-    typeof matchedPath === 'string' &&
-    matchedPath.startsWith('/') &&
-    req.url !== matchedPath
-  ) {
-    req.url = matchedPath;
-  }
-  next();
-});
+app.get('/', rootHandler);
+app.get('/api', rootHandler);
 
 app.use('/api/api', routes);
 app.use('/api', routes);
