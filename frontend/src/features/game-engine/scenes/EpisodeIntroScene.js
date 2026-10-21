@@ -3,7 +3,7 @@ import AudioManager from '../audio/AudioManager';
 import { stopMenuBGM } from '../audio/menuAudio';
 import { getSettings } from '../utils/settingsStore';
 import { getEpisodeById } from '../config/episodes';
-import { getVisibleBounds, syncGameSizeToOrientation, pxToWorld } from '../utils/visibleBounds';
+import { getVisibleBounds, syncGameSizeToOrientation, pxToWorld, isCompactLandscape } from '../utils/visibleBounds';
 
 export default class EpisodeIntroScene extends Phaser.Scene {
   constructor() {
@@ -70,14 +70,20 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     }
 
     const bounds0 = getVisibleBounds(this);
+    const compact0 = isCompactLandscape(this);
 
-    const episodeLabelFont = pxToWorld(this, 46);
-    const episodeTitleFont = pxToWorld(this, 36);
-    const episodeDescFont = pxToWorld(this, 34);
-    const promptFont = pxToWorld(this, 24);
+    const episodeLabelFont = compact0 ? 28 : pxToWorld(this, 46);
+    const episodeTitleFont = compact0 ? 32 : pxToWorld(this, 36);
+    const episodeDescFont = compact0 ? 19 : pxToWorld(this, 34);
+    const promptFont = compact0 ? 16 : pxToWorld(this, 24);
+
+    const baseY0 = compact0 ? bounds0.top + bounds0.height * 0.17 : height * 0.28;
+    const titleY0 = compact0 ? bounds0.top + bounds0.height * 0.29 : height * 0.28 + 48;
+    const descY0 = compact0 ? bounds0.top + bounds0.height * 0.55 : height * 0.54;
+    const promptY0 = compact0 ? bounds0.top + bounds0.height * 0.87 : height * 0.85;
 
     this.episodeLabel = this.add
-      .text(width / 2, height * 0.28, `EPISODE ${this.episodeId}`, {
+      .text(width / 2, baseY0, `EPISODE ${this.episodeId}`, {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${episodeLabelFont}px`,
         color: '#ffdd57',
@@ -86,31 +92,32 @@ export default class EpisodeIntroScene extends Phaser.Scene {
       .setDepth(2);
 
     this.episodeTitle = this.add
-      .text(width / 2, height * 0.28 + 48, this.episodeData?.title ?? '', {
+      .text(width / 2, titleY0, this.episodeData?.title ?? '', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${episodeTitleFont}px`,
         fontStyle: '600',
         color: '#ffffff',
         align: 'center',
-        wordWrap: { width: bounds0.width * 0.88 },
+        wordWrap: { width: Math.min(bounds0.width * 0.86, compact0 ? 720 : bounds0.width * 0.88) },
+        lineSpacing: compact0 ? 4 : 0,
       })
       .setOrigin(0.5)
       .setDepth(2);
 
     this.episodeDesc = this.add
-      .text(width / 2, height * 0.54, '', {
+      .text(width / 2, descY0, '', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${episodeDescFont}px`,
         color: '#f1f5f9',
         align: 'center',
-        wordWrap: { width: bounds0.width * 0.88 },
-        lineSpacing: 12,
+        wordWrap: { width: Math.min(bounds0.width * 0.84, compact0 ? 700 : bounds0.width * 0.88) },
+        lineSpacing: compact0 ? 8 : 12,
       })
       .setOrigin(0.5)
       .setDepth(2);
 
     this.promptText = this.add
-      .text(width / 2, height * 0.85, 'TEKAN UNTUK LEWATI', {
+      .text(width / 2, promptY0, 'TEKAN UNTUK LEWATI', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${promptFont}px`,
         fontStyle: '700',
@@ -297,22 +304,37 @@ export default class EpisodeIntroScene extends Phaser.Scene {
     this.bgRect?.setPosition(0, 0).setSize(width, height).setDisplaySize(width, height).updateDisplayOrigin();
 
     const bounds = getVisibleBounds(this);
-    const baseY = bounds.top + bounds.height * 0.28;
+    const compact = isCompactLandscape(this);
 
-    this.episodeLabel?.setFontSize(pxToWorld(this, 46));
-    this.episodeLabel?.setPosition(bounds.centerX, baseY);
+    const episodeLabelFont = compact ? 28 : pxToWorld(this, 46);
+    const episodeTitleFont = compact ? 32 : pxToWorld(this, 36);
+    const episodeDescFont = compact ? 19 : pxToWorld(this, 34);
+    const promptFont = compact ? 16 : pxToWorld(this, 22);
 
-    this.episodeTitle?.setFontSize(pxToWorld(this, 36));
-    this.episodeTitle?.setPosition(bounds.centerX, baseY + 48);
-    this.episodeTitle?.setWordWrapWidth(bounds.width * 0.88);
+    const baseY = compact ? bounds.top + bounds.height * 0.17 : bounds.top + bounds.height * 0.28;
+    const titleY = compact ? bounds.top + bounds.height * 0.29 : baseY + 48;
+    const descY = compact ? bounds.top + bounds.height * 0.55 : bounds.top + bounds.height * 0.54;
+    const promptY = compact ? bounds.top + bounds.height * 0.87 : bounds.top + bounds.height * 0.85;
 
-    this.episodeDesc?.setFontSize(pxToWorld(this, 34));
-    this.episodeDesc?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.54);
-    this.episodeDesc?.setWordWrapWidth(bounds.width * 0.88);
-    this.episodeDesc?.setLineSpacing(12);
+    this.episodeLabel
+      ?.setFontSize(episodeLabelFont)
+      .setPosition(bounds.centerX, baseY);
 
-    this.promptText?.setFontSize(pxToWorld(this, 22));
-    this.promptText?.setPosition(bounds.centerX, bounds.top + bounds.height * 0.85);
-    this.promptText?.setWordWrapWidth(bounds.width * 0.88);
+    this.episodeTitle
+      ?.setFontSize(episodeTitleFont)
+      .setPosition(bounds.centerX, titleY)
+      .setWordWrapWidth(Math.min(bounds.width * 0.86, compact ? 720 : bounds.width * 0.88))
+      .setLineSpacing(compact ? 4 : 0);
+
+    this.episodeDesc
+      ?.setFontSize(episodeDescFont)
+      .setPosition(bounds.centerX, descY)
+      .setWordWrapWidth(Math.min(bounds.width * 0.84, compact ? 700 : bounds.width * 0.88))
+      .setLineSpacing(compact ? 8 : 12);
+
+    this.promptText
+      ?.setFontSize(promptFont)
+      .setPosition(bounds.centerX, promptY)
+      .setWordWrapWidth(bounds.width * 0.88);
   }
 }
