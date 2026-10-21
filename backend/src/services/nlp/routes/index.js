@@ -6,6 +6,7 @@ import {
   classifyEpisodeMoodPayloadSchema,
   counselingChatPayloadSchema,
   npcDialogueLinePayloadSchema,
+  runnerQuizQuestionsPayloadSchema,
 } from '../validator/schema.js';
 import {
   analyzeReflection,
@@ -14,10 +15,14 @@ import {
   generateNpcDialogueLine,
   getActiveSession,
   getCounselingHistory,
+  getRunnerQuizQuestions,
   shouldAutoOpenCounseling,
 } from '../controllers/nlp-controller.js';
 
 const router = Router();
+
+// Endpoint publik / fleksibel: Pertanyaan kuis asertif untuk Runner Boss (SMP & SMA)
+router.post('/quiz-questions', validate(runnerQuizQuestionsPayloadSchema), getRunnerQuizQuestions);
 
 // Dibuka untuk role 'siswa' dan 'guru_bk' supaya interaksi game dapat dijalankan
 router.use(authenticate, authorize('siswa', 'guru_bk'));

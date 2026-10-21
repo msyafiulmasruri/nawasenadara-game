@@ -70,6 +70,14 @@ export function isEpisodeUnlocked(episodeId) {
   return getCompletedEpisodes().includes(episodeId - 1);
 }
 
+export function isEpisodeCompleted(episodeId) {
+  if (typeof window !== 'undefined' && Array.isArray(window.__nawasenadaraProgressCache)) {
+    const row = window.__nawasenadaraProgressCache.find((r) => r.episode_id === episodeId);
+    if (row && row.status === 'completed') return true;
+  }
+  return getCompletedEpisodes().includes(episodeId);
+}
+
 export function completeEpisode(episodeId, choices, endingKey = null) {
   // 1) Update state LOKAL dulu (localStorage + cache in-memory) supaya
   //    UI (EpisodeSelectScene) langsung terasa responsif tanpa nunggu

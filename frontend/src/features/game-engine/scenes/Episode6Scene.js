@@ -10,12 +10,12 @@ import {
 import DialogueBox from '../ui/DialogueBox';
 import ObjectiveBriefing from '../ui/ObjectiveBriefing';
 import { getCharacterName } from '../utils/characterName';
-import { hasTalkedToNpc, markNpcTalked } from '../utils/progressStore';
+import { hasTalkedToNpc, markNpcTalked, completeEpisode } from '../utils/progressStore';
 import { getVisibleBounds, pxToWorld } from '../utils/visibleBounds';
 import { getEpisodeById } from '../config/episodes';
 
 // ================================================================
-// EPISODE 6 — "Langkah Berani Bersama"
+// EPISODE 6 - "Langkah Berani Bersama"
 // ================================================================
 // Latar: Depan gerbang utama SMA Negeri 1 & Pos Satpam di ujung sore.
 // Karakter: Naya (sahabat setia Dara yang selalu mendampingi dan
@@ -629,7 +629,8 @@ export default class Episode6Scene extends BasePlayerScene {
       });
 
       const choices = this.npcChoices || [];
-      this.scene.start('EpisodeEndingScene', {
+      completeEpisode(6, choices);
+      this.scene.start('RunnerScene', {
         episodeId: 6,
         isLastEpisode: true,
         choices,

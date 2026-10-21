@@ -1463,6 +1463,251 @@ export default class AudioManager {
     }, cycleDuration * 1000 - 100);
   }
 
+  // SFX: Tembakan Meriam Energi Keberanian Dara (Sub-bass thump + laser whoosh)
+  playCourageBlastFire() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // 1. Sub-bass kinetic thump
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(190, t);
+    subOsc.frequency.exponentialRampToValueAtTime(38, t + 0.28);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.55, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+    subOsc.start(t);
+    subOsc.stop(t + 0.34);
+
+    // 2. High-power plasma laser whoosh
+    const laserOsc = ctx.createOscillator();
+    laserOsc.type = 'sawtooth';
+    laserOsc.frequency.setValueAtTime(1400, t);
+    laserOsc.frequency.exponentialRampToValueAtTime(320, t + 0.38);
+
+    const laserFilter = ctx.createBiquadFilter();
+    laserFilter.type = 'bandpass';
+    laserFilter.frequency.setValueAtTime(1800, t);
+    laserFilter.frequency.exponentialRampToValueAtTime(450, t + 0.38);
+    laserFilter.Q.value = 3.5;
+
+    const laserGain = ctx.createGain();
+    laserGain.gain.setValueAtTime(0.001, t);
+    laserGain.gain.linearRampToValueAtTime(0.48, t + 0.02);
+    laserGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+
+    laserOsc.connect(laserFilter);
+    laserFilter.connect(laserGain);
+    laserGain.connect(this.sfxGain);
+
+    laserOsc.start(t);
+    laserOsc.stop(t + 0.44);
+
+    // 3. Shockwave burst noise
+    const noiseBuffer = this._createNoiseBuffer(0.12);
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.35, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+    noiseSrc.connect(noiseGain);
+    noiseGain.connect(this.sfxGain);
+    noiseSrc.start(t);
+    noiseSrc.stop(t + 0.13);
+  }
+
+  playBossHit() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Heavy crash impact
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(45, t + 0.3);
+
+    const noiseBuffer = this._createNoiseBuffer(0.2);
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(gain);
+    noiseSrc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    noiseSrc.start(t);
+    osc.stop(t + 0.36);
+    noiseSrc.stop(t + 0.22);
+  }
+
+  playBossDefeat() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Grand heroic chords (D major fanfare)
+    const arpeggio = [293.66, 369.99, 440.0, 587.33, 739.99, 880.0];
+    arpeggio.forEach((f, i) => {
+      const noteT = t + i * 0.12;
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, noteT);
+      gain.gain.linearRampToValueAtTime(0.24, noteT + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteT + 0.8);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(noteT);
+      osc.stop(noteT + 0.85);
+    });
+  }
+
+  startBossBGM() {
+    if (!this._initialized) return;
+    this._claimActiveBGM(0.25);
+    this._scheduleBossBGMLoop();
+  }
+
+  _scheduleBossBGMLoop() {
+    if (!this.bgmPlaying || !this.ctx) return;
+    const ctx = this.ctx;
+    const bpm = 132;
+    const beatDuration = 60 / bpm; // ~0.454s per beat
+
+    // 4 Chords: Dm -> Bb -> C -> A
+    const chords = [
+      { bass: 73.42, root: 146.83, pad: [146.83, 174.61, 220.0] },
+      { bass: 58.27, root: 116.54, pad: [116.54, 146.83, 174.61] },
+      { bass: 65.41, root: 130.81, pad: [130.81, 164.81, 196.0] },
+      { bass: 55.0,  root: 110.0,  pad: [110.0, 138.59, 164.81] },
+    ];
+
+    const beatsPerChord = 4;
+    const cycleDuration = chords.length * beatsPerChord * beatDuration;
+    const now = ctx.currentTime + 0.04;
+
+    chords.forEach((chord, ci) => {
+      const chordStart = now + ci * beatsPerChord * beatDuration;
+      const chordLen = beatsPerChord * beatDuration;
+
+      // Synth Pad
+      chord.pad.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1100;
+        filter.Q.value = 1.0;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, chordStart);
+        gain.gain.linearRampToValueAtTime(0.04, chordStart + 0.2);
+        gain.gain.setValueAtTime(0.04, chordStart + chordLen - 0.2);
+        gain.gain.linearRampToValueAtTime(0.001, chordStart + chordLen);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.bgmGain);
+
+        osc.start(chordStart);
+        osc.stop(chordStart + chordLen + 0.05);
+      });
+
+      // Driving 8th-note Synth Bass
+      for (let step = 0; step < beatsPerChord * 2; step++) {
+        const stepT = chordStart + step * (beatDuration / 2);
+        const bOsc = ctx.createOscillator();
+        bOsc.type = 'sawtooth';
+        bOsc.frequency.value = chord.bass;
+
+        const bFilter = ctx.createBiquadFilter();
+        bFilter.type = 'lowpass';
+        bFilter.frequency.setValueAtTime(450, stepT);
+        bFilter.frequency.exponentialRampToValueAtTime(140, stepT + 0.18);
+
+        const bGain = ctx.createGain();
+        bGain.gain.setValueAtTime(0.001, stepT);
+        bGain.gain.linearRampToValueAtTime(0.12, stepT + 0.015);
+        bGain.gain.exponentialRampToValueAtTime(0.001, stepT + 0.2);
+
+        bOsc.connect(bFilter);
+        bFilter.connect(bGain);
+        bGain.connect(this.bgmGain);
+
+        bOsc.start(stepT);
+        bOsc.stop(stepT + 0.22);
+      }
+    });
+
+    // Driving Drum Beats (Kick & Snare & HiHats)
+    const totalBeats = chords.length * beatsPerChord;
+    for (let b = 0; b < totalBeats; b++) {
+      const beatT = now + b * beatDuration;
+
+      // Kick on beat 1 & 3
+      if (b % 2 === 0) {
+        const kickOsc = ctx.createOscillator();
+        kickOsc.type = 'sine';
+        kickOsc.frequency.setValueAtTime(150, beatT);
+        kickOsc.frequency.exponentialRampToValueAtTime(45, beatT + 0.08);
+
+        const kickGain = ctx.createGain();
+        kickGain.gain.setValueAtTime(0.35, beatT);
+        kickGain.gain.exponentialRampToValueAtTime(0.001, beatT + 0.12);
+
+        kickOsc.connect(kickGain);
+        kickGain.connect(this.bgmGain);
+        kickOsc.start(beatT);
+        kickOsc.stop(beatT + 0.14);
+      } else {
+        // Snare on beat 2 & 4
+        const snareNoise = this._createNoiseBuffer(0.12);
+        const snareSrc = ctx.createBufferSource();
+        snareSrc.buffer = snareNoise;
+
+        const snareFilter = ctx.createBiquadFilter();
+        snareFilter.type = 'highpass';
+        snareFilter.frequency.value = 1000;
+
+        const snareGain = ctx.createGain();
+        snareGain.gain.setValueAtTime(0.18, beatT);
+        snareGain.gain.exponentialRampToValueAtTime(0.001, beatT + 0.12);
+
+        snareSrc.connect(snareFilter);
+        snareFilter.connect(snareGain);
+        snareGain.connect(this.bgmGain);
+        snareSrc.start(beatT);
+        snareSrc.stop(beatT + 0.14);
+      }
+    }
+
+    this._bgmTimeout = setTimeout(() => {
+      if (this.bgmPlaying) this._scheduleBossBGMLoop();
+    }, cycleDuration * 1000 - 80);
+  }
+
   stopBGM() {
     this.bgmPlaying = false;
     if (_activeBgmInstance === this) {

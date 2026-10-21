@@ -15,6 +15,7 @@ import Episode3Scene from './scenes/Episode3Scene';
 import Episode4Scene from './scenes/Episode4Scene';
 import Episode5Scene from './scenes/Episode5Scene';
 import Episode6Scene from './scenes/Episode6Scene';
+import RunnerScene from './scenes/RunnerScene';
 import StoryEpisodeScene from './scenes/StoryEpisodeScene';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/gameConfig';
 import { tryLockCurrentOrientation } from './utils/fullscreen';
@@ -68,7 +69,7 @@ function setupAutoFullscreen() {
   };
 }
 
-export default function PhaserGame() {
+export default function PhaserGame({ initialScene, initialData }) {
   const gameRef = useRef(null);
   const phaserInstance = useRef(null);
 
@@ -76,6 +77,28 @@ export default function PhaserGame() {
     // Phaser mengakses `window`, jadi wajib di-load secara dinamis
     // di sisi client saja (tidak boleh di-import biasa di top-level).
     let destroyed = false;
+
+    // Deteksi scene awal dari prop atau URL query string (mis. /game?mode=boss atau /game?scene=RunnerScene)
+    let resolvedScene = initialScene;
+    let resolvedData = initialData;
+    if (resolvedScene === 'FinalBossScene') {
+      resolvedScene = 'RunnerScene';
+      resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
+    }
+    if (!resolvedScene && typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode') || params.get('scene');
+        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
+          resolvedScene = 'RunnerScene';
+          resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
+        } else if (mode) {
+          resolvedScene = mode;
+        }
+      } catch (e) {
+        // Abaikan jika query string gagal di-parse
+      }
+    }
 
     // Pasang auto-fullscreen listener — akan hilang sendiri setelah
     // interaksi pertama pengguna (klik/tap/tekan tombol).
@@ -104,6 +127,7 @@ export default function PhaserGame() {
           Episode4Scene,
           Episode5Scene,
           Episode6Scene,
+          RunnerScene,
           StoryEpisodeScene,
         ],
         audio: {
@@ -120,23 +144,6 @@ export default function PhaserGame() {
           activePointers: 4,
         },
         scale: {
-          // ENVELOP mempertahankan resolusi dunia game TETAP di
-          // WORLD_WIDTH x WORLD_HEIGHT, lalu membesarkan canvas supaya
-          // selalu MENUTUPI seluruh viewport tanpa area kosong (mirip
-          // CSS background-size: cover). Tepi yang berlebih dipotong,
-          // bukan dikasih letterbox hitam.
-          //
-          // PENTING: jangan batasi ukuran canvas lewat CSS (mis.
-          // max-width/max-height) — canvas ENVELOP MEMANG sengaja
-          // dibuat lebih besar dari viewport di salah satu sumbu,
-          // supaya sumbu itu bisa di-crop rapi lewat overflow:hidden
-          // pada #game-container. Membatasinya lewat CSS akan
-          // memaksa canvas menyusut TIDAK PROPORSIONAL di satu sumbu
-          // saja -> hasilnya gambar gepeng/melebar (stretched).
-          //
-          // Supaya elemen UI (tombol sentuh, pause, dll.) tidak ikut
-          // terpotong, tiap scene mereposisinya ke area yang benar-benar
-          // terlihat (visible bounds) via utils/visibleBounds.js.
           mode: Phaser.Scale.ENVELOP,
           parent: gameRef.current,
           width: WORLD_WIDTH,
@@ -146,6 +153,11 @@ export default function PhaserGame() {
       };
 
       phaserInstance.current = new Phaser.Game(config);
+
+      if (resolvedScene) {
+        phaserInstance.current.registry.set('initialScene', resolvedScene);
+        phaserInstance.current.registry.set('initialData', resolvedData || { episodeId: 6, isLastEpisode: true });
+      }
 
       // Phaser Scale Manager sudah dengar event `resize` window, tapi di
       // iOS Safari event itu kadang tidak terpicu tepat waktu saat rotasi

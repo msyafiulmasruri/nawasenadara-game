@@ -18,6 +18,13 @@
 // (Ctrl+Shift+R) atau restart dev server-nya.
 export function createPlayerAnimations(scene) {
   scene.anims.create({
+    key: 'idle',
+    frames: [{ key: 'player-idle' }],
+    frameRate: 1,
+    repeat: -1,
+  });
+
+  scene.anims.create({
     key: 'walk',
     frames: [
       { key: 'player-walk-1' },
@@ -51,5 +58,17 @@ export function createPlayerAnimations(scene) {
     ],
     frameRate: 8,
     repeat: -1,
+  });
+
+  scene.anims.create({
+    key: 'attack',
+    frames: [
+      { key: 'player-attack-1', duration: 180 },
+      { key: 'player-attack-2', duration: 220 },
+      { key: 'player-attack-3', duration: 350 },
+      { key: 'player-attack-4', duration: 220 },
+    ],
+    frameRate: 6,
+    repeat: 0,
   });
 }
