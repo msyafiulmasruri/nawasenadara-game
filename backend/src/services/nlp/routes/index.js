@@ -5,6 +5,8 @@ import {
   analyzeReflectionPayloadSchema,
   classifyEpisodeMoodPayloadSchema,
   counselingChatPayloadSchema,
+  minibossDialoguesPayloadSchema,
+  minibossEvaluatePayloadSchema,
   npcDialogueLinePayloadSchema,
   runnerQuizQuestionsPayloadSchema,
 } from '../validator/schema.js';
@@ -12,16 +14,21 @@ import {
   analyzeReflection,
   classifyEpisodeMood,
   counselingChat,
+  evaluateMiniBossResponse,
   generateNpcDialogueLine,
   getActiveSession,
   getCounselingHistory,
+  getMiniBossDialogues,
   getRunnerQuizQuestions,
   shouldAutoOpenCounseling,
 } from '../controllers/nlp-controller.js';
 
 const router = Router();
 
-// Endpoint publik / fleksibel: Pertanyaan kuis asertif untuk Runner Boss (SMP & SMA)
+// Endpoint publik Mini Boss Close-Up Dialogue Battle & Kuis Asertif
+router.get('/miniboss/dialogues', getMiniBossDialogues);
+router.post('/miniboss/dialogues', validate(minibossDialoguesPayloadSchema), getMiniBossDialogues);
+router.post('/miniboss/evaluate-response', validate(minibossEvaluatePayloadSchema), evaluateMiniBossResponse);
 router.post('/quiz-questions', validate(runnerQuizQuestionsPayloadSchema), getRunnerQuizQuestions);
 
 // Dibuka untuk role 'siswa' dan 'guru_bk' supaya interaksi game dapat dijalankan

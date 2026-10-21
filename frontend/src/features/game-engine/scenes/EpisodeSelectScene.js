@@ -317,15 +317,21 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     mbItems.push(mbMaskShape);
 
     // Background road runner jika tersedia
-    if (this.textures.exists('runner-road')) {
+    const bgKey = this.textures.exists('miniboss-confrontation-cg')
+      ? 'miniboss-confrontation-cg'
+      : this.textures.exists('runner-road')
+      ? 'runner-road'
+      : null;
+
+    if (bgKey) {
       const roadImg = this.add
-        .image(bounds.centerX, miniBossY, 'runner-road')
+        .image(bounds.centerX, miniBossY, bgKey)
         .setDepth(1.2)
         .setMask(mbMask);
       const sX = miniBossW / roadImg.width;
       const sY = miniBossCardH / roadImg.height;
       roadImg.setScale(Math.max(sX, sY));
-      roadImg.setAlpha(isBossUnlocked ? 0.28 : 0.08);
+      roadImg.setAlpha(isBossUnlocked ? 0.35 : 0.08);
       mbItems.push(roadImg);
     }
 
@@ -397,7 +403,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
 
     // Judul: Mini Boss
     const mbTitle = this.add
-      .text(textLeft, miniBossY - miniBossCardH * 0.02, 'Mini Boss - Bayangan Intimidasi', {
+      .text(textLeft, miniBossY - miniBossCardH * 0.02, 'Mini Boss - Konfrontasi Reno', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${Math.max(14, Math.round(miniBossCardH * 0.2))}px`,
         fontStyle: '700',
@@ -413,8 +419,8 @@ export default class EpisodeSelectScene extends Phaser.Scene {
         textLeft,
         miniBossY + miniBossCardH * 0.26,
         isBossUnlocked
-          ? 'Tantangan aksi lari & kalahkan Mini Boss dengan komunikasi asertif!'
-          : 'Selesaikan Episode 6 untuk membuka babak pertempuran Mini Boss.',
+          ? 'Hadapi provokasi Reno secara tatap muka dengan respon asertif dan kepala dingin!'
+          : 'Selesaikan Episode 6 untuk membuka babak konfrontasi Mini Boss.',
         {
           fontFamily: '"Pixelify Sans", monospace',
           fontSize: `${Math.max(10, Math.round(miniBossCardH * 0.125))}px`,
@@ -486,10 +492,9 @@ export default class EpisodeSelectScene extends Phaser.Scene {
       mbBox.setInteractive({ useHandCursor: true });
       const startMiniBoss = () => {
         stopMenuBGM();
-        this.scene.start('RunnerScene', {
+        this.scene.start('MiniBossScene', {
           episodeId: 6,
           isLastEpisode: true,
-          mode: 'runner',
         });
       };
       mbBox.on('pointerdown', startMiniBoss);

@@ -91,3 +91,19 @@ export const runnerQuizQuestionsPayloadSchema = Joi.object({
   target_audience: Joi.string().valid('smp', 'sma', 'smp_sma').default('smp_sma'),
   topics: Joi.array().items(Joi.string().trim().max(100)).max(10).optional(),
 });
+
+// Mini Boss Evaluasi Respon Ketikan Asertif Siswa & Klasifikasi Emosi
+export const minibossEvaluatePayloadSchema = Joi.object({
+  text: Joi.string().trim().min(1).max(2000).required().messages({
+    'any.required': 'Respon teks diperlukan.',
+    'string.empty': 'Respon teks tidak boleh kosong.',
+  }),
+  round: Joi.number().integer().min(1).max(5).default(1),
+  topic: Joi.string().trim().max(200).allow(null, '').optional(),
+  npc_line: Joi.string().trim().max(600).allow(null, '').optional(),
+  current_emotion_tier: Joi.number().integer().min(1).max(6).default(2),
+});
+
+export const minibossDialoguesPayloadSchema = Joi.object({
+  regenerate: Joi.boolean().default(false),
+});

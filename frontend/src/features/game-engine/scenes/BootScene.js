@@ -171,6 +171,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('runner-drone', '/sprites/runner-drone.png?v=2');
     this.load.image('runner-road', '/sprites/runner-road.jpg?v=2');
 
+    // Cutscene Mini Boss Close-up Face-to-Face & Reaksi
+    this.load.image('miniboss-confrontation-cg', '/scenes/miniboss-confrontation-cg.jpg');
+    this.load.image('miniboss-defeated-cg', '/scenes/miniboss-defeated-cg.jpg');
+
     // --- Potret NPC pendukung cerita (config/npcs.js) ---
     // Sama seperti background episode: kalau suatu episode belum punya
     // NPC terdaftar di sana, ya tidak ada apa pun yang di-load untuk

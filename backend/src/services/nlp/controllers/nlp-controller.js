@@ -325,3 +325,31 @@ export const getRunnerQuizQuestions = async (req, res, next) => {
     }
   }
 };
+
+// GET /api/nlp/miniboss/dialogues
+export const getMiniBossDialogues = async (req, res, next) => {
+  try {
+    const result = await NlpClient.getMiniBossDialogues();
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/nlp/miniboss/evaluate-response
+export const evaluateMiniBossResponse = async (req, res, next) => {
+  try {
+    const { text, round, topic, npc_line: npcLine, current_emotion_tier: currentTier } = req.validated;
+    const result = await NlpClient.evaluateMiniBossResponse({
+      text,
+      round,
+      topic,
+      npcLine,
+      currentEmotionTier: currentTier,
+    });
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+};
+

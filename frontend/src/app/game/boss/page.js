@@ -17,7 +17,7 @@ export default function BossGamePage() {
       <GameProfileBridge />
       <GameUIBridge />
       <main>
-        <PhaserGame initialScene="RunnerScene" initialData={{ episodeId: 6, isLastEpisode: true, mode: 'runner' }} />
+        <PhaserGame initialScene="MiniBossScene" initialData={{ episodeId: 6, isLastEpisode: true }} />
       </main>
     </RequireAuth>
   );
