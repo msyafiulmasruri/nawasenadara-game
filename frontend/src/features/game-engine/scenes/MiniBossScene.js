@@ -1116,12 +1116,36 @@ export default class MiniBossScene extends Phaser.Scene {
       wordWrap: { width: 400 },
     }).setOrigin(0.5);
 
-    // Tombol 1: Lihat Rapor Evaluasi Akhir Keseluruhan (Membuka Rapor 6 Episode Landscape)
-    const reportBtn = this.add.rectangle(0, 42, 270, 34, 0x064e3b, 1)
+    // Card height adjusted for 3 buttons
+    card.setSize(Math.min(bounds.width - 32, 460), 260);
+
+    // Tombol 1: Lanjut ke Mini Boss Runner (Sprint of Truth)
+    const runnerBtn = this.add.rectangle(0, 32, 290, 32, 0x064e3b, 1)
       .setStrokeStyle(1.5, 0x10b981).setInteractive({ useHandCursor: true });
-    const reportBtnText = this.add.text(0, 42, 'Lihat Evaluasi & Rapor Akhir ›', {
+    const runnerBtnText = this.add.text(0, 32, 'Tantang Mini Boss Runner (Sprint of Truth) ›', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '14px',
+      fontSize: '12.5px',
+      fontStyle: '700',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+
+    runnerBtn.on('pointerdown', () => {
+      this._cleanupScene();
+      this.scene.start('RunnerScene', {
+        episodeId: 6,
+        isLastEpisode: true,
+        choices: this.choices || [],
+      });
+    });
+    runnerBtn.on('pointerover', () => runnerBtn.setFillStyle(0x047857));
+    runnerBtn.on('pointerout', () => runnerBtn.setFillStyle(0x064e3b));
+
+    // Tombol 2: Lihat Rapor Evaluasi Akhir Keseluruhan (Membuka Rapor 6 Episode Landscape)
+    const reportBtn = this.add.rectangle(0, 68, 290, 30, 0x1e3a8a, 1)
+      .setStrokeStyle(1.2, 0x3b82f6).setInteractive({ useHandCursor: true });
+    const reportBtnText = this.add.text(0, 68, 'Lihat Evaluasi & Rapor Akhir ›', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '12px',
       fontStyle: '700',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -1135,15 +1159,15 @@ export default class MiniBossScene extends Phaser.Scene {
         choices: this.choices || [],
       });
     });
-    reportBtn.on('pointerover', () => reportBtn.setFillStyle(0x047857));
-    reportBtn.on('pointerout', () => reportBtn.setFillStyle(0x064e3b));
+    reportBtn.on('pointerover', () => reportBtn.setFillStyle(0x1d4ed8));
+    reportBtn.on('pointerout', () => reportBtn.setFillStyle(0x1e3a8a));
 
-    // Tombol 2: Pilih Episode Lain
-    const exitBtn = this.add.rectangle(0, 82, 270, 30, 0x1e293b, 1)
+    // Tombol 3: Pilih Episode Lain
+    const exitBtn = this.add.rectangle(0, 104, 290, 28, 0x1e293b, 1)
       .setStrokeStyle(1, 0x475569).setInteractive({ useHandCursor: true });
-    const exitBtnText = this.add.text(0, 82, 'Kembali ke Pemilihan Episode', {
+    const exitBtnText = this.add.text(0, 104, 'Kembali ke Pemilihan Episode', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '12px',
+      fontSize: '11.5px',
       fontStyle: '700',
       color: '#f8fafc',
     }).setOrigin(0.5);
@@ -1155,7 +1179,7 @@ export default class MiniBossScene extends Phaser.Scene {
     exitBtn.on('pointerover', () => exitBtn.setFillStyle(0x334155));
     exitBtn.on('pointerout', () => exitBtn.setFillStyle(0x1e293b));
 
-    winContainer.add([backdrop, card, title, desc, reportBtn, reportBtnText, exitBtn, exitBtnText]);
+    winContainer.add([backdrop, card, title, desc, runnerBtn, runnerBtnText, reportBtn, reportBtnText, exitBtn, exitBtnText]);
     winContainer.setAlpha(0);
     this.tweens.add({ targets: winContainer, alpha: 1, duration: 250 });
   }

@@ -10,3 +10,6 @@ Thumbs.db
 # Virtual environments
 .venv/
 
+# Scratch & temporary scripts
+scratch/
+

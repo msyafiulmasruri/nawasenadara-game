@@ -83,19 +83,19 @@ export default function PhaserGame({ initialScene, initialData }) {
     let resolvedScene = initialScene;
     let resolvedData = initialData;
     if (resolvedScene === 'FinalBossScene') {
-      resolvedScene = 'MiniBossScene';
+      resolvedScene = 'RunnerScene';
       resolvedData = { episodeId: 6, isLastEpisode: true };
     }
     if (!resolvedScene && typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || params.get('scene');
-        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'MiniBossScene') {
-          resolvedScene = 'MiniBossScene';
-          resolvedData = { episodeId: 6, isLastEpisode: true };
-        } else if (mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
+        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
           resolvedScene = 'RunnerScene';
           resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
+        } else if (mode === 'MiniBossScene' || mode === 'reno') {
+          resolvedScene = 'MiniBossScene';
+          resolvedData = { episodeId: 6, isLastEpisode: true };
         } else if (mode) {
           resolvedScene = mode;
         }

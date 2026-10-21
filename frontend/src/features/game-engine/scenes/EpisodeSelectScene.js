@@ -408,7 +408,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
 
     // Judul: Mini Boss
     const mbTitle = this.add
-      .text(textLeft, miniBossY - miniBossCardH * 0.02, 'Mini Boss - Konfrontasi Reno', {
+      .text(textLeft, miniBossY - miniBossCardH * 0.02, 'Mini Boss - Sprint of Truth', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${Math.max(14, Math.round(miniBossCardH * 0.2))}px`,
         fontStyle: '700',
@@ -424,7 +424,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
         textLeft,
         miniBossY + miniBossCardH * 0.26,
         isBossUnlocked
-          ? 'Hadapi provokasi Reno secara tatap muka dengan respon asertif dan kepala dingin!'
+          ? 'Hadapi Bayangan Intimidasi di koridor cyber dengan 10 butir kebenaran asertif!'
           : 'Selesaikan Episode 6 untuk membuka babak konfrontasi Mini Boss.',
         {
           fontFamily: '"Pixelify Sans", monospace',
@@ -497,7 +497,7 @@ export default class EpisodeSelectScene extends Phaser.Scene {
       mbBox.setInteractive({ useHandCursor: true });
       const startMiniBoss = () => {
         stopMenuBGM();
-        this.scene.start('MiniBossScene', {
+        this.scene.start('RunnerScene', {
           episodeId: 6,
           isLastEpisode: true,
         });

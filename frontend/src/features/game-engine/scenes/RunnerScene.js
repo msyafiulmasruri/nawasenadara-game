@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import AudioManager from '../audio/AudioManager';
-import { getVisibleBounds, syncGameSizeToOrientation } from '../utils/visibleBounds';
+import { getVisibleBounds, syncGameSizeToOrientation, pxToWorld } from '../utils/visibleBounds';
 import { getRandomCuratedQuestions } from '../data/smpSmaQuestions';
+import { getSettings, setMuted } from '../utils/settingsStore';
 
 /**
  * RunnerScene.js
@@ -96,7 +97,7 @@ export default class RunnerScene extends Phaser.Scene {
     // Visual Parallax
     this.roadBg = null;
 
-    // HUD
+    // HUD & Pause Menu
     this.heartsText = null;
     this.distanceText = null;
     this.shardsText = null;
@@ -104,6 +105,13 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossHpGhostFill = null;
     this.bossHpText = null;
     this.quizModalContainer = null;
+    this.isPaused = false;
+    this.pauseBtn = null;
+    this.pauseBtnText = null;
+    this.pauseMenuContainer = null;
+    this.pauseKey = null;
+    this.isMuted = false;
+    this.muteLabelText = null;
 
     // Boss Visuals, Animasi & Intimidasi
     this.bossSprite = null;
@@ -152,7 +160,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.playerCourage = 3;
     this.bossHp = 10;
     this.currentCheckpointDistance = 0;
-    this.gameState = 'PLAYING';
+    this.isPaused = false;
     this.runSpeed = this.baseRunSpeed;
     this.isBossEnraged = false;
     this.questionsData = getRandomCuratedQuestions(10, 'smp_sma');
@@ -177,9 +185,14 @@ export default class RunnerScene extends Phaser.Scene {
     this.groundY = bounds.top + Math.round(550 * bgScale);
     this.startX = bounds.left + 160;
 
-    // Inisialisasi Audio
+    // Inisialisasi Audio & Pengaturan Suara
     this.audioManager = new AudioManager();
     this.audioManager.init();
+    const settings = getSettings();
+    this.isMuted = Boolean(settings?.muted);
+    if (this.isMuted) {
+      this.audioManager.setMasterVolume(0);
+    }
 
     // 1. Latar Belakang Parallax (Full Cyber Corridor runner-road.jpg)
     this._createParallaxBackground(bounds);
@@ -207,6 +220,10 @@ export default class RunnerScene extends Phaser.Scene {
 
     // 8. HUD Gaming-Grade (Darah Dara, Darah Boss, Jarak, Shards)
     this._createRunnerHUD(bounds);
+
+    // 8b. Tombol Hamburger & Menu Jeda (Pause)
+    this._createPauseButton(bounds);
+    this._createPauseMenu(bounds);
 
     // 9. Petunjuk Kontrol Sementara (Tutorial Banner)
     this._showTutorialBanner(bounds);
@@ -238,10 +255,15 @@ export default class RunnerScene extends Phaser.Scene {
     };
     this.scale.on('resize', this._onResize);
     this.events.once('shutdown', () => {
+      if (this.audioManager) {
+        this.audioManager.stopBGM();
+        this.audioManager.destroy();
+      }
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale.off('resize', this._onResize);
       if (this.bossRoarTimer) this.bossRoarTimer.remove();
       if (this.bossTauntTimer) this.bossTauntTimer.remove();
+      if (this.obstacleSpawnTimer) this.obstacleSpawnTimer.remove();
       if (this.bossSpeechBubble) this.bossSpeechBubble.destroy();
       if (this.bossLightningGraphics) this.bossLightningGraphics.destroy();
       if (this.bossFloorShadow) this.bossFloorShadow.destroy();
@@ -255,6 +277,11 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this.pauseKey && Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
+      this.togglePause();
+    }
+    if (this.isPaused) return;
+
     if (this.gameState !== 'PLAYING') return;
 
     const bounds = getVisibleBounds(this);
@@ -268,7 +295,7 @@ export default class RunnerScene extends Phaser.Scene {
     if (this.roadBg) this.roadBg.tilePositionX += moveDelta / bgScale;
 
     // Update Teks Jarak HUD
-    this.distanceText?.setText(`🏃 JARAK: ${this.distance} m`);
+    this.distanceText?.setText(`JARAK: ${this.distance} m`);
 
     // BULLETPROOF PLAYER POSITION & GROUND CLAMPING:
     // Dara selalu terkunci di X posisinya dan TIDAK BISA tembus lantai ke bawah
@@ -548,7 +575,7 @@ export default class RunnerScene extends Phaser.Scene {
       .setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
     const tagBg = this.add.rectangle(0, 0, 150, 26, 0x08010f, 0.94)
       .setStrokeStyle(2, 0xf43f5e);
-    this.bossNameTagText = this.add.text(0, 0, '☠️ MINI BOSS ☠️', {
+    this.bossNameTagText = this.add.text(0, 0, 'MINI BOSS', {
       fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
       fontSize: '14px',
       fontStyle: '700',
@@ -819,7 +846,7 @@ export default class RunnerScene extends Phaser.Scene {
     }
 
     // Audio cue: Chilling psychological harassment chime (dissonant tritone drop)
-    this.audioManager?.playMessageReceived?.(true);
+    this.audioManager?.playMessageReceived(true);
 
     const bx = this.bossSprite.x;
     const by = this.bossSprite.y;
@@ -867,7 +894,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     const paddingX = 16;
     const isEnraged = (this.bossHp <= 5) || this.isBossEnraged;
-    const tagText = isEnraged ? '🔥 KEMURKAAN BAYANGAN' : '☠ BISIKAN INTIMIDASI';
+    const tagText = isEnraged ? 'KEMURKAAN BAYANGAN' : 'BISIKAN INTIMIDASI';
     const tagColor = isEnraged ? '#fca5a5' : '#fda4af';
 
     // Header Tag Intimidasi (Lebar & Jelas)
@@ -957,10 +984,10 @@ export default class RunnerScene extends Phaser.Scene {
       ? 'boss-shadow-roar'
       : (this.textures.exists('boss-shadow-attack') ? 'boss-shadow-attack' : 'boss-shadow');
     this.bossSprite.setTexture(roarTex);
-    this.audioManager?.playBossRoar?.();
+    this.audioManager?.playBossRoar();
 
     if (isEnraged) {
-      this.bossNameTagText?.setText('🔥 ENRAGED BOSS 🔥');
+      this.bossNameTagText?.setText('ENRAGED BOSS');
       this.bossNameTagText?.setColor('#fecdd3');
     }
 
@@ -1059,7 +1086,7 @@ export default class RunnerScene extends Phaser.Scene {
       const enrageBanner = this.add.text(
         bounds.centerX,
         bounds.top + 72,
-        '⚠ BOSS ENRAGED (<50% HP) ⚠\n[KEMARAHAN MEMUNCAK • KORIDOR GELAP & OBSTAKEL DIPERCEPAT!]',
+        'PERINGATAN: BOSS ENRAGED (<50% HP)\n[KEMARAHAN MEMUNCAK - KORIDOR GELAP & OBSTAKEL DIPERCEPAT]',
         {
           fontFamily: '"Pixelify Sans", monospace',
           fontSize: '12px',
@@ -1188,7 +1215,7 @@ export default class RunnerScene extends Phaser.Scene {
       this.isJumping = true;
       this.player.setVelocityY(-640);
       this.player.play('jump', true);
-      this.audioManager?.playJump?.();
+      this.audioManager?.playJump();
 
       if (this.isShrunk) {
         this._handleShrinkEnd();
@@ -1218,7 +1245,7 @@ export default class RunnerScene extends Phaser.Scene {
     });
 
     this._spawnShrinkSpark();
-    this.audioManager?.playTypewriterBlip?.();
+    this.audioManager?.playTypewriterBlip();
   }
 
   /**
@@ -1396,7 +1423,7 @@ export default class RunnerScene extends Phaser.Scene {
       .setDepth(8).setBlendMode(Phaser.BlendModes.ADD);
 
     const questionNum = this.currentQuestionIndex + 1;
-    const label = this.add.text(spawnX, spawnY - 32, `✦ BUTIR FAKTA ${questionNum} ✦`, {
+    const label = this.add.text(spawnX, spawnY - 32, `BUTIR FAKTA ${questionNum}`, {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '10px',
       fontStyle: '700',
@@ -1455,12 +1482,12 @@ export default class RunnerScene extends Phaser.Scene {
     this.playerCourage = Math.max(0, this.playerCourage - 1);
     this._isInvulnerable = true;
 
-    this.audioManager?.playPlayerHurt?.();
+    this.audioManager?.playPlayerHurt();
     this.cameras.main.shake(240, 0.016);
 
     // Floating text "-1 NYAWA" di atas kepala Dara
     if (this.player && this.player.active) {
-      const hurtText = this.add.text(this.player.x, this.player.y - 85, '💔 -1 NYAWA', {
+      const hurtText = this.add.text(this.player.x, this.player.y - 85, '-1 NYAWA', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '14px',
         fontStyle: '700',
@@ -1549,7 +1576,7 @@ export default class RunnerScene extends Phaser.Scene {
   _triggerQuizModal() {
     this._isResolvingAnswer = false;
     this.gameState = 'QUIZ';
-    this.audioManager?.playOrbCollect?.();
+    this.audioManager?.playOrbCollect();
 
     // Hapus balon kata intimidasi jika sedang aktif agar tidak menghalangi pertanyaan
     if (this.bossSpeechBubble) {
@@ -1582,12 +1609,12 @@ export default class RunnerScene extends Phaser.Scene {
     this.quizModalContainer.add([modalGlow, modalBg]);
 
     // Badge Topik & Indikator AI / Kasus Nyata Remaja SMP/SMA
-    const sourceBadge = isAi ? '🤖 AI-GENERATED' : '✦ KASUS NYATA';
+    const sourceBadge = isAi ? 'AI-GENERATED' : 'KASUS NYATA';
     const topicStr = (q.topic || 'BATASAN DIRI').toUpperCase();
     const badgeText = this.add.text(
       0,
       -156,
-      `✦ BUTIR ${this.currentQuestionIndex + 1} / 10 • ${topicStr} • ${sourceBadge} (SMP/SMA) ✦`,
+      `BUTIR ${this.currentQuestionIndex + 1} / 10 | ${topicStr} | ${sourceBadge} (SMP/SMA)`,
       {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '11px',
@@ -1655,9 +1682,9 @@ export default class RunnerScene extends Phaser.Scene {
     if (selectedOption.isCorrect) {
       // JAWABAN BENAR
       btnBg.setFillStyle(0x065f46, 1).setStrokeStyle(2, 0x10b981);
-      this.audioManager?.playOrbCollect?.();
+      this.audioManager?.playOrbCollect();
 
-      const feedback = this.add.text(0, 146, `✓ BENAR! ${questionData.explanation}`, {
+      const feedback = this.add.text(0, 146, `BENAR! ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '11px',
         color: '#4ade80',
@@ -1674,9 +1701,9 @@ export default class RunnerScene extends Phaser.Scene {
     } else {
       // JAWABAN SALAH
       btnBg.setFillStyle(0x881337, 1).setStrokeStyle(2, 0xef4444);
-      this.audioManager?.playPlayerHurt?.();
+      this.audioManager?.playPlayerHurt();
 
-      const feedback = this.add.text(0, 146, `✗ KURANG TEPAT! Pelajaran: ${questionData.explanation}`, {
+      const feedback = this.add.text(0, 146, `KURANG TEPAT! Pelajaran: ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '11px',
         color: '#f87171',
@@ -1702,7 +1729,7 @@ export default class RunnerScene extends Phaser.Scene {
     // pilar cahaya fajar menyembur, rune keberanian berputar ganda,
     // dan kilatan petir surya mengelilingi tubuhnya.
     // -------------------------------------------------------------
-    this.audioManager?.playAssertiveBeam?.();
+    this.audioManager?.playAssertiveBeam();
 
     // Hentikan animasi lari & ganti instan ke pose charging martial stance
     this.player.stop();
@@ -1809,14 +1836,14 @@ export default class RunnerScene extends Phaser.Scene {
       },
     });
 
-    // 5. High-Impact Anime Battle Banner: "⚡ RESONANSI KEBERANIAN: ASERTIF! ⚡"
+    // 5. High-Impact Anime Battle Banner: "SUARA KEBENARAN: ASERTIF!"
     const bannerContainer = this.add.container(this.player.x + 35, this.player.y - 165)
       .setDepth(35).setScrollFactor(0);
     const bannerBg = this.add.rectangle(0, 0, 290, 36, 0x0f172a, 0.88)
       .setStrokeStyle(2.5, 0x38bdf8, 1);
     const bannerGlow = this.add.rectangle(0, 0, 296, 42, 0x0284c7, 0.3)
       .setBlendMode(Phaser.BlendModes.ADD);
-    const bannerText = this.add.text(0, 0, '⚡ SUARA KEBENARAN: ASERTIF! ⚡', {
+    const bannerText = this.add.text(0, 0, 'SUARA KEBENARAN: ASERTIF!', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '13px',
       fontStyle: '700',
@@ -2126,7 +2153,7 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _createAttackImpactVisual(x, y) {
-    this.audioManager?.playBossHit?.();
+    this.audioManager?.playBossHit();
 
     // 1. Hit-Stop Micro Freeze Frame: Jeda 90ms sensasi bobot pukulan anime
     const originalTimeScale = this.time.timeScale;
@@ -2205,7 +2232,7 @@ export default class RunnerScene extends Phaser.Scene {
     const dmgBanner = this.add.container(x, y - 65).setDepth(34);
     const badgeBg = this.add.rectangle(0, 0, 220, 36, 0x090d16, 0.94)
       .setStrokeStyle(2, 0xfde047, 1);
-    const badgeText = this.add.text(0, 0, '💥 SUARA KEBENARAN! -1 HP', {
+    const badgeText = this.add.text(0, 0, 'SUARA KEBENARAN! -1 HP', {
       fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
       fontSize: '15px',
       fontStyle: '700',
@@ -2235,7 +2262,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossState = 'HURT';
     const hurtTex = this.textures.exists('boss-shadow-hurt') ? 'boss-shadow-hurt' : 'boss-shadow';
     this.bossSprite.setTexture(hurtTex);
-    this.audioManager?.playBossRoar?.();
+    this.audioManager?.playBossRoar();
 
     // Kilatan sakit multi-fase (Putih -> Emas -> Merah)
     this.bossSprite.setTint(0xffffff);
@@ -2340,7 +2367,7 @@ export default class RunnerScene extends Phaser.Scene {
     const castTex = this.textures.exists('boss-shadow-cast') ? 'boss-shadow-cast' : 'boss-shadow-attack';
     this.bossSprite.setTexture(castTex);
     this.bossSprite.setTint(isEnraged ? 0xf87171 : 0xc084fc);
-    this.audioManager?.playBossRoar?.();
+    this.audioManager?.playBossRoar();
 
     // Kamera bergetar halus menunjukkan konsentrasi kekuatan gelap
     this.cameras.main.shake(700, isEnraged ? 0.008 : 0.005);
@@ -2538,7 +2565,7 @@ export default class RunnerScene extends Phaser.Scene {
           // -------------------------------------------------------------
           // FASE 4: DAMPAK LEDAKAN KE DARA (Dark Impact Blast)
           // -------------------------------------------------------------
-          this.audioManager?.playPlayerHurt?.();
+          this.audioManager?.playPlayerHurt();
           this.cameras.main.shake(320, 0.022);
 
           // Efek benturan ledakan miasma gelap
@@ -2632,14 +2659,14 @@ export default class RunnerScene extends Phaser.Scene {
     this.playerCourage = this.maxCourage;
     this._updateHeartsUI();
 
-    this.audioManager?.playOrbCollect?.();
+    this.audioManager?.playOrbCollect();
     this.cameras.main.shake(160, 0.009);
 
     const bounds = getVisibleBounds(this);
     const pilar = this.add.rectangle(bounds.centerX, this.groundY - 140, 24, 280, 0xfde047, 0.45)
       .setDepth(6).setBlendMode(Phaser.BlendModes.ADD);
 
-    const banner = this.add.text(bounds.centerX, this.groundY - 180, `✦ CHECKPOINT: ${checkpoint.name.toUpperCase()} ✦\n[HATI DIPULIHKAN PENUH!]`, {
+    const banner = this.add.text(bounds.centerX, this.groundY - 180, `CHECKPOINT: ${checkpoint.name.toUpperCase()}\n[NYAWA DIPULIHKAN PENUH]`, {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '12px',
       fontStyle: '700',
@@ -2702,7 +2729,7 @@ export default class RunnerScene extends Phaser.Scene {
     const btnY = bounds.centerY + 45;
     const respawnBtn = this.add.rectangle(bounds.centerX - 100, btnY, 170, 40, 0x0c1626, 0.95)
       .setStrokeStyle(1.5, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
-    const respawnText = this.add.text(bounds.centerX - 100, btnY, '🔄 RESPAWN', {
+    const respawnText = this.add.text(bounds.centerX - 100, btnY, 'RESPAWN', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '11px',
       fontStyle: '700',
@@ -2711,7 +2738,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     const epSelectBtn = this.add.rectangle(bounds.centerX + 100, btnY, 170, 40, 0x0c1626, 0.95)
       .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
-    const epSelectText = this.add.text(bounds.centerX + 100, btnY, '📋 PILIH EPISODE', {
+    const epSelectText = this.add.text(bounds.centerX + 100, btnY, 'PILIH EPISODE', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '11px',
       fontStyle: '700',
@@ -2739,7 +2766,7 @@ export default class RunnerScene extends Phaser.Scene {
     respawnBtn.on('pointerout', () => respawnBtn.setFillStyle(0x0c1626, 0.95));
 
     epSelectBtn.on('pointerdown', () => {
-      this.audioManager?.stopBGM?.();
+      this.audioManager?.stopBGM();
       this.scene.start('EpisodeSelectScene');
     });
     epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
@@ -2781,7 +2808,7 @@ export default class RunnerScene extends Phaser.Scene {
     const modal = this.add.rectangle(bounds.centerX, bounds.centerY, Math.min(bounds.width * 0.88, 540), modalH, 0x07111a, 0.96)
       .setStrokeStyle(1.5, 0x10b981).setDepth(50).setScrollFactor(0);
 
-    const title = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 32), '🏆 KEMENANGAN ASERTIF! 🏆', {
+    const title = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 32), 'KEMENANGAN ASERTIF!', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '18px',
       fontStyle: '700',
@@ -2800,7 +2827,7 @@ export default class RunnerScene extends Phaser.Scene {
       // Tombol 1: Evaluasi & Rapor Akhir (Menuju EpisodeEndingScene)
       const evalBtn = this.add.rectangle(bounds.centerX, bounds.centerY + 10, 280, 38, 0x064e3b, 1)
         .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
-      const evalBtnText = this.add.text(bounds.centerX, bounds.centerY + 10, '📜 LIHAT EVALUASI & RAPOR', {
+      const evalBtnText = this.add.text(bounds.centerX, bounds.centerY + 10, 'LIHAT EVALUASI & RAPOR', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '12px',
         fontStyle: '700',
@@ -2808,7 +2835,7 @@ export default class RunnerScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(52);
 
       evalBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM?.();
+        this.audioManager?.stopBGM();
         this.scene.start('EpisodeEndingScene', {
           episodeId: this.episodeId || 6,
           isLastEpisode: true,
@@ -2822,20 +2849,20 @@ export default class RunnerScene extends Phaser.Scene {
       const subBtnY = bounds.centerY + 62;
       const replayBtn = this.add.rectangle(bounds.centerX - 110, subBtnY, 150, 36, 0x0f172a, 0.95)
         .setStrokeStyle(1.2, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
-      const replayBtnText = this.add.text(bounds.centerX - 110, subBtnY, '🔄 MAIN LAGI', {
+      const replayBtnText = this.add.text(bounds.centerX - 110, subBtnY, 'MAIN LAGI', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '11px',
         fontStyle: '700',
         color: '#38bdf8',
       }).setOrigin(0.5).setDepth(52);
 
-      replayBtn.on('pointerdown', () => this.scene.restart());
+      replayBtn.on('pointerdown', () => this.restartMiniBoss());
       replayBtn.on('pointerover', () => replayBtn.setFillStyle(0x1e293b, 1));
       replayBtn.on('pointerout', () => replayBtn.setFillStyle(0x0f172a, 0.95));
 
       const epSelectBtn = this.add.rectangle(bounds.centerX + 110, subBtnY, 150, 36, 0x0f172a, 0.95)
         .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
-      const epSelectBtnText = this.add.text(bounds.centerX + 110, subBtnY, '📋 PILIH EPISODE', {
+      const epSelectBtnText = this.add.text(bounds.centerX + 110, subBtnY, 'PILIH EPISODE', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '11px',
         fontStyle: '700',
@@ -2843,7 +2870,7 @@ export default class RunnerScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(52);
 
       epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM?.();
+        this.audioManager?.stopBGM();
         this.scene.start('EpisodeSelectScene');
       });
       epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
@@ -2852,24 +2879,24 @@ export default class RunnerScene extends Phaser.Scene {
       const subBtnY = bounds.centerY + 35;
       const replayBtn = this.add.rectangle(bounds.centerX - 100, subBtnY, 160, 40, 0x064e3b, 1)
         .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
-      const replayBtnText = this.add.text(bounds.centerX - 100, subBtnY, '🔄 MAIN LAGI', {
+      const replayBtnText = this.add.text(bounds.centerX - 100, subBtnY, 'MAIN LAGI', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '12px',
         fontStyle: '700',
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(52);
-      replayBtn.on('pointerdown', () => this.scene.restart());
+      replayBtn.on('pointerdown', () => this.restartMiniBoss());
 
       const epSelectBtn = this.add.rectangle(bounds.centerX + 100, subBtnY, 160, 40, 0x0f172a, 0.95)
         .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
-      const epSelectBtnText = this.add.text(bounds.centerX + 100, subBtnY, '📋 PILIH EPISODE', {
+      const epSelectBtnText = this.add.text(bounds.centerX + 100, subBtnY, 'PILIH EPISODE', {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: '12px',
         fontStyle: '700',
         color: '#c084fc',
       }).setOrigin(0.5).setDepth(52);
       epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM?.();
+        this.audioManager?.stopBGM();
         this.scene.start('EpisodeSelectScene');
       });
     }
@@ -2913,12 +2940,12 @@ export default class RunnerScene extends Phaser.Scene {
       color: '#94a3b8',
     }).setDepth(31).setScrollFactor(0);
 
-    this.heartsText = this.add.text(cardX + 62, cardY + 24, '❤️ ❤️ ❤️', {
+    this.heartsText = this.add.text(cardX + 62, cardY + 24, '■ ■ ■', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '15px',
       color: '#f43f5e',
       stroke: '#4c0519',
-      strokeThickness: 2,
+      strokeThickness: 1,
     }).setDepth(31).setScrollFactor(0);
 
     this.heartsCountText = this.add.text(cardX + cardW - 14, cardY + 28, '3 / 3', {
@@ -2936,7 +2963,7 @@ export default class RunnerScene extends Phaser.Scene {
     // Badge Jarak (Kiri)
     this.distPillBg = this.add.rectangle(cardX + 12 + badgeW / 2, badgeY + badgeH / 2, badgeW, badgeH, 0x042426, 0.9)
       .setStrokeStyle(1, 0x0d9488).setDepth(31).setScrollFactor(0);
-    this.distanceText = this.add.text(cardX + 12 + badgeW / 2, badgeY + badgeH / 2, '🏃 JARAK: 0 m', {
+    this.distanceText = this.add.text(cardX + 12 + badgeW / 2, badgeY + badgeH / 2, 'JARAK: 0 m', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '9.5px',
       fontStyle: '700',
@@ -2948,7 +2975,7 @@ export default class RunnerScene extends Phaser.Scene {
     const faktaW = cardW - (12 + badgeW + 8 + 12);
     this.faktaPillBg = this.add.rectangle(faktaX + faktaW / 2, badgeY + badgeH / 2, faktaW, badgeH, 0x271904, 0.9)
       .setStrokeStyle(1, 0xb45309).setDepth(31).setScrollFactor(0);
-    this.shardsText = this.add.text(faktaX + faktaW / 2, badgeY + badgeH / 2, '✨ FAKTA: 0/10', {
+    this.shardsText = this.add.text(faktaX + faktaW / 2, badgeY + badgeH / 2, 'FAKTA: 0/10', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '9.5px',
       fontStyle: '700',
@@ -2964,7 +2991,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossHeaderFrame = this.add.rectangle(centerX, barY - 17, barW + 12, 28, 0x090111, 0.96)
       .setStrokeStyle(2, 0xf43f5e).setDepth(30).setScrollFactor(0);
 
-    this.bossTitleText = this.add.text(centerX, barY - 17, '⚔️ BOSS: BAYANGAN INTIMIDASI & KEBISUAN', {
+    this.bossTitleText = this.add.text(centerX, barY - 17, 'BOSS: BAYANGAN INTIMIDASI & KEBISUAN', {
       fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
       fontSize: '15px',
       fontStyle: '700',
@@ -3047,7 +3074,7 @@ export default class RunnerScene extends Phaser.Scene {
   _updateHeartsUI() {
     const hearts = [];
     for (let i = 0; i < this.maxCourage; i++) {
-      hearts.push(i < this.playerCourage ? '❤️' : '🖤');
+      hearts.push(i < this.playerCourage ? '■' : '□');
     }
     this.heartsText?.setText(hearts.join(' '));
     this.heartsCountText?.setText(`${this.playerCourage} / ${this.maxCourage}`);
@@ -3064,7 +3091,7 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _updateShardsHUD() {
-    this.shardsText?.setText(`✨ FAKTA: ${this.currentQuestionIndex}/10`);
+    this.shardsText?.setText(`FAKTA: ${this.currentQuestionIndex}/10`);
   }
 
   _updateBossHPUI() {
@@ -3102,16 +3129,16 @@ export default class RunnerScene extends Phaser.Scene {
 
     // Perbarui judul & border jika mode Enraged (<= 50% HP)
     if (this.bossHp <= 5 || this.isBossEnraged) {
-      this.bossTitleText?.setText('🔥 ENRAGED BOSS: BAYANGAN KEMURKAAN (FASE 2)');
+      this.bossTitleText?.setText('ENRAGED BOSS: BAYANGAN KEMURKAAN (FASE 2)');
       this.bossTitleText?.setColor('#fecdd3');
       this.bossHeaderFrame?.setStrokeStyle(2.2, 0xef4444);
-      this.bossNameTagText?.setText('🔥 ENRAGED BOSS 🔥');
+      this.bossNameTagText?.setText('ENRAGED BOSS');
       this.bossNameTagText?.setColor('#fecdd3');
     } else {
-      this.bossTitleText?.setText('⚔️ BOSS: BAYANGAN INTIMIDASI & KEBISUAN');
+      this.bossTitleText?.setText('BOSS: BAYANGAN INTIMIDASI & KEBISUAN');
       this.bossTitleText?.setColor('#ffe4e6');
       this.bossHeaderFrame?.setStrokeStyle(2, 0xf43f5e);
-      this.bossNameTagText?.setText('☠️ MINI BOSS ☠️');
+      this.bossNameTagText?.setText('MINI BOSS');
       this.bossNameTagText?.setColor('#ffe4e6');
     }
   }
@@ -3224,5 +3251,298 @@ export default class RunnerScene extends Phaser.Scene {
         this.bossNameTag.setPosition(this.bossBaseX, this.bossBaseY - 146);
       }
     }
+
+    // Reposisi Tombol Hamburger & Menu Jeda
+    this._repositionPauseButton(bounds);
+    if (this.pauseMenuContainer) {
+      this._buildPauseMenuContents(bounds);
+    }
+  }
+
+  // ==============================================================
+  // I. SISTEM MENU JEDA (PAUSE / HAMBURGER MENU)
+  // ==============================================================
+
+  _createPauseButton(bounds) {
+    const pauseWPx = 48;
+    const pauseHPx = 38;
+    const pauseFontPx = 20;
+    this._pauseBtnSize = {
+      w: pxToWorld(this, pauseWPx),
+      h: pxToWorld(this, pauseHPx),
+      font: pxToWorld(this, pauseFontPx),
+    };
+
+    const pauseX = bounds.right - 24 - this._pauseBtnSize.w / 2;
+    const pauseY = bounds.top + 20 + this._pauseBtnSize.h / 2;
+
+    this.pauseBtn = this.add.rectangle(
+      pauseX,
+      pauseY,
+      this._pauseBtnSize.w,
+      this._pauseBtnSize.h,
+      0x050e17,
+      0.9,
+    );
+    this.pauseBtn.setStrokeStyle(1.8, 0x06b6d4, 0.9);
+    this.pauseBtn.setScrollFactor(0);
+    this.pauseBtn.setDepth(950);
+    this.pauseBtn.setInteractive({ useHandCursor: true });
+
+    this.pauseBtnText = this.add.text(pauseX, pauseY, '☰', {
+      fontFamily: 'monospace, sans-serif',
+      fontSize: `${this._pauseBtnSize.font}px`,
+      color: '#e2e8f0',
+      align: 'center',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(951);
+
+    this.pauseBtn.on('pointerover', () => {
+      this.pauseBtn.setFillStyle(0x0e7490, 0.95);
+      this.pauseBtnText?.setColor('#ffdd57');
+    });
+    this.pauseBtn.on('pointerout', () => {
+      this.pauseBtn.setFillStyle(0x050e17, 0.9);
+      this.pauseBtnText?.setColor('#e2e8f0');
+    });
+    this.pauseBtn.on('pointerdown', () => this.togglePause());
+
+    this.pauseBtnText.setInteractive({ useHandCursor: true });
+    this.pauseBtnText.on('pointerdown', () => this.togglePause());
+
+    this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+  }
+
+  _repositionPauseButton(bounds) {
+    if (!this.pauseBtn) return;
+    const pauseWPx = 48;
+    const pauseHPx = 38;
+    const pauseFontPx = 20;
+    const w = pxToWorld(this, pauseWPx);
+    const h = pxToWorld(this, pauseHPx);
+    const font = pxToWorld(this, pauseFontPx);
+    const pauseX = bounds.right - 24 - w / 2;
+    const pauseY = bounds.top + 20 + h / 2;
+
+    this.pauseBtn.setPosition(pauseX, pauseY);
+    this.pauseBtn.setSize(w, h);
+    if (this.pauseBtnText) {
+      this.pauseBtnText.setPosition(pauseX, pauseY);
+      this.pauseBtnText.setFontSize(`${font}px`);
+    }
+  }
+
+  _createPauseMenu(bounds) {
+    this.pauseMenuContainer = this.add.container(0, 0)
+      .setDepth(990)
+      .setVisible(false)
+      .setScrollFactor(0);
+    this._buildPauseMenuContents(bounds);
+  }
+
+  _buildPauseMenuContents(bounds) {
+    const container = this.pauseMenuContainer;
+    if (!container) return;
+    container.removeAll(true);
+
+    const cx = bounds.centerX;
+    const cy = bounds.centerY;
+
+    const panelW = Math.min(440, bounds.width * 0.92);
+    const panelH = Math.min(430, bounds.height * 0.88);
+
+    // 1. Dark Backdrop Overlay
+    const overlay = this.add.rectangle(cx, cy, bounds.width, bounds.height, 0x000000, 0.78)
+      .setScrollFactor(0)
+      .setInteractive();
+    container.add(overlay);
+
+    // 2. Cyber Glass Panel
+    const panel = this.add.rectangle(cx, cy, panelW, panelH, 0x050e17, 0.96)
+      .setStrokeStyle(2, 0x06b6d4, 0.9)
+      .setScrollFactor(0);
+    container.add(panel);
+
+    // Top Accent Bar
+    const topAccent = this.add.rectangle(cx, cy - panelH / 2 + 3, panelW - 4, 4, 0x38bdf8, 0.9)
+      .setScrollFactor(0);
+    container.add(topAccent);
+
+    // 3. Title "JEDA"
+    const title = this.add.text(cx, cy - panelH * 0.38, 'JEDA', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", monospace',
+      fontSize: `${pxToWorld(this, 30)}px`,
+      color: '#ffdd57',
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setScrollFactor(0);
+    container.add(title);
+
+    // Subtitle
+    const subtitle = this.add.text(cx, cy - panelH * 0.28, 'MINI BOSS - SPRINT OF TRUTH', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: `${pxToWorld(this, 12)}px`,
+      color: '#94a3b8',
+      align: 'center',
+    }).setOrigin(0.5).setScrollFactor(0);
+    container.add(subtitle);
+
+    // 4. Options
+    const options = [
+      { label: 'Lanjutkan', action: () => this.togglePause() },
+      { label: 'Mulai Ulang Mini Boss', action: () => this.restartMiniBoss() },
+      { label: 'Pilih Episode', action: () => this.goToEpisodeSelect() },
+      { label: 'Menu Utama (Lobby)', action: () => this.goToMainMenu() },
+    ];
+
+    const btnW = panelW * 0.78;
+    const btnH = Math.min(42, panelH * 0.1);
+    const optTop = cy - panelH * 0.16;
+    const optGap = btnH + 10;
+
+    options.forEach((opt, idx) => {
+      const y = optTop + idx * optGap;
+      const optBtn = this.add.rectangle(cx, y, btnW, btnH, 0x091d30, 0.9)
+        .setStrokeStyle(1.4, 0x38bdf8, 0.8)
+        .setScrollFactor(0)
+        .setInteractive({ useHandCursor: true });
+
+      const optTxt = this.add.text(cx, y, opt.label, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${pxToWorld(this, 16)}px`,
+        color: '#ffffff',
+        fontStyle: '700',
+        align: 'center',
+      }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+      const onHover = () => {
+        optBtn.setFillStyle(0x0284c7, 0.95);
+        optTxt.setColor('#ffdd57');
+      };
+      const onOut = () => {
+        optBtn.setFillStyle(0x091d30, 0.9);
+        optTxt.setColor('#ffffff');
+      };
+
+      optBtn.on('pointerover', onHover);
+      optBtn.on('pointerout', onOut);
+      optBtn.on('pointerdown', opt.action);
+
+      optTxt.on('pointerover', onHover);
+      optTxt.on('pointerout', onOut);
+      optTxt.on('pointerdown', opt.action);
+
+      container.add(optBtn);
+      container.add(optTxt);
+    });
+
+    // 5. Sound / Mute Toggle Button at the bottom
+    const muteY = cy + panelH * 0.36;
+    const muteBtn = this.add.rectangle(cx, muteY, btnW, btnH * 0.88, 0x071524, 0.85)
+      .setStrokeStyle(1.2, 0x64748b, 0.7)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+
+    this.muteLabelText = this.add.text(cx, muteY, this.getMuteLabel(), {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: `${pxToWorld(this, 13)}px`,
+      color: '#cbd5e1',
+      align: 'center',
+    }).setOrigin(0.5).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+    const onMuteHover = () => {
+      muteBtn.setFillStyle(0x1e293b, 0.95);
+      this.muteLabelText?.setColor('#38bdf8');
+    };
+    const onMuteOut = () => {
+      muteBtn.setFillStyle(0x071524, 0.85);
+      this.muteLabelText?.setColor('#cbd5e1');
+    };
+
+    muteBtn.on('pointerover', onMuteHover);
+    muteBtn.on('pointerout', onMuteOut);
+    muteBtn.on('pointerdown', () => this.toggleMute());
+
+    this.muteLabelText.on('pointerover', onMuteHover);
+    this.muteLabelText.on('pointerout', onMuteOut);
+    this.muteLabelText.on('pointerdown', () => this.toggleMute());
+
+    container.add(muteBtn);
+    container.add(this.muteLabelText);
+
+    // Cascade scrollFactor 0 to all newly added children
+    container.setScrollFactor(0, 0, true);
+  }
+
+  togglePause() {
+    if (this.gameState === 'GAMEOVER' || this.gameState === 'VICTORY') return;
+
+    this.isPaused = !this.isPaused;
+    if (!this.pauseMenuContainer) return;
+    this.pauseMenuContainer.setVisible(this.isPaused);
+
+    if (this.isPaused) {
+      this.physics.world.pause();
+      this.tweens.pauseAll();
+      this.anims.pauseAll();
+      if (this.obstacleSpawnTimer) this.obstacleSpawnTimer.paused = true;
+      if (this.bossTauntTimer) this.bossTauntTimer.paused = true;
+      if (this.bossRoarTimer) this.bossRoarTimer.paused = true;
+    } else {
+      this.physics.world.resume();
+      this.tweens.resumeAll();
+      this.anims.resumeAll();
+      if (this.obstacleSpawnTimer) this.obstacleSpawnTimer.paused = false;
+      if (this.bossTauntTimer) this.bossTauntTimer.paused = false;
+      if (this.bossRoarTimer) this.bossRoarTimer.paused = false;
+    }
+  }
+
+  getMuteLabel() {
+    return this.isMuted
+      ? 'Suara: Mati (klik untuk nyalakan)'
+      : 'Suara: Nyala (klik untuk matikan)';
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    setMuted(this.isMuted);
+    if (this.audioManager) {
+      this.audioManager.setMasterVolume(this.isMuted ? 0 : 1);
+    }
+    if (this.muteLabelText) {
+      this.muteLabelText.setText(this.getMuteLabel());
+    }
+  }
+
+  restartMiniBoss() {
+    this.isPaused = false;
+    if (this.audioManager) {
+      this.audioManager.stopBGM();
+      this.audioManager.destroy();
+    }
+    this.scene.restart({
+      episodeId: this.episodeId,
+      isLastEpisode: this.isLastEpisode,
+      choices: this.choices,
+    });
+  }
+
+  goToEpisodeSelect() {
+    this.isPaused = false;
+    if (this.audioManager) {
+      this.audioManager.stopBGM();
+      this.audioManager.destroy();
+    }
+    this.scene.start('EpisodeSelectScene');
+  }
+
+  goToMainMenu() {
+    this.isPaused = false;
+    if (this.audioManager) {
+      this.audioManager.stopBGM();
+      this.audioManager.destroy();
+    }
+    this.scene.start('MenuScene');
   }
 }
