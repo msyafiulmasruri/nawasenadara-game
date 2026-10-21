@@ -22,17 +22,17 @@ import { getSettings, setMuted } from '../utils/settingsStore';
  * - Lantai koridor neon ('runner-road') scrolling mulus.
  * - 10 Butir Kebenaran (Truth Shards) melayang di sepanjang lintasan.
  * - Modal Kuis Interaktif Berdaya AI (Groq LLM):
- *     - 10 butir soal edukasi batasan diri & cyber safety disesuaikan untuk usia SMP & SMA.
+ *     - 5 butir soal edukasi batasan diri & cyber safety disesuaikan untuk usia SMP & SMA.
  *     - Dibuat acak secara dinamis oleh AI agar tidak monoton.
  *     - Dilengkapi fallback bank soal terkurasi jika mode offline/koneksi lambat.
- * - Boss Bayangan Intimidasi (10 HP):
+ * - Boss Bayangan Intimidasi (5 HP):
  *     - Jawaban benar: Proyektil asertif Dara melukai boss (-1 HP).
  *     - Jawaban salah / tabrak rintangan: Hati Dara berkurang (-1 Hati).
  * - Checkpoint: Pos Satpam (3.000m) & Ruang BK (7.200m) memulihkan nyawa penuh.
  */
 
-// Bank soal fallback awal teracak untuk usia SMP & SMA
-const FALLBACK_QUESTIONS_DATA = getRandomCuratedQuestions(10, 'smp_sma');
+// Bank soal fallback awal teracak untuk usia SMP & SMA (5 butir)
+const FALLBACK_QUESTIONS_DATA = getRandomCuratedQuestions(5, 'smp_sma');
 
 // Kalimat Intimidasi & Bullying Psikologis Boss (Sesuai Nilai Edukasi Komunikasi Asertif)
 const BOSS_TAUNTS = [
@@ -68,8 +68,8 @@ export default class RunnerScene extends Phaser.Scene {
     this.shrunkScale = 0.15; // Mode Mini Chibi (400 * 0.15 = 60px)
     this.playerCourage = 3;
     this.maxCourage = 3;
-    this.bossHp = 10;
-    this.bossMaxHp = 10;
+    this.bossHp = 5;
+    this.bossMaxHp = 5;
 
     // Checkpoint
     this.currentCheckpointDistance = 0;
@@ -80,7 +80,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     // Status Game
     this.gameState = 'PLAYING'; // PLAYING, QUIZ, GAMEOVER, VICTORY
-    this.questionsData = getRandomCuratedQuestions(10, 'smp_sma');
+    this.questionsData = getRandomCuratedQuestions(5, 'smp_sma');
     this.aiQuestionsLoaded = false;
     this.currentQuestionIndex = 0;
     this._isResolvingAnswer = false;
@@ -158,12 +158,12 @@ export default class RunnerScene extends Phaser.Scene {
     this.isShrunk = false;
     this.isDucking = false;
     this.playerCourage = 3;
-    this.bossHp = 10;
+    this.bossHp = 5;
     this.currentCheckpointDistance = 0;
     this.isPaused = false;
     this.runSpeed = this.baseRunSpeed;
     this.isBossEnraged = false;
-    this.questionsData = getRandomCuratedQuestions(10, 'smp_sma');
+    this.questionsData = getRandomCuratedQuestions(5, 'smp_sma');
     this.aiQuestionsLoaded = false;
     this.currentQuestionIndex = 0;
     this._isResolvingAnswer = false;
@@ -374,7 +374,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     // Cek Spawn Butir Kebenaran (pastikan tidak ada butir aktif lain agar tidak tumpang tindih)
     const hasActiveShard = this.shardsGroup && this.shardsGroup.getChildren().some((s) => s && s.active);
-    if (!hasActiveShard && this.distance >= this.nextShardDistance && this.currentQuestionIndex < (this.questionsData?.length || 10)) {
+    if (!hasActiveShard && this.distance >= this.nextShardDistance && this.currentQuestionIndex < (this.questionsData?.length || 5)) {
       this._spawnTruthShard();
       this.nextShardDistance = this.distance + this.shardInterval;
     }
@@ -1145,7 +1145,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     // Tap layar atas untuk lompat (gaya Chrome Dino)
     this.input.on('pointerdown', (pointer) => {
-      if (this.gameState === 'PLAYING' && pointer.y < bounds.bottom - 110) {
+      if (this.gameState === 'PLAYING' && pointer.y < bounds.bottom - 120) {
         this._handleJump();
       }
     });
@@ -1155,48 +1155,50 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _createTouchButtons(bounds) {
-    const btnY = bounds.bottom - 46;
+    const btnW = 150;
+    const btnH = 58;
+    const btnY = bounds.bottom - 54;
 
-    // Tombol Mengecil / Mini Mode (Kiri Bawah) - Translucent Cyber Action Pad
-    const shrinkX = bounds.left + 88;
-    this.shrinkBtn = this.add.rectangle(shrinkX, btnY, 116, 44, 0x07111a, 0.68)
-      .setDepth(35).setScrollFactor(0).setStrokeStyle(1.5, 0x38bdf8, 0.85).setInteractive({ useHandCursor: true });
+    // Tombol Mengecil / Mini Mode (Kiri Bawah) - Translucent Cyber Action Pad (Ukuran Besar & Jelas untuk Mobile)
+    const shrinkX = bounds.left + btnW / 2 + 16;
+    this.shrinkBtn = this.add.rectangle(shrinkX, btnY, btnW, btnH, 0x07111a, 0.8)
+      .setDepth(35).setScrollFactor(0).setStrokeStyle(2, 0x38bdf8, 0.95).setInteractive({ useHandCursor: true });
     this.shrinkBtnText = this.add.text(shrinkX, btnY, '▼ SLIDE', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '13px',
+      fontSize: '18px',
       fontStyle: '700',
       align: 'center',
       color: '#38bdf8',
     }).setOrigin(0.5).setDepth(36).setScrollFactor(0);
 
     this.shrinkBtn.on('pointerdown', () => {
-      this.shrinkBtn.setFillStyle(0x0284c7, 0.9);
+      this.shrinkBtn.setFillStyle(0x0284c7, 0.95);
       this._handleShrinkStart();
     });
     const resetShrinkBtn = () => {
-      this.shrinkBtn.setFillStyle(0x07111a, 0.68);
+      this.shrinkBtn.setFillStyle(0x07111a, 0.8);
       this._handleShrinkEnd();
     };
     this.shrinkBtn.on('pointerup', resetShrinkBtn);
     this.shrinkBtn.on('pointerout', resetShrinkBtn);
 
-    // Tombol Lompat (Kanan Bawah) - Translucent Cyber Action Pad
-    const jumpX = bounds.right - 88;
-    this.jumpBtn = this.add.rectangle(jumpX, btnY, 116, 44, 0x051610, 0.68)
-      .setDepth(35).setScrollFactor(0).setStrokeStyle(1.5, 0x10b981, 0.85).setInteractive({ useHandCursor: true });
+    // Tombol Lompat (Kanan Bawah) - Translucent Cyber Action Pad (Ukuran Besar & Jelas untuk Mobile)
+    const jumpX = bounds.right - btnW / 2 - 16;
+    this.jumpBtn = this.add.rectangle(jumpX, btnY, btnW, btnH, 0x051610, 0.8)
+      .setDepth(35).setScrollFactor(0).setStrokeStyle(2, 0x10b981, 0.95).setInteractive({ useHandCursor: true });
     this.jumpBtnText = this.add.text(jumpX, btnY, '▲ JUMP', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '13px',
+      fontSize: '18px',
       fontStyle: '700',
       align: 'center',
       color: '#34d399',
     }).setOrigin(0.5).setDepth(36).setScrollFactor(0);
 
     this.jumpBtn.on('pointerdown', () => {
-      this.jumpBtn.setFillStyle(0x059669, 0.9);
+      this.jumpBtn.setFillStyle(0x059669, 0.95);
       this._handleJump();
       this.time.delayedCall(160, () => {
-        if (this.jumpBtn?.active) this.jumpBtn.setFillStyle(0x051610, 0.68);
+        if (this.jumpBtn?.active) this.jumpBtn.setFillStyle(0x051610, 0.8);
       });
     });
   }
@@ -1336,9 +1338,9 @@ export default class RunnerScene extends Phaser.Scene {
     const chosenText = Phaser.Utils.Array.GetRandom(texts);
 
     // Spikes dinamis berdasarkan Darah Boss:
-    // Darah Boss > 50% (> 5 HP) -> runner-spikes.png
-    // Darah Boss <= 50% (<= 5 HP) -> shadow-spikes.png
-    const isEnraged = (this.bossHp <= 5 || this.isBossEnraged);
+    // Darah Boss > 40% (> 2 HP) -> runner-spikes.png
+    // Darah Boss <= 40% (<= 2 HP / enraged) -> shadow-spikes.png
+    const isEnraged = (this.bossHp <= 2 || this.isBossEnraged);
     const spikeKey = isEnraged ? 'shadow-spikes' : 'runner-spikes';
     const chosenKey = this.textures.exists(spikeKey) ? spikeKey : 'runner-spikes';
 
@@ -1548,7 +1550,7 @@ export default class RunnerScene extends Phaser.Scene {
       if (!nlp || typeof nlp.getRunnerQuestions !== 'function') return;
 
       const res = await nlp.getRunnerQuestions({
-        count: 10,
+        count: 5,
         targetAudience: 'smp_sma',
       });
 
@@ -1595,9 +1597,9 @@ export default class RunnerScene extends Phaser.Scene {
 
     this.quizModalContainer = this.add.container(bounds.centerX, bounds.centerY).setDepth(45).setScrollFactor(0);
 
-    // Kartu Glassmorphism Kuis Cyber-Noir
-    const modalW = Math.min(bounds.width * 0.88, 620);
-    const modalH = 390;
+    // Kartu Glassmorphism Kuis Cyber-Noir - Font Jelas & Terbaca Mirip Kuis Kilas
+    const modalW = Math.min(bounds.width * 0.94, 680);
+    const modalH = Math.min(bounds.height * 0.90, 460);
     const isAi = q.source === 'ai_generated';
     const glowColor = isAi ? 0x059669 : 0x0284c7;
     const borderColor = isAi ? 0x10b981 : 0x06b6d4;
@@ -1605,60 +1607,64 @@ export default class RunnerScene extends Phaser.Scene {
     const modalGlow = this.add.rectangle(0, 0, modalW + 4, modalH + 4, glowColor, 0.25)
       .setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
     const modalBg = this.add.rectangle(0, 0, modalW, modalH, 0x07111a, 0.96)
-      .setStrokeStyle(1.5, borderColor);
+      .setStrokeStyle(2, borderColor);
     this.quizModalContainer.add([modalGlow, modalBg]);
 
     // Badge Topik & Indikator AI / Kasus Nyata Remaja SMP/SMA
     const sourceBadge = isAi ? 'AI-GENERATED' : 'KASUS NYATA';
     const topicStr = (q.topic || 'BATASAN DIRI').toUpperCase();
+    const badgeY = -modalH / 2 + 34;
     const badgeText = this.add.text(
       0,
-      -156,
-      `BUTIR ${this.currentQuestionIndex + 1} / 10 | ${topicStr} | ${sourceBadge} (SMP/SMA)`,
+      badgeY,
+      `BUTIR ${this.currentQuestionIndex + 1} / 5 | ${topicStr} | ${sourceBadge} (SMP/SMA)`,
       {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
+        fontSize: '13px',
         fontStyle: '700',
         color: isAi ? '#6ee7b7' : '#67e8f9',
         backgroundColor: isAi ? '#064e3b' : '#0c2338',
-        padding: { x: 12, y: 5 },
+        padding: { x: 14, y: 6 },
       }
     ).setOrigin(0.5);
     this.quizModalContainer.add(badgeText);
 
-    // Teks Soal
-    const questionText = this.add.text(0, -92, q.question, {
+    // Teks Pertanyaan (Diperbesar seperti Kuis Kilas Motion Pengenalan)
+    const questionY = -modalH / 2 + 88;
+    const questionText = this.add.text(0, questionY, q.question, {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '13px',
+      fontSize: '18px',
+      fontStyle: '700',
       color: '#f8fafc',
       align: 'center',
-      wordWrap: { width: modalW - 60 },
-      lineSpacing: 5,
+      wordWrap: { width: modalW - 54 },
+      lineSpacing: 6,
     }).setOrigin(0.5);
     this.quizModalContainer.add(questionText);
 
-    // Opsi Pilihan A, B, C
-    const startY = -20;
-    const btnHeight = 44;
+    // Opsi Pilihan A, B, C (Tombol & Teks Lebih Besar, Nyaman Ditekan)
+    const startY = -modalH / 2 + 168;
+    const btnHeight = 52;
     const btnGap = 12;
 
     q.options.forEach((opt, idx) => {
       const btnY = startY + idx * (btnHeight + btnGap);
 
-      const btnBg = this.add.rectangle(0, btnY, modalW - 60, btnHeight, 0x0c1626, 0.92)
-        .setStrokeStyle(1.5, 0x1e3a5f)
+      const btnBg = this.add.rectangle(0, btnY, modalW - 54, btnHeight, 0x0c1626, 0.92)
+        .setStrokeStyle(1.8, 0x1e3a5f)
         .setInteractive({ useHandCursor: true });
 
       const optText = this.add.text(0, btnY, opt.text, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
+        fontSize: '15px',
+        fontStyle: '600',
         color: '#e2e8f0',
         align: 'center',
-        wordWrap: { width: modalW - 90 },
+        wordWrap: { width: modalW - 84 },
       }).setOrigin(0.5);
 
       btnBg.on('pointerover', () => btnBg.setFillStyle(0x162c4a, 1).setStrokeStyle(2, 0x38bdf8));
-      btnBg.on('pointerout', () => btnBg.setFillStyle(0x0c1626, 0.92).setStrokeStyle(1.5, 0x1e3a5f));
+      btnBg.on('pointerout', () => btnBg.setFillStyle(0x0c1626, 0.92).setStrokeStyle(1.8, 0x1e3a5f));
 
       btnBg.on('pointerdown', () => {
         this._resolveQuizAnswer(opt, q, btnBg);
@@ -1679,17 +1685,22 @@ export default class RunnerScene extends Phaser.Scene {
       if (child.input) child.input.enabled = false;
     });
 
+    const bounds = getVisibleBounds(this);
+    const modalH = Math.min(bounds.height * 0.90, 460);
+    const feedbackY = modalH / 2 - 38;
+
     if (selectedOption.isCorrect) {
       // JAWABAN BENAR
       btnBg.setFillStyle(0x065f46, 1).setStrokeStyle(2, 0x10b981);
       this.audioManager?.playOrbCollect();
 
-      const feedback = this.add.text(0, 146, `BENAR! ${questionData.explanation}`, {
+      const feedback = this.add.text(0, feedbackY, `BENAR! ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
+        fontSize: '14px',
+        fontStyle: '700',
         color: '#4ade80',
         align: 'center',
-        wordWrap: { width: 540 },
+        wordWrap: { width: Math.min(bounds.width * 0.94, 680) - 60 },
       }).setOrigin(0.5);
       this.quizModalContainer.add(feedback);
 
@@ -1703,12 +1714,13 @@ export default class RunnerScene extends Phaser.Scene {
       btnBg.setFillStyle(0x881337, 1).setStrokeStyle(2, 0xef4444);
       this.audioManager?.playPlayerHurt();
 
-      const feedback = this.add.text(0, 146, `KURANG TEPAT! Pelajaran: ${questionData.explanation}`, {
+      const feedback = this.add.text(0, feedbackY, `KURANG TEPAT! Pelajaran: ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
+        fontSize: '14px',
+        fontStyle: '700',
         color: '#f87171',
         align: 'center',
-        wordWrap: { width: 540 },
+        wordWrap: { width: Math.min(bounds.width * 0.94, 680) - 60 },
       }).setOrigin(0.5);
       this.quizModalContainer.add(feedback);
 
@@ -2329,7 +2341,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     if (this.bossHp <= 0) {
       this._handleVictory();
-    } else if (this.bossHp <= 5 && !this.isBossEnraged) {
+    } else if (this.bossHp <= 2 && !this.isBossEnraged) {
       this.isBossEnraged = true;
       // Picu transisi Enrage Roar seketika saat animasi hurt selesai!
       this.time.delayedCall(450, () => {
@@ -2350,9 +2362,9 @@ export default class RunnerScene extends Phaser.Scene {
     }
 
     // Proyektil Boss dinamis sesuai Darah Boss:
-    // Darah Boss > 50% (> 5 HP) -> boss-projectile.png
-    // Darah Boss <= 50% (<= 5 HP / enraged) -> shadow-meteor.png
-    const isEnraged = (this.bossHp <= 5 || this.isBossEnraged);
+    // Darah Boss > 40% (> 2 HP) -> boss-projectile.png
+    // Darah Boss <= 40% (<= 2 HP / enraged) -> shadow-meteor.png
+    const isEnraged = (this.bossHp <= 2 || this.isBossEnraged);
     const desiredProjKey = isEnraged ? 'shadow-meteor' : 'boss-projectile';
     const projKey = this.textures.exists(desiredProjKey)
       ? desiredProjKey
@@ -2815,7 +2827,7 @@ export default class RunnerScene extends Phaser.Scene {
       color: '#34d399',
     }).setOrigin(0.5).setDepth(51);
 
-    const msg = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 76), `Luar biasa! Dara berhasil menembus 10 intimidasi dengan batasan yang kokoh!\nTotal Jarak: ${this.distance} Meter`, {
+    const msg = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 76), `Luar biasa! Dara berhasil menembus 5 intimidasi dengan batasan yang kokoh!\nTotal Jarak: ${this.distance} Meter`, {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '12px',
       color: '#f8fafc',
@@ -2976,7 +2988,7 @@ export default class RunnerScene extends Phaser.Scene {
     const faktaW = cardW - (12 + badgeW + 8 + 12);
     this.faktaPillBg = this.add.rectangle(faktaX + faktaW / 2, badgeY + badgeH / 2, faktaW, badgeH, 0x271904, 0.9)
       .setStrokeStyle(1, 0xb45309).setDepth(31).setScrollFactor(0);
-    this.shardsText = this.add.text(faktaX + faktaW / 2, badgeY + badgeH / 2, 'FAKTA: 0/10', {
+    this.shardsText = this.add.text(faktaX + faktaW / 2, badgeY + badgeH / 2, 'FAKTA: 0/5', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '9.5px',
       fontStyle: '700',
@@ -3012,10 +3024,10 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossTrackBg = this.add.rectangle(leftX, barY + 11, barW, 20, 0x1a0212, 1)
       .setOrigin(0, 0.5).setDepth(31).setScrollFactor(0);
 
-    // Segmented Grid Lines (Indikator 10 HP terpisah)
+    // Segmented Grid Lines (Indikator 5 HP terpisah)
     this.bossHpDividers = [];
-    for (let i = 1; i < 10; i++) {
-      const divX = leftX + (barW / 10) * i;
+    for (let i = 1; i < this.bossMaxHp; i++) {
+      const divX = leftX + (barW / this.bossMaxHp) * i;
       const div = this.add.line(0, 0, divX, barY + 1, divX, barY + 21, 0x4c0519, 0.75)
         .setOrigin(0).setDepth(34).setScrollFactor(0);
       this.bossHpDividers.push(div);
@@ -3034,7 +3046,7 @@ export default class RunnerScene extends Phaser.Scene {
       .setOrigin(0, 0.5).setDepth(34).setScrollFactor(0);
 
     // HP Text Besar & Tebal di tengah bar (Font Jelas, Kontras Tinggi & Anti-Blur)
-    this.bossHpText = this.add.text(centerX, barY + 11, '10 / 10 HP (100%)', {
+    this.bossHpText = this.add.text(centerX, barY + 11, '5 / 5 HP (100%)', {
       fontFamily: '"Jersey 15", "Pixelify Sans", sans-serif',
       fontSize: '13px',
       fontStyle: '700',
@@ -3092,7 +3104,7 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _updateShardsHUD() {
-    this.shardsText?.setText(`FAKTA: ${this.currentQuestionIndex}/10`);
+    this.shardsText?.setText(`FAKTA: ${this.currentQuestionIndex}/5`);
   }
 
   _updateBossHPUI() {
@@ -3128,8 +3140,8 @@ export default class RunnerScene extends Phaser.Scene {
 
     this.bossHpText?.setText(`${this.bossHp} / ${this.bossMaxHp} HP (${percent}%)`);
 
-    // Perbarui judul & border jika mode Enraged (<= 50% HP)
-    if (this.bossHp <= 5 || this.isBossEnraged) {
+    // Perbarui judul & border jika mode Enraged (<= 40% HP)
+    if (this.bossHp <= 2 || this.isBossEnraged) {
       this.bossTitleText?.setText('ENRAGED BOSS: BAYANGAN KEMURKAAN (FASE 2)');
       this.bossTitleText?.setColor('#fecdd3');
       this.bossHeaderFrame?.setStrokeStyle(2.2, 0xef4444);
@@ -3167,13 +3179,17 @@ export default class RunnerScene extends Phaser.Scene {
       this.floorNeonLine.setPosition(bounds.centerX, this.groundY);
       this.floorNeonLine.setSize(bounds.width * 1.6, 2);
     }
+    const btnW = 150;
+    const btnY = bounds.bottom - 54;
+    const shrinkX = bounds.left + btnW / 2 + 16;
+    const jumpX = bounds.right - btnW / 2 - 16;
     if (this.shrinkBtn) {
-      this.shrinkBtn.setPosition(bounds.left + 88, bounds.bottom - 46);
-      this.shrinkBtnText?.setPosition(bounds.left + 88, bounds.bottom - 46);
+      this.shrinkBtn.setPosition(shrinkX, btnY);
+      this.shrinkBtnText?.setPosition(shrinkX, btnY);
     }
     if (this.jumpBtn) {
-      this.jumpBtn.setPosition(bounds.right - 88, bounds.bottom - 46);
-      this.jumpBtnText?.setPosition(bounds.right - 88, bounds.bottom - 46);
+      this.jumpBtn.setPosition(jumpX, btnY);
+      this.jumpBtnText?.setPosition(jumpX, btnY);
     }
 
     // Reposisi Dara HUD (Kiri Atas)
@@ -3222,7 +3238,7 @@ export default class RunnerScene extends Phaser.Scene {
 
     if (this.bossHpDividers) {
       for (let i = 0; i < this.bossHpDividers.length; i++) {
-        const divX = leftX + (barW / 10) * (i + 1);
+        const divX = leftX + (barW / this.bossMaxHp) * (i + 1);
         this.bossHpDividers[i]?.setTo(divX, barY + 1, divX, barY + 21);
       }
     }

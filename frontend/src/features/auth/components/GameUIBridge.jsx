@@ -382,12 +382,10 @@ export default function GameUIBridge() {
   // API browser yang melaporkan ukuran viewport yang BENAR-BENAR
   // terlihat (di luar area yang ketutup keyboard), beda dari
   // window.innerHeight yang tidak berubah sama sekali saat keyboard
-  // muncul. Selisihnya dipakai untuk mengangkat jendela chat ke atas
-  // supaya kotak ketik & tombol kirim tidak ketutup keyboard.
-  // Browser lama tanpa dukungan visualViewport (jarang di 2026) cukup
-  // fallback ke keyboardInset=0 (perilaku lama, tidak lebih buruk).
+  // muncul. Selisihnya dipakai untuk mengangkat jendela chat & form jurnal
+  // ke atas supaya kotak ketik & tombol kirim tidak ketutup keyboard.
   useEffect(() => {
-    if (!chat?.open) return undefined;
+    if (!chat?.open && !journal) return undefined;
     if (typeof window === 'undefined' || !window.visualViewport) return undefined;
 
     const vv = window.visualViewport;
@@ -405,7 +403,7 @@ export default function GameUIBridge() {
       vv.removeEventListener('scroll', handleViewportChange);
       setKeyboardInset(0);
     };
-  }, [chat?.open]);
+  }, [chat?.open, Boolean(journal)]);
 
   // Satu status primitif menjaga dependency useEffect tetap berukuran
   // tetap ketika jenis overlay bertambah. Ini juga menghindari warning
@@ -767,8 +765,28 @@ export default function GameUIBridge() {
           </div>
         </div>
       ) : journal ? (
-        <div style={styles.overlay}>
-          <div style={styles.journalCard}>
+        <div
+          style={{
+            ...styles.overlay,
+            ...(keyboardInset > 0
+              ? {
+                  alignItems: 'flex-start',
+                  paddingTop: 10,
+                  paddingBottom: keyboardInset + 16,
+                }
+              : {}),
+          }}
+        >
+          <div
+            style={{
+              ...styles.journalCard,
+              ...(keyboardInset > 0
+                ? {
+                    maxHeight: `calc(100dvh - ${keyboardInset + 28}px)`,
+                  }
+                : {}),
+            }}
+          >
             <h2 style={styles.title}>Jurnal Refleksi</h2>
             <p style={styles.bodyText}>
               Sebelum lanjut ke episode berikutnya, tuliskan sejenak apa yang kamu rasakan
@@ -781,6 +799,11 @@ export default function GameUIBridge() {
               placeholder="Tulis di sini…"
               disabled={journalSubmitting}
               autoFocus
+              onFocus={(e) => {
+                setTimeout(() => {
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 220);
+              }}
             />
             <div style={styles.actionRow}>
               {journal.allowSkip ? (
@@ -877,15 +900,19 @@ export default function GameUIBridge() {
           .nawasenadaraChatOverlay {
             right: 0;
             left: 0;
-            top: 28%;
+            top: 12px;
             bottom: 0;
+          }
+          .nawasenadaraChatOverlay.hasKeyboard {
+            top: 0 !important;
+            bottom: 0 !important;
           }
           .nawasenadaraChatCard {
             width: 100%;
             max-width: 100%;
             height: 100%;
             max-height: none;
-            border-radius: 20px 20px 0 0;
+            border-radius: 18px 18px 0 0;
             border-bottom: none;
             margin: 0 auto;
           }
@@ -903,8 +930,8 @@ export default function GameUIBridge() {
 
       {chat?.open ? (
         <div
-          className={`nawasenadaraChatOverlay${chatMaximized ? ' nawasenadaraChatOverlay--maximized' : ''}`}
-          style={keyboardInset > 0 ? { bottom: keyboardInset + 16 } : undefined}
+          className={`nawasenadaraChatOverlay${chatMaximized ? ' nawasenadaraChatOverlay--maximized' : ''}${keyboardInset > 0 ? ' hasKeyboard' : ''}`}
+          style={keyboardInset > 0 ? { bottom: keyboardInset, top: 0 } : undefined}
         >
           <div className="nawasenadaraChatCard">
             <div style={styles.chatHeader}>
@@ -992,6 +1019,11 @@ export default function GameUIBridge() {
                 style={styles.chatInput}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
+                onFocus={() => {
+                  setTimeout(() => {
+                    chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
+                  }, 240);
+                }}
                 onKeyDown={(e) => {
                   e.stopPropagation();
 
@@ -1043,6 +1075,8 @@ const styles = {
     justifyContent: 'center',
     zIndex: 200,
     padding: 16,
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
   },
   supportiveCard: {
     width: '100%',
@@ -1105,7 +1139,9 @@ const styles = {
   },
   journalCard: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 460,
+    maxHeight: 'calc(100dvh - 32px)',
+    overflowY: 'auto',
     background: '#1a1a2e',
     border: '2px solid rgba(255, 221, 87, 0.4)',
     borderRadius: 14,
@@ -1113,6 +1149,9 @@ const styles = {
     fontFamily: "'Pixelify Sans', monospace",
     color: '#fff',
     boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65), 0 0 25px rgba(255, 221, 87, 0.12)',
   },
   feedbackCard: {
     maxWidth: 560,
@@ -1167,16 +1206,17 @@ const styles = {
   },
   textarea: {
     width: '100%',
-    minHeight: 110,
+    minHeight: 100,
     background: '#0f0f22',
     border: '1px solid #444',
     borderRadius: 8,
     color: '#fff',
-    padding: 10,
+    padding: 12,
     fontSize: 16,
     fontFamily: 'inherit',
     resize: 'vertical',
     boxSizing: 'border-box',
+    outline: 'none',
   },
   feedbackTextarea: {
     minHeight: 130,
@@ -1205,27 +1245,42 @@ const styles = {
     boxSizing: 'border-box',
   },
   errorText: { color: '#ff8080', fontSize: 15, margin: '8px 0 0' },
-  actionRow: { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 },
+  actionRow: {
+    display: 'flex',
+    gap: 10,
+    justifyContent: 'flex-end',
+    marginTop: 14,
+    flexWrap: 'wrap',
+  },
   primaryBtn: {
     background: '#ffdd57',
     color: '#1a1a2e',
     border: 'none',
     borderRadius: 8,
-    padding: '10px 18px',
+    padding: '11px 18px',
     fontWeight: 700,
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: 16,
+    minHeight: 44,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(255, 221, 87, 0.25)',
   },
   secondaryBtn: {
     background: 'transparent',
     color: '#fff',
     border: '1px solid #555',
     borderRadius: 8,
-    padding: '10px 18px',
+    padding: '11px 18px',
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: 16,
+    minHeight: 44,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chatHeader: {
     display: 'flex',
