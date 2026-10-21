@@ -1,12 +1,12 @@
-import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
+import pool from '../../../config/db.js';
 
 const PUBLIC_FIELDS =
   'id, name, email, avatar_url, provider, role, is_verified, character_name, created_at';
 
 class UserRepositories {
   constructor() {
-    this._pool = new Pool();
+    this._pool = pool;
   }
 
   async createUser({ name, email, password, avatarUrl, role }) {

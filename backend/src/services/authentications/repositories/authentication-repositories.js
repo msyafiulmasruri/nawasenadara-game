@@ -1,10 +1,10 @@
-import { Pool } from 'pg';
 import crypto from 'crypto';
+import pool from '../../../config/db.js';
 import TokenManager from '../../../security/token-manager.js';
 
 class AuthenticationRepositories {
   constructor() {
-    this._pool = new Pool();
+    this._pool = pool;
   }
 
   // ------------------------------------------------------------------
