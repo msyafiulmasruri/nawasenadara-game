@@ -14,22 +14,22 @@ export const EPISODES = [
     description:
       'Hari pertamamu di sekolah baru! Di lorong kelas, Rafi melempar candaan yang meremehkan perempuan. Berani bilang nggak nyaman, atau cuma diam?',
     objective:
-      'Di lorong kelas, Rafi melempar candaan yang meremehkan perempuan. Misi utamamu adalah mengenali candaan yang kelewat batas itu, lalu menyampaikan rasa tidak nyamanmu dengan tenang tanpa diam memendam atau membalas kasar.',
+      'Kenali candaan yang merendahkan, lalu sampaikan rasa tidak nyamanmu dengan tenang dan tegas tanpa membalas kasar.',
     aspects: [
       {
         id: 1,
         title: 'Kenali candaan yang merendahkan',
-        desc: 'Sadar kalau omongan yang meremehkan teman perempuan itu bukan candaan biasa.',
+        desc: 'Sadar omongan yang meremehkan bukan candaan biasa.',
       },
       {
         id: 2,
         title: 'Sampaikan rasa tidak nyaman',
-        desc: 'Berani jujur bilang nggak suka saat candaan sudah kelewat batas.',
+        desc: 'Berani jujur bilang tidak suka saat kelewat batas.',
       },
       {
         id: 3,
         title: 'Bicara tenang tanpa membalas kasar',
-        desc: 'Tegur dengan kepala dingin tanpa diam memendam atau balik memaki.',
+        desc: 'Tegur dengan kepala dingin tanpa membalas kasar.',
       },
     ],
   },
@@ -44,22 +44,22 @@ export const EPISODES = [
     description:
       'Grup chat kelas mendadak ramai menertawakan foto Kirana. Kamu mau ikut ketawa, cuma baca diam-diam, atau hadir menemani Kirana?',
     objective:
-      'Grup chat kelas sedang ramai menertawakan foto Kirana yang disebar tanpa izin. Misi utamamu adalah menolak ikut menyebarkan ejekan di grup dan hadir menemani Kirana supaya dia tidak merasa sendirian.',
+      'Tolak ikut menyebarkan foto ejekan di grup chat dan hadir temani Kirana agar dia tidak merasa sendirian.',
     aspects: [
       {
         id: 1,
         title: 'Sadar ejekan di grup itu menyakitkan',
-        desc: 'Paham kalau menertawakan foto teman di grup chat bikin temanmu terluka.',
+        desc: 'Paham menertawakan foto teman di grup melukai perasaannya.',
       },
       {
         id: 2,
         title: 'Hadir menemani teman yang sedih',
-        desc: 'Hampiri dan ajak Kirana ngobrol supaya dia nggak merasa sendirian.',
+        desc: 'Ajak Kirana mengobrol agar dia tidak merasa sendirian.',
       },
       {
         id: 3,
         title: 'Tolak ikut tertawa atau menyebarkan',
-        desc: 'Jangan ikut meneruskan foto ejekan dan berani ingatkan kalau itu salah.',
+        desc: 'Jangan teruskan foto ejekan dan ingatkan teman lain.',
       },
     ],
   },
@@ -74,22 +74,22 @@ export const EPISODES = [
     description:
       'Malam hari di kamar, akun asing tiba-tiba chat sok akrab lalu minta data pribadi dan fotomu. Hati-hati, lindungi privasimu sekarang!',
     objective:
-      'Sebuah akun asing mengirim pesan sok akrab lalu memaksa minta data dan foto pribadimu. Misi utamamu adalah mengenali tanda bahayanya, menolak memberikan informasi pribadi, lalu menyimpan bukti dan memblokir akun itu.',
+      'Waspadai pesan akun asing, tolak beri data atau foto pribadi, lalu simpan bukti dan blokir akunnya.',
     aspects: [
       {
         id: 1,
         title: 'Waspada bujukan akun asing',
-        desc: 'Sadar ada tanda bahaya saat orang tak dikenal di internet mulai sok akrab dan memaksa.',
+        desc: 'Kenali bahaya orang asing yang memaksa minta hal pribadi.',
       },
       {
         id: 2,
         title: 'Tolak beri data dan foto pribadi',
-        desc: 'Tegas menolak memberikan alamat rumah, nomor HP, maupun foto diri.',
+        desc: 'Tegas menolak memberikan info kontak maupun foto diri.',
       },
       {
         id: 3,
         title: 'Simpan bukti, blokir, dan lapor',
-        desc: 'Simpan tangkapan layar chat sebagai bukti, blokir akunnya, dan cerita ke orang dewasa.',
+        desc: 'Tangkap layar chat untuk bukti, blokir akunnya, dan lapor.',
       },
     ],
   },
@@ -104,22 +104,22 @@ export const EPISODES = [
     description:
       'Waktu istirahat di kantin, kakak kelas mengomentari bentuk tubuhmu sambil ketawa. Yuk, tunjukkan kalau kamu berhak dihargai!',
     objective:
-      'Saat istirahat di kantin, kakak kelas mengomentari bentuk tubuhmu sambil tertawa. Misi utamamu adalah menyampaikan dengan tegas kalau kamu tidak nyaman, lalu menjaga jarak ke tempat yang aman.',
+      'Tolak tegas komentar yang merendahkan fisikmu di kantin, lalu segera menjauh ke tempat yang aman.',
     aspects: [
       {
         id: 1,
-        title: 'Paham fisikmu bukan bahan candaan',
-        desc: 'Sadar kalau tubuh dan penampilanmu nggak boleh dijadikan bahan lelucon.',
+        title: 'Paham fisik bukan bahan candaan',
+        desc: 'Sadar tubuh dan penampilanmu bukan bahan lelucon.',
       },
       {
         id: 2,
         title: 'Bilang tidak suka dengan tegas',
-        desc: 'Berani bicara tenang bahwa kamu nggak nyaman dikomentari seperti itu.',
+        desc: 'Bicara lugas dan tenang bahwa kamu tidak nyaman dikomentari begitu.',
       },
       {
         id: 3,
         title: 'Menjauh ke tempat yang aman',
-        desc: 'Jaga jarak dari orang yang mengganggu dan lapor ke guru jika terus berlanjut.',
+        desc: 'Jaga jarak dari pengganggu dan segera cari bantuan guru.',
       },
     ],
   },
@@ -134,22 +134,22 @@ export const EPISODES = [
     description:
       'Kirana akhir-akhir ini kelihatan murung dan ketakutan tiap HP-nya bunyi. Yuk, dengarkan ceritanya dan bantu dia mencari pertolongan!',
     objective:
-      'Sahabatmu, Kirana, tampak murung dan ketakutan karena diperlakukan kasar oleh orang dekatnya. Misi utamamu adalah mendengarkan ceritanya dengan sabar tanpa menyalahkan, lalu menemani Kirana meminta bantuan Guru BK.',
+      'Dengarkan cerita Kirana dengan sabar tanpa menyalahkan, lalu temani dia meminta bantuan Guru BK.',
     aspects: [
       {
         id: 1,
         title: 'Peka melihat perubahan sahabat',
-        desc: 'Sadari tanda cemas dan takut saat sahabatmu sedang punya masalah.',
+        desc: 'Sadari tanda cemas dan takut saat sahabat punya masalah.',
       },
       {
         id: 2,
         title: 'Dengarkan cerita tanpa menyalahkan',
-        desc: 'Jadi teman curhat yang menenangkan tanpa memaksa atau menyalahkan korban.',
+        desc: 'Beri rasa aman dan dengarkan curhat tanpa menyalahkan.',
       },
       {
         id: 3,
         title: 'Temani cari bantuan Guru BK',
-        desc: 'Ajak dan temani sahabatmu melapor ke Guru BK, jangan nekat melabrak pelaku sendirian.',
+        desc: 'Ajak dan temani sahabatmu melapor ke BK tanpa melabrak sendiri.',
       },
     ],
   },
@@ -164,22 +164,22 @@ export const EPISODES = [
     description:
       'Naya dihadang di dekat gerbang sekolah dan dipaksa ikut oleh seseorang. Jangan biarkan dia sendirian, ayo bertindak kompak!',
     objective:
-      'Seorang kakak kelas menghadangmu di dekat gerbang dan memaksa ikut ke tempat sepi. Misi utamamu adalah menolak ajakan itu dengan tegas, segera menuju pos satpam yang aman bersama Naya, dan melaporkan kejadiannya.',
+      'Tolak ajakan paksa dengan tegas, segera menuju pos satpam bersama Naya, dan laporkan kejadiannya.',
     aspects: [
       {
         id: 1,
         title: 'Berani menolak paksaan',
-        desc: 'Tegas berkata tidak dan menolak ikut saat ada ajakan atau paksaan yang mencurigakan.',
+        desc: 'Tegas berkata tidak saat dipaksa pergi ke tempat sepi.',
       },
       {
         id: 2,
         title: 'Segera menuju tempat aman',
-        desc: 'Cepat pindah ke tempat ramai yang ada satpam atau guru bersama temanmu.',
+        desc: 'Cepat pindah ke pos satpam atau tempat ramai bersama Naya.',
       },
       {
         id: 3,
         title: 'Catat kejadian dan lapor resmi',
-        desc: 'Ingat urutan kejadian dengan jelas lalu laporkan ke Guru BK dan orang tua.',
+        desc: 'Ingat urutan kejadian dan laporkan ke Guru BK serta orang tua.',
       },
     ],
   },

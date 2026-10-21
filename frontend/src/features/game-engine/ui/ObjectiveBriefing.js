@@ -74,6 +74,7 @@ const CSS = `
   justify-content: center;
   padding: 68px 5vw 40px;
   min-width: 0;
+  min-height: 0;
 }
 
 .nd-mission__slide {
@@ -128,7 +129,28 @@ const CSS = `
   padding: 36px clamp(24px, 3.2vw, 46px) 32px;
   animation: ndMissionRise 520ms ease-out 180ms both;
   cursor: pointer;
+  max-height: 85vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,221,87,0.4) transparent;
 }
+.nd-mission__box::-webkit-scrollbar {
+  width: 5px;
+}
+.nd-mission__box::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.nd-mission__box::-webkit-scrollbar-thumb {
+  background: rgba(255, 221, 87, 0.4);
+  border-radius: 4px;
+}
+.nd-mission__box::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 221, 87, 0.7);
+}
+
 .nd-mission__speaker {
   position: absolute;
   top: -16px;
@@ -257,22 +279,156 @@ const CSS = `
 @keyframes ndMissionBreath { 0%,100% { opacity: .68; } 50% { opacity: 1; } }
 @keyframes ndMissionNudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
 
+/* Layar sedang / laptop kecil (height 521px - 680px) */
+@media (max-height: 680px) and (min-height: 521px) {
+  .nd-mission__main { padding: 28px 4vw 16px; }
+  .nd-mission__head { gap: 14px; margin-bottom: 14px; }
+  .nd-mission__icon { width: 44px; height: 44px; }
+  .nd-mission__title { font-size: 26px; }
+  .nd-mission__box { padding: 22px 28px 18px; max-height: calc(100vh - 120px); }
+  .nd-mission__body { font-size: 17px; line-height: 1.5; }
+  .nd-mission__step-row { font-size: 16px; line-height: 1.45; }
+  .nd-mission__dots { margin-top: 14px; }
+  .nd-mission__side { width: clamp(130px, 15vw, 180px); }
+  .nd-mission__next { font-size: 24px !important; }
+}
+
+/* HP Landscape standar / kompak (Pixel, iPhone, Xiaomi dll - height <= 520px) */
+@media (max-height: 520px), (max-width: 900px) and (orientation: landscape) {
+  .nd-mission__skip {
+    top: 8px;
+    left: 14px;
+    font-size: 13px;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+  .nd-mission__main {
+    padding: 6px 14px 6px 16px;
+    justify-content: center;
+  }
+  .nd-mission__slide {
+    width: min(680px, 100%);
+  }
+  .nd-mission__head {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .nd-mission__icon {
+    width: 28px;
+    height: 28px;
+  }
+  .nd-mission__title {
+    font-size: 17px;
+    line-height: 1.15;
+    text-shadow: 0 1px 8px rgba(255,221,87,0.25);
+  }
+  .nd-mission__box {
+    padding: 12px 16px 8px;
+    border-width: 2px;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    max-height: calc(100vh - 76px);
+  }
+  .nd-mission__speaker {
+    top: -9px;
+    left: 12px;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    max-width: calc(100% - 24px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nd-mission__body {
+    font-size: 13px;
+    line-height: 1.36;
+    min-height: auto;
+  }
+  .nd-mission__body.is-steps {
+    gap: 5px;
+  }
+  .nd-mission__step-row {
+    font-size: 12px;
+    line-height: 1.32;
+  }
+  .nd-mission__dots {
+    gap: 6px;
+    margin-top: 5px;
+  }
+  .nd-mission__dot {
+    width: 6px;
+    height: 6px;
+  }
+  .nd-mission__dot.is-active {
+    width: 18px;
+  }
+  .nd-mission__side {
+    width: clamp(90px, 13vw, 115px);
+    gap: 6px;
+  }
+  .nd-mission__next {
+    font-size: 18px !important;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .nd-mission__prev {
+    font-size: 12px !important;
+    padding: 2px 6px;
+  }
+}
+
+/* HP Landscape layar kecil / browser ber-address bar (height <= 380px) */
+@media (max-height: 380px) {
+  .nd-mission__main { padding: 4px 10px 4px 12px; }
+  .nd-mission__head { gap: 6px; margin-bottom: 4px; }
+  .nd-mission__icon { width: 22px; height: 22px; }
+  .nd-mission__title { font-size: 14.5px; }
+  .nd-mission__box {
+    padding: 9px 12px 6px;
+    max-height: calc(100vh - 58px);
+  }
+  .nd-mission__speaker { top: -8px; font-size: 10px; }
+  .nd-mission__body { font-size: 11.5px; line-height: 1.28; }
+  .nd-mission__step-row { font-size: 11px; line-height: 1.25; }
+  .nd-mission__dots { margin-top: 4px; }
+  .nd-mission__side { width: 80px; gap: 4px; }
+  .nd-mission__next { font-size: 15px !important; padding: 4px 6px; }
+}
+
+/* HP Tampilan Portrait */
 @media (max-aspect-ratio: 1/1) {
   #${ROOT_ID} { flex-direction: column; }
-  .nd-mission__main { padding: 64px 5vw 16px; }
+  .nd-mission__skip { top: 10px; left: 14px; font-size: 13px; padding: 3px 9px; }
+  .nd-mission__main {
+    padding: 44px 4vw 8px;
+    flex: 1;
+    overflow-y: auto;
+    justify-content: center;
+  }
+  .nd-mission__head { gap: 10px; margin-bottom: 10px; }
+  .nd-mission__icon { width: 34px; height: 34px; }
+  .nd-mission__title { font-size: 18px; line-height: 1.2; }
+  .nd-mission__box { padding: 16px 14px 12px; max-height: none; }
+  .nd-mission__speaker { top: -10px; left: 12px; font-size: 11px; padding: 1px 7px; }
+  .nd-mission__body { font-size: 14px; line-height: 1.4; min-height: auto; }
+  .nd-mission__body.is-steps { gap: 8px; }
+  .nd-mission__step-row { font-size: 13px; line-height: 1.35; }
+  .nd-mission__dots { margin-top: 10px; }
   .nd-mission__side {
     width: 100%;
-    height: 116px;
+    height: 60px;
     flex-direction: row;
-    gap: 32px;
+    gap: 20px;
+    flex-shrink: 0;
     background: linear-gradient(to bottom, rgba(255,221,87,0) 0%, rgba(255,221,87,0.09) 100%);
   }
   .nd-mission__side::before {
     left: 6%; right: 6%; top: 0; bottom: auto; width: auto; height: 2px;
     background: linear-gradient(to right, transparent, rgba(255,221,87,0.55) 30%, rgba(255,221,87,0.55) 70%, transparent);
   }
-  .nd-mission__prev { order: -1; }
-  .nd-mission__head { gap: 14px; }
+  .nd-mission__prev { order: -1; font-size: 14px !important; }
+  .nd-mission__next { font-size: 19px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   #${ROOT_ID} *, #${ROOT_ID} { animation: none !important; transition: none !important; }
