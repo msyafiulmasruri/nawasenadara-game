@@ -436,6 +436,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     this.responseTexts = getEpisodeChoiceTexts(this.episodeId, this.choices);
     this.dominantEmotion = fallback.dominant;
+    this.showReportOnly = Boolean(data?.showReportOnly);
     this.emotionConfidence = totalResponses > 0 ? fallbackCount / totalResponses : 0;
     this.emotionFromAi = false;
     this._stage = 'ending';
@@ -447,6 +448,13 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
   create() {
     const { width, height } = syncGameSizeToOrientation(this);
+
+    if (this.showReportOnly) {
+      this._showFinalReportLandscape(() => {
+        this.scene.start('EpisodeSelectScene');
+      });
+      return;
+    }
 
     this.audioManager = new AudioManager();
     this.audioManager.init();
@@ -1299,14 +1307,85 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     // tanpa memunculkan layar suruh mengulang lagi.
     if (this.isLastEpisode || this.episodeId === 6) {
       completeEpisode(this.episodeId, this.choices, this.endingKey);
-      // Jurnal refleksi telah selesai diisi; sekarang tampilkan Rapor 6 Episode Landscape!
-      this._showFinalReportLandscape(() => {
-        this.scene.start('EpisodeSelectScene');
-      });
+      this._showMiniBossTransition();
       return;
     }
 
     this._completeAndContinue();
+  }
+
+  _showMiniBossTransition() {
+    if (!this._isSceneValid()) return;
+    this._stage = 'miniboss_transition';
+    this._readyToAdvance = false;
+    this._teardownInput();
+
+    this.endingObjects?.forEach((obj) => obj.setVisible(false));
+    this.emotionObjects?.forEach((obj) => obj.setVisible(false));
+    this.emotionLoadingText?.setVisible(false);
+    this.promptText?.setVisible(false);
+    this._aspectContainer?.setVisible(false);
+
+    const bounds = getVisibleBounds(this);
+    const centerX = bounds.centerX;
+    const centerY = bounds.centerY;
+    const compact = isCompactLandscape(this);
+
+    const container = this.add.container(centerX, centerY).setDepth(20);
+
+    const cardW = Math.min(bounds.width * 0.9, compact ? 420 : 460);
+    const cardH = compact ? 190 : 220;
+
+    const cardBg = this.add.rectangle(0, 0, cardW, cardH, 0x0f172a, 0.98)
+      .setStrokeStyle(2, 0xa855f7);
+
+    const badge = this.add.text(0, compact ? -60 : -70, 'EPISODE SPESIAL TERBUKA', {
+      fontFamily: '"Jersey 15", monospace',
+      fontSize: compact ? '16px' : '18px',
+      color: '#ffdd57',
+    }).setOrigin(0.5);
+
+    const title = this.add.text(0, compact ? -32 : -38, 'TANTANGAN AKHIR: MINI BOSS', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: compact ? '15px' : '17px',
+      fontStyle: '700',
+      color: '#f8fafc',
+    }).setOrigin(0.5);
+
+    const desc = this.add.text(0, compact ? 10 : 12, 'Dara berhasil menyelesaikan Episode 6! Namun di depan gerbang sekolah, Reno (siswa nakal) sedang menghadang dan mencoba memprovokasimu.\n\nHadapi provokasinya secara tatap muka dengan respon asertif dan kepala dingin!', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: compact ? '11px' : '12px',
+      color: '#cbd5e1',
+      align: 'center',
+      lineSpacing: 4,
+      wordWrap: { width: cardW - 36 },
+    }).setOrigin(0.5);
+
+    const startBtn = this.add.rectangle(0, compact ? 60 : 72, 220, compact ? 28 : 34, 0x064e3b, 1)
+      .setStrokeStyle(1.5, 0x10b981)
+      .setInteractive({ useHandCursor: true });
+
+    const startBtnText = this.add.text(0, compact ? 60 : 72, 'TANTANG MINI BOSS >', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: compact ? '11px' : '13px',
+      fontStyle: '700',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+
+    startBtn.on('pointerdown', () => {
+      this.audioManager?.stopBGM?.();
+      this.scene.start('MiniBossScene', {
+        episodeId: 6,
+        isLastEpisode: true,
+        choices: this.choices || [],
+      });
+    });
+    startBtn.on('pointerover', () => startBtn.setFillStyle(0x047857));
+    startBtn.on('pointerout', () => startBtn.setFillStyle(0x064e3b));
+
+    container.add([cardBg, badge, title, desc, startBtn, startBtnText]);
+    container.setAlpha(0);
+    this.tweens.add({ targets: container, alpha: 1, duration: 280 });
   }
 
   _showLearningMenu() {
