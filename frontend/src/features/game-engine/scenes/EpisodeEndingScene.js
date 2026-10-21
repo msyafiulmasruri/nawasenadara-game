@@ -1434,16 +1434,15 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       </style>
       <div class="nd-mb-card">
         <div class="nd-mb-badge">EPISODE SPESIAL TERBUKA</div>
-        <h2 class="nd-mb-title">TANTANGAN AKHIR: MINI BOSS</h2>
+        <h2 class="nd-mb-title">TANTANGAN AKHIR: MINI BOSS RUNNER</h2>
         <p class="nd-mb-desc">
-          Dara berhasil menuntaskan Episode 6! Namun saat hendak keluar gerbang sekolah,
-          <span class="nd-mb-highlight">Reno</span> (siswa yang suka meremehkan batasan orang lain) menghadang langkahmu.
+          Dara berhasil menuntaskan Episode 6! Namun <span class="nd-mb-highlight">Bayangan Intimidasi</span> menghadang jalan keluar sekolah.
         </p>
         <div class="nd-mb-box">
-          💬 Hadapi 5 provokasi Reno secara tatap muka dengan <strong>respon asertif yang tenang, lugas, dan tegas</strong>. Jaga emosimu tetap stabil agar tidak terpancing!
+          🏃 Lari dan lompati duri bayangan serta drone pengintai! Kumpulkan <strong>Serpihan Kebenaran</strong>, jawab kuis asertif dengan tepat, lalu lepaskan <strong>Ledakan Keberanian</strong> untuk menaklukkan Mini Boss!
         </div>
         <button id="nd-mb-start-btn" class="nd-mb-btn">
-          TANTANG MINI BOSS ›
+          TANTANG MINI BOSS RUNNER ›
         </button>
       </div>
     `;
@@ -1455,9 +1454,10 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     startBtn?.addEventListener('click', () => {
       this._cleanupMiniBossModal();
       this.audioManager?.stopBGM?.();
-      this.scene.start('MiniBossScene', {
+      this.scene.start('RunnerScene', {
         episodeId: 6,
         isLastEpisode: true,
+        mode: 'runner',
         choices: this.choices || [],
       });
     });

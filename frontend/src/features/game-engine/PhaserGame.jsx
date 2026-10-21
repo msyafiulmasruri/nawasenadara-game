@@ -15,7 +15,6 @@ import Episode3Scene from './scenes/Episode3Scene';
 import Episode4Scene from './scenes/Episode4Scene';
 import Episode5Scene from './scenes/Episode5Scene';
 import Episode6Scene from './scenes/Episode6Scene';
-import MiniBossScene from './scenes/MiniBossScene';
 import RunnerScene from './scenes/RunnerScene';
 import StoryEpisodeScene from './scenes/StoryEpisodeScene';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './config/gameConfig';
@@ -82,18 +81,15 @@ export default function PhaserGame({ initialScene, initialData }) {
     // Deteksi scene awal dari prop atau URL query string (mis. /game?mode=boss atau /game?scene=RunnerScene)
     let resolvedScene = initialScene;
     let resolvedData = initialData;
-    if (resolvedScene === 'FinalBossScene') {
-      resolvedScene = 'MiniBossScene';
-      resolvedData = { episodeId: 6, isLastEpisode: true };
+    if (resolvedScene === 'FinalBossScene' || resolvedScene === 'MiniBossScene') {
+      resolvedScene = 'RunnerScene';
+      resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
     }
     if (!resolvedScene && typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode') || params.get('scene');
-        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'MiniBossScene') {
-          resolvedScene = 'MiniBossScene';
-          resolvedData = { episodeId: 6, isLastEpisode: true };
-        } else if (mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
+        if (mode === 'boss' || mode === 'FinalBossScene' || mode === 'miniboss' || mode === 'MiniBossScene' || mode === 'runner' || mode === 'dino' || mode === 'RunnerScene') {
           resolvedScene = 'RunnerScene';
           resolvedData = { episodeId: 6, isLastEpisode: true, mode: 'runner' };
         } else if (mode) {
@@ -131,7 +127,6 @@ export default function PhaserGame({ initialScene, initialData }) {
           Episode4Scene,
           Episode5Scene,
           Episode6Scene,
-          MiniBossScene,
           RunnerScene,
           StoryEpisodeScene,
         ],

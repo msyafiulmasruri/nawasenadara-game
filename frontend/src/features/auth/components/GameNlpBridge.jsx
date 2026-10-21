@@ -134,24 +134,6 @@ export default function GameNlpBridge() {
           },
           { getAccessToken },
         ),
-
-      // Mini Boss Close-Up Dialogue: Mengambil 5 dialog dinamis Reno (Siswa Nakal)
-      getMiniBossDialogues: async () =>
-        apiClient.get('/api/nlp/miniboss/dialogues', { getAccessToken }),
-
-      // Mini Boss Close-Up Dialogue: Evaluasi respon ketikan siswa & de-eskalasi bar emosi
-      evaluateMiniBossResponse: async ({ text, round, topic, npcLine, currentEmotionTier }) =>
-        apiClient.post(
-          '/api/nlp/miniboss/evaluate-response',
-          {
-            text,
-            round,
-            topic,
-            npc_line: npcLine,
-            current_emotion_tier: currentEmotionTier,
-          },
-          { getAccessToken },
-        ),
     };
 
     window.__nawasenadaraNlp = bridge;
