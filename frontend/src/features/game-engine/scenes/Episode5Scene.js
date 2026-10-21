@@ -52,7 +52,42 @@ export default class Episode5Scene extends BasePlayerScene {
 
     super.create(data);
 
+    // Tambahkan partikel lembut dedaunan melayang di taman sekolah
+    this._createGardenAtmosphere();
+
+    this._onCutsceneResize = () => {
+      if (!this._cutsceneContainer || !this._cutsceneContainer.scene || !this._currentCutsceneKey) return;
+      const bounds = getVisibleBounds(this);
+      const { width, height } = this.scale;
+      if (this._cutsceneBg?.setPosition) {
+        this._cutsceneBg.setPosition(bounds.centerX, bounds.centerY);
+        if (this._cutsceneBg.geom) {
+          this._cutsceneBg.setSize(bounds.width * 1.5, bounds.height * 1.5);
+        }
+      }
+      if (this._cutsceneVignette?.setPosition) {
+        this._cutsceneVignette.setPosition(bounds.centerX, bounds.centerY);
+        if (this._cutsceneVignette.geom) {
+          this._cutsceneVignette.setSize(bounds.width * 1.5, bounds.height * 1.5);
+        }
+      }
+      if (this._cutsceneTitle) {
+        this._cutsceneTitle.setPosition(bounds.centerX, bounds.top + pxToWorld(this, 22));
+        this._cutsceneTitle.setFontSize(`${pxToWorld(this, 14)}px`);
+      }
+      if (this._cutsceneImg && this.textures.exists(this._currentCutsceneKey)) {
+        const imgSource = this.textures.get(this._currentCutsceneKey).getSourceImage();
+        const scaleX = bounds.width / imgSource.width;
+        const scaleY = bounds.height / imgSource.height;
+        const coverScale = Math.max(scaleX, scaleY);
+        this._cutsceneImg.setScale(coverScale);
+        this._cutsceneImg.setPosition(bounds.centerX, bounds.centerY);
+      }
+    };
+    this.scale.on('resize', this._onCutsceneResize, this);
+
     this.events.once('shutdown', () => {
+      this.scale.off('resize', this._onCutsceneResize, this);
       this._cutsceneContainer = null;
       this._cutsceneBg = null;
       this._cutsceneImg = null;
@@ -60,9 +95,6 @@ export default class Episode5Scene extends BasePlayerScene {
       this._cutsceneTitle = null;
       this._currentCutsceneKey = null;
     });
-
-    // Tambahkan partikel lembut dedaunan melayang di taman sekolah
-    this._createGardenAtmosphere();
     if (data?.preservePlayer) return;
 
     this.uiInputLocked = true;
@@ -338,9 +370,14 @@ export default class Episode5Scene extends BasePlayerScene {
   }
 
   /**
-   * Menentukan tampilan cutscene visual penuh sesuai alur cabang pilihan Episode 5.
-   * Cutscene hanya muncul setelah pemain menentukan pilihan di n_action,
-   * dan di dalam cutscene murni naratif tanpa opsi pilihan dialog (selaras dengan Episode 1 & 4).
+   * Menentukan tampilan cutscene visual penuh sesuai alur cerita Episode 5.
+   * - ep5-garden-bench-cg: pembuka cerita dan ngobrol santai di bangku taman (n1..n2_shift)
+   * - ep5-phone-threat-cg: HP Kirana bergetar ancaman, bekas luka tampak, dan curahan hati (n2_threat..n_action)
+   * - ep5-library-cg: kunjungan ulang di perpustakaan sekolah (revisit_chat)
+   * - Cabang A: Ruang BK Bu Ratih (ep5-bk-room-cg) lalu Halte Bus Senja (ep5-halte-cg)
+   * - Cabang B: Halte Bus Senja (ep5-halte-cg)
+   * - Cabang C: Bahaya konfrontasi gegabah (ep5-phone-threat-cg)
+   * - Cabang D: Kepasrahan di bangku taman (ep5-garden-bench-cg)
    */
   _updateCutsceneForNode(node) {
     if (!node || !node.id) {
@@ -350,40 +387,82 @@ export default class Episode5Scene extends BasePlayerScene {
 
     const id = node.id;
 
-    // Cutscene Cabang A: Ruang BK Bu Ratih (cutsceneA1..A3) lalu Halte Bus Senja (cutsceneA4..A5)
-    if (id === 'cutsceneA1' || id === 'cutsceneA2' || id === 'cutsceneA3') {
+    // 1. Adegan pembuka dan obrolan awal berlangsung di bangku taman sekolah
+    if (
+      [
+        'n1',
+        'n1_approach',
+        'n1b',
+        'n1c',
+        'n_icebreak',
+        'n_icebreak_res_a',
+        'n_icebreak_res_b',
+        'n_icebreak_res_c',
+        'n_icebreak_res_d',
+        'n2_shift',
+      ].includes(id)
+    ) {
+      this._showCutscene(
+        'ep5-garden-bench-cg',
+        '✦ Bangku Taman Sekolah — Ruang Aman untuk Bercerita ✦'
+      );
+    }
+    // 2. Ponsel bergetar ancaman, bekas cengkeraman tampak, hingga Kirana curhat & meminta bantuan
+    else if (
+      [
+        'n2_threat',
+        'n2_mark',
+        'n3_confession',
+        'n4_plea',
+        'n_action',
+      ].includes(id)
+    ) {
+      this._showCutscene(
+        'ep5-phone-threat-cg',
+        '✦ Ancaman yang Membuat Kirana Ketakutan ✦'
+      );
+    }
+    // 3. Kunjungan ulang menggambarkan persahabatan yang kembali hangat di perpustakaan
+    else if (id === 'revisit_chat') {
+      this._showCutscene(
+        'ep5-library-cg',
+        '✦ Perpustakaan Sekolah — Persahabatan yang Kembali Hangat ✦'
+      );
+    }
+    // 4. Cutscene Cabang A: Ruang BK Bu Ratih (cutsceneA1..A3) lalu Halte Bus Senja (cutsceneA4..A5, n8a)
+    else if (id === 'cutsceneA1' || id === 'cutsceneA2' || id === 'cutsceneA3') {
       this._showCutscene(
         'ep5-bk-room-cg',
         '✦ Ruang Bimbingan Konseling (BK) — Ruang Aman Bersama Bu Ratih ✦'
       );
-    } else if (id === 'cutsceneA4' || id === 'cutsceneA5') {
+    } else if (id === 'cutsceneA4' || id === 'cutsceneA5' || id === 'n8a') {
       this._showCutscene(
         'ep5-halte-cg',
         '✦ Menanti di Halte Sepulang Sekolah — Berdua di Ujung Senja ✦'
       );
     }
-    // Cutscene Cabang B: Halte Bus Senja (cutsceneB1..B4)
-    else if (id.startsWith('cutsceneB')) {
+    // 5. Cutscene Cabang B: Halte Bus Senja (cutsceneB1..B4, n8b)
+    else if (id.startsWith('cutsceneB') || id === 'n8b') {
       this._showCutscene(
         'ep5-halte-cg',
         '✦ Menanti di Halte Sepulang Sekolah — Ruang Bernapas yang Teduh ✦'
       );
     }
-    // Cutscene Cabang C: Ancaman & Bahaya Melabrak (cutsceneC1..C4)
-    else if (id.startsWith('cutsceneC')) {
+    // 6. Cutscene Cabang C: Ancaman & Bahaya Melabrak (cutsceneC1..C4, n8c)
+    else if (id.startsWith('cutsceneC') || id === 'n8c') {
       this._showCutscene(
         'ep5-phone-threat-cg',
         '✦ Bahaya Konfrontasi Gegabah — Mengutamakan Keselamatan Korban ✦'
       );
     }
-    // Cutscene Cabang D: Kepasrahan di Bangku Taman (cutsceneD1..D4)
-    else if (id.startsWith('cutsceneD')) {
+    // 7. Cutscene Cabang D: Kepasrahan di Bangku Taman (cutsceneD1..D4, n8d)
+    else if (id.startsWith('cutsceneD') || id === 'n8d') {
       this._showCutscene(
         'ep5-garden-bench-cg',
         '✦ Bayang-Bayang Ketakutan — Bahaya Membiarkan Kekerasan ✦'
       );
     }
-    // Di luar node cutscene (dialog gameplay taman n1..n_action maupun kartu penutup n8a..n8d), sembunyikan cutscene
+    // Di luar node cutscene, sembunyikan cutscene
     else {
       this._hideCutscene();
     }
@@ -391,7 +470,11 @@ export default class Episode5Scene extends BasePlayerScene {
 
   /** Menampilkan cutscene sinematik layar penuh dengan transisi halus antar babak */
   _showCutscene(textureKey, titleText) {
-    if (!this.textures.exists(textureKey)) return;
+    if (!this.textures.exists(textureKey)) {
+      this._hideCutscene();
+      console.warn(`[Episode5Scene] Aset cutscene tidak ditemukan: ${textureKey}`);
+      return;
+    }
 
     const bounds = getVisibleBounds(this);
     const { width, height } = this.scale;
