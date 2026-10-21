@@ -296,6 +296,91 @@ const CSS = `
     text-align: center;
   }
 }
+
+/* Mobile Landscape (Pixel 9, iPhone landscape, dsb. dengan tinggi <= 520px) */
+@media (max-height: 520px) {
+  #nd-ctrl-tutorial-root {
+    padding: 6px 3vw;
+  }
+  .nd-ctrl__panel {
+    padding: 10px 22px;
+    border-radius: 14px;
+    max-height: 96vh;
+    overflow-y: auto;
+  }
+  .nd-ctrl__header {
+    margin-bottom: 6px;
+  }
+  .nd-ctrl__heading {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  .nd-ctrl__subheading {
+    font-size: 12px;
+  }
+  .nd-ctrl__grid {
+    gap: 6px 20px;
+  }
+  .nd-ctrl__group {
+    gap: 3px;
+  }
+  .nd-ctrl__cluster {
+    min-height: 38px;
+    gap: 4px;
+  }
+  .nd-ctrl__key {
+    min-width: 36px;
+    height: 34px;
+    padding: 0 8px;
+    font-size: 14px;
+    border-radius: 7px;
+  }
+  .nd-ctrl__key--wide {
+    min-width: 90px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .nd-ctrl__mouse {
+    width: 28px;
+    height: 40px;
+    border-radius: 12px;
+    border-width: 2px;
+  }
+  .nd-ctrl__mouse::before {
+    height: 16px;
+  }
+  .nd-ctrl__mouse::after {
+    top: 16px;
+  }
+  .nd-ctrl__mouse-wheel {
+    top: 4px;
+    width: 5px;
+    height: 9px;
+  }
+  .nd-ctrl__label {
+    font-size: 13px;
+  }
+  .nd-ctrl__sublabel {
+    font-size: 10.5px;
+    line-height: 1.2;
+    margin-top: -2px;
+    max-width: 220px;
+  }
+  .nd-ctrl__footer {
+    margin-top: 6px;
+    padding-top: 6px;
+    gap: 8px;
+  }
+  .nd-ctrl__status {
+    font-size: 11.5px;
+  }
+  .nd-ctrl__close-btn {
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 6px;
+  }
+}
 `;
 
 export default class ControlTutorialOverlay {

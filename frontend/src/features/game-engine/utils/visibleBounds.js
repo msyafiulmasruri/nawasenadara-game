@@ -36,6 +36,16 @@ export function isPortrait(scene) {
   return height > width;
 }
 
+/**
+ * True jika layar berada pada mode landscape dengan tinggi vertikal ringkas
+ * (misal smartphone landscape: Pixel 9 924x412, iPhone landscape, dsb. tinggi <= 520px).
+ * Desktop monitor (720p/1080p ke atas) menghasilkan false sehingga UI desktop tetap sempurna.
+ */
+export function isCompactLandscape(scene) {
+  const { width, height } = getLiveParentSize(scene);
+  return height <= 520 && width >= height;
+}
+
 export function syncGameSizeToOrientation(scene, options = {}) {
   const isPortraitMode = isPortrait(scene);
   const { width: pw, height: ph } = getLiveParentSize(scene);

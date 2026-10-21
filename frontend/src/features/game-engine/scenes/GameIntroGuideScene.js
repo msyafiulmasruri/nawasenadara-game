@@ -267,6 +267,109 @@ const CSS = `
 @keyframes ndNudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
 @keyframes ndShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
+/* Mobile Landscape (Pixel 9, iPhone landscape, dsb. tinggi <= 520px) */
+@media (max-height: 520px) {
+  .nd-intro__skip {
+    top: 8px;
+    left: 16px;
+    font-size: 13px;
+    padding: 3px 8px;
+    background: rgba(15, 14, 28, 0.75);
+    border-radius: 4px;
+    backdrop-filter: blur(2px);
+  }
+  .nd-intro__main {
+    padding: 10px 3vw 8px;
+    justify-content: center;
+  }
+  .nd-intro__slide {
+    width: min(840px, 100%);
+  }
+  .nd-intro__head {
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .nd-intro__icon {
+    width: 32px;
+    height: 32px;
+  }
+  .nd-intro__title {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+  .nd-intro__box {
+    padding: 14px 18px 10px;
+    border-width: 2px;
+    border-radius: 6px;
+  }
+  .nd-intro__speaker {
+    top: -11px;
+    left: 16px;
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  .nd-intro__text {
+    font-size: 14px;
+    line-height: 1.35;
+    min-height: auto;
+  }
+  .nd-intro__chars {
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .nd-intro__char-frame {
+    max-width: 64px;
+    max-height: 64px;
+    aspect-ratio: 1;
+    border-width: 1.5px;
+    border-radius: 6px;
+  }
+  .nd-intro__char-name {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .nd-intro__char-desc {
+    margin-top: 1px;
+    font-size: 10.5px;
+    line-height: 1.15;
+  }
+  .nd-intro__quiz {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .nd-intro__opt {
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    border-radius: 4px !important;
+  }
+  .nd-intro__feedback {
+    min-height: 1.2em;
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .nd-intro__dots {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .nd-intro__dot {
+    width: 6px;
+    height: 6px;
+  }
+  .nd-intro__dot.is-active {
+    width: 18px;
+  }
+  .nd-intro__side {
+    width: clamp(100px, 13vw, 140px);
+    gap: 10px;
+  }
+  .nd-intro__next {
+    font-size: 20px !important;
+  }
+  .nd-intro__prev {
+    font-size: 13px !important;
+  }
+}
+
 /* Portrait (HP berdiri): panel Lanjut pindah ke bawah */
 @media (max-aspect-ratio: 1/1) {
   #${ROOT_ID} { flex-direction: column; }

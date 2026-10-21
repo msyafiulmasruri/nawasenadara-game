@@ -8,6 +8,7 @@ import {
   getVisibleBounds,
   syncGameSizeToOrientation,
   pxToWorld,
+  isCompactLandscape,
 } from '../utils/visibleBounds';
 import {
   getCompletedEpisodes,
@@ -304,6 +305,56 @@ const REPORT_CSS = `
 }
 .nd-report-finish-btn:active {
   transform: translateY(1px);
+}
+
+@media (max-height: 520px) {
+  #nd-report-root {
+    padding: 8px 16px;
+    align-items: flex-start;
+  }
+  .nd-report-content {
+    gap: 8px;
+  }
+  .nd-report-title {
+    font-size: 20px;
+  }
+  .nd-report-subtitle {
+    font-size: 13px;
+  }
+  .nd-report-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .nd-report-card {
+    padding: 6px 10px;
+    gap: 3px;
+  }
+  .nd-report-card-title {
+    font-size: 13px;
+  }
+  .nd-report-card-badge {
+    font-size: 14px;
+    padding: 1px 6px;
+  }
+  .nd-report-card-detail {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  .nd-report-note {
+    padding: 8px 14px 6px;
+  }
+  .nd-report-note-tag {
+    font-size: 11px;
+    top: -9px;
+  }
+  .nd-report-note-text {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .nd-report-finish-btn {
+    font-size: 14px;
+    padding: 8px 24px;
+  }
 }
 `;
 
@@ -818,15 +869,18 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._aspectContainer = this.add.container(0, 0).setDepth(15);
     const bounds = getVisibleBounds(this);
     const centerX = bounds.centerX;
+    const compact = isCompactLandscape(this);
 
     const evalData = this.aspectEvaluation;
-    const titleFont = pxToWorld(this, 34);
-    const subTitleFont = pxToWorld(this, 19);
-    const bodyFont = pxToWorld(this, 18);
-    const cardWidth = Math.min(bounds.width * 0.92, pxToWorld(this, 900));
+    const titleFont = compact ? 24 : pxToWorld(this, 34);
+    const subTitleFont = compact ? 15 : pxToWorld(this, 19);
+    const bodyFont = compact ? 13.5 : pxToWorld(this, 18);
+    const badgeFont = compact ? 15 : pxToWorld(this, 20);
+    const cardWidth = Math.min(bounds.width * 0.94, compact ? 780 : pxToWorld(this, 900));
 
+    const titleY = compact ? bounds.top + bounds.height * 0.05 : bounds.top + bounds.height * 0.08;
     const title = this.add
-      .text(centerX, bounds.top + bounds.height * 0.08, 'EVALUASI 3 LANGKAH MISI', {
+      .text(centerX, titleY, 'EVALUASI 3 LANGKAH MISI', {
         fontFamily: '"Jersey 15", monospace',
         fontSize: `${titleFont}px`,
         color: '#ffdd57',
@@ -842,10 +896,11 @@ export default class EpisodeEndingScene extends Phaser.Scene {
           ? `Kamu sudah memenuhi ${evalData.fulfilledCount} dari ${evalData.totalCount} langkah tujuan di episode ini:`
           : 'Sayang sekali, kamu belum memenuhi satu pun langkah tujuan di episode ini:';
 
+    const subTitleY = compact ? bounds.top + bounds.height * 0.11 : bounds.top + bounds.height * 0.145;
     const subTitle = this.add
       .text(
         centerX,
-        bounds.top + bounds.height * 0.145,
+        subTitleY,
         unifiedIntro,
         {
           fontFamily: '"Pixelify Sans", monospace',
@@ -860,8 +915,9 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     this._aspectContainer.add(subTitle);
 
     // List of 3 Aspects
-    const listStartY = bounds.top + bounds.height * 0.22;
-    const itemGap = bounds.height * 0.132;
+    const listStartY = compact ? bounds.top + bounds.height * 0.18 : bounds.top + bounds.height * 0.22;
+    const itemGap = compact ? bounds.height * 0.145 : bounds.height * 0.132;
+    const itemHeight = compact ? 72 : pxToWorld(this, 70);
 
     evalData.aspects.forEach((aspect, idx) => {
       const y = listStartY + idx * itemGap;
@@ -871,30 +927,31 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       const strokeColor = aspect.fulfilled ? 0x22c55e : 0xf43f5e;
 
       const itemBg = this.add
-        .rectangle(centerX, y + 10, cardWidth, pxToWorld(this, 70), bgFill, 0.92)
+        .rectangle(centerX, y + 10, cardWidth, itemHeight, bgFill, 0.92)
         .setStrokeStyle(2, strokeColor, 0.75);
       this._aspectContainer.add(itemBg);
 
       const statusBadge = this.add
-        .text(centerX - cardWidth / 2 + 18, y + 10, statusIcon, {
+        .text(centerX - cardWidth / 2 + (compact ? 12 : 18), y + 10, statusIcon, {
           fontFamily: '"Jersey 15", monospace',
-          fontSize: `${pxToWorld(this, 20)}px`,
+          fontSize: `${badgeFont}px`,
           color: statusColor,
         })
         .setOrigin(0, 0.5);
       this._aspectContainer.add(statusBadge);
 
+      const textOffsetX = compact ? 116 : pxToWorld(this, 142);
       const aspectText = this.add
         .text(
-          centerX - cardWidth / 2 + pxToWorld(this, 142),
+          centerX - cardWidth / 2 + textOffsetX,
           y + 10,
           `${aspect.id}. ${aspect.title}\n${aspect.feedback}`,
           {
             fontFamily: '"Pixelify Sans", monospace',
             fontSize: `${bodyFont}px`,
             color: '#f8fafc',
-            lineSpacing: 4,
-            wordWrap: { width: cardWidth - pxToWorld(this, 160) },
+            lineSpacing: compact ? 2 : 4,
+            wordWrap: { width: cardWidth - textOffsetX - (compact ? 12 : 18) },
           },
         )
         .setOrigin(0, 0.5);
@@ -902,33 +959,37 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     });
 
     // Summary Box
-    const summaryY = bounds.top + bounds.height * 0.68;
+    const summaryY = compact ? bounds.top + bounds.height * 0.67 : bounds.top + bounds.height * 0.68;
+    const summaryFont = compact ? 14 : pxToWorld(this, 18);
     const summaryText = this.add
       .text(centerX, summaryY, evalData.feedbackSummary, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: `${pxToWorld(this, 18)}px`,
+        fontSize: `${summaryFont}px`,
         fontStyle: '600',
         color: evalData.needsRetry ? '#fecdd3' : '#fef08a',
         align: 'center',
         wordWrap: { width: cardWidth - 20 },
-        lineSpacing: 5,
+        lineSpacing: compact ? 3 : 5,
       })
       .setOrigin(0.5);
     this._aspectContainer.add(summaryText);
 
-    const btnY = bounds.top + bounds.height * 0.87;
+    const btnY = compact ? bounds.top + bounds.height * 0.86 : bounds.top + bounds.height * 0.87;
+    const btnW = compact ? Math.min(cardWidth * 0.55, 340) : (evalData.needsRetry ? pxToWorld(this, 360) : pxToWorld(this, 380));
+    const btnH = compact ? 46 : pxToWorld(this, 54);
+    const btnFont = compact ? 16 : pxToWorld(this, 20);
 
     // Action Buttons
     if (evalData.needsRetry) {
       // Must Retry Button (Blocked from continuing ONLY when 0 aspects met)
       const retryBtn = this.add
-        .rectangle(centerX, btnY, pxToWorld(this, 360), pxToWorld(this, 54), 0xe11d48, 1)
+        .rectangle(centerX, btnY, btnW, btnH, 0xe11d48, 1)
         .setStrokeStyle(2, 0xffa4b6, 0.9)
         .setInteractive({ useHandCursor: true });
       const retryText = this.add
         .text(centerX, btnY, 'ULANGI EPISODE INI', {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 20)}px`,
+          fontSize: `${btnFont}px`,
           fontStyle: '700',
           color: '#ffffff',
         })
@@ -954,13 +1015,13 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       // Pemain memenuhi minimal 1 aspek: Lanjut ke Jurnal Refleksi terlebih dahulu
       // (Jurnal Refleksi selalu muncul duluan; Rapor 6 Episode baru keluar setelah jurnal selesai diisi di Ep 6)
       const nextBtn = this.add
-        .rectangle(centerX, btnY, pxToWorld(this, 380), pxToWorld(this, 54), 0x16a34a, 1)
+        .rectangle(centerX, btnY, btnW, btnH, 0x16a34a, 1)
         .setStrokeStyle(2, 0x86efac, 0.9)
         .setInteractive({ useHandCursor: true });
       const nextText = this.add
         .text(centerX, btnY, 'LANJUT KE JURNAL REFLEKSI >', {
           fontFamily: '"Pixelify Sans", monospace',
-          fontSize: `${pxToWorld(this, 20)}px`,
+          fontSize: `${btnFont}px`,
           fontStyle: '700',
           color: '#ffffff',
         })
@@ -1123,53 +1184,54 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     const bounds = getVisibleBounds(this);
     const centerX = bounds.centerX;
     const wrapWidth = bounds.width * 0.84;
+    const compact = isCompactLandscape(this);
 
     this.endingLabel
-      ?.setFontSize(pxToWorld(this, 32))
-      .setPosition(centerX, bounds.top + bounds.height * 0.16)
+      ?.setFontSize(compact ? 22 : pxToWorld(this, 32))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.12 : 0.16))
       .setWordWrapWidth(wrapWidth);
     this.endingTitle
-      ?.setFontSize(pxToWorld(this, 36))
-      .setPosition(centerX, bounds.top + bounds.height * 0.31)
+      ?.setFontSize(compact ? 24 : pxToWorld(this, 36))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.28 : 0.31))
       .setWordWrapWidth(wrapWidth);
     this.endingSummary
-      ?.setFontSize(pxToWorld(this, 23))
-      .setPosition(centerX, bounds.top + bounds.height * 0.59)
-      .setWordWrapWidth(bounds.width * 0.8);
+      ?.setFontSize(compact ? 16 : pxToWorld(this, 23))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.56 : 0.59))
+      .setWordWrapWidth(bounds.width * 0.82);
 
-    const barWidth = Math.min(bounds.width * 0.74, pxToWorld(this, 560));
-    const barHeight = pxToWorld(this, 30);
-    const barY = bounds.top + bounds.height * 0.55;
+    const barWidth = Math.min(bounds.width * 0.74, compact ? 420 : pxToWorld(this, 560));
+    const barHeight = compact ? 22 : pxToWorld(this, 30);
+    const barY = bounds.top + bounds.height * (compact ? 0.52 : 0.55);
     const barLeft = centerX - barWidth / 2;
-    const fillWidth = Math.max(pxToWorld(this, 10), barWidth * this.emotionConfidence);
+    const fillWidth = Math.max(compact ? 8 : pxToWorld(this, 10), barWidth * this.emotionConfidence);
 
     this.emotionHeaderText
-      ?.setFontSize(pxToWorld(this, 30))
-      .setPosition(centerX, bounds.top + bounds.height * 0.18)
+      ?.setFontSize(compact ? 20 : pxToWorld(this, 30))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.14 : 0.18))
       .setWordWrapWidth(wrapWidth);
     this.emotionLabel
       ?.setFontSize(
-        pxToWorld(this, this.dominantEmotion === 'menyinggung' ? 52 : 64),
+        compact ? 36 : pxToWorld(this, this.dominantEmotion === 'menyinggung' ? 52 : 64),
       )
-      .setPosition(centerX, bounds.top + bounds.height * 0.37)
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.34 : 0.37))
       .setWordWrapWidth(wrapWidth);
     this.emotionBarTrack?.setPosition(centerX, barY).setDisplaySize(barWidth, barHeight);
     this.emotionBarFill
       ?.setPosition(barLeft, barY)
       .setDisplaySize(fillWidth, barHeight);
     this.emotionPercent
-      ?.setFontSize(pxToWorld(this, 26))
-      .setPosition(centerX, bounds.top + bounds.height * 0.64);
+      ?.setFontSize(compact ? 18 : pxToWorld(this, 26))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.62 : 0.64));
     this.emotionExplainText
-      ?.setFontSize(pxToWorld(this, 19))
-      .setPosition(centerX, bounds.top + bounds.height * 0.76)
-      .setWordWrapWidth(Math.min(bounds.width * 0.86, pxToWorld(this, 780)));
+      ?.setFontSize(compact ? 13 : pxToWorld(this, 19))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.74 : 0.76))
+      .setWordWrapWidth(Math.min(bounds.width * 0.86, compact ? 680 : pxToWorld(this, 780)));
     this.emotionLoadingText
-      ?.setFontSize(pxToWorld(this, 30))
+      ?.setFontSize(compact ? 22 : pxToWorld(this, 30))
       .setPosition(centerX, bounds.centerY);
     this.promptText
-      ?.setFontSize(pxToWorld(this, 22))
-      .setPosition(centerX, bounds.top + bounds.height * 0.91);
+      ?.setFontSize(compact ? 15 : pxToWorld(this, 22))
+      .setPosition(centerX, bounds.top + bounds.height * (compact ? 0.90 : 0.91));
 
     if (this._stage === 'aspect' && this._aspectContainer) {
       this._revealAspectStage();
@@ -1257,32 +1319,33 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     this._learningActionTaken = false;
     this.learningObjects = [];
+    const compact = isCompactLandscape(this);
 
     const title = this.add.text(
       centerX,
-      bounds.top + bounds.height * 0.17,
+      bounds.top + bounds.height * (compact ? 0.12 : 0.17),
       'YUK, BELAJAR DARI PILIHANMU',
       {
         fontFamily: '"Pixelify Sans", monospace',
         fontStyle: '700',
         color: '#ffdd57',
         align: 'center',
-        fontSize: `${pxToWorld(this, 34)}px`,
+        fontSize: `${compact ? 24 : pxToWorld(this, 34)}px`,
         wordWrap: { width: bounds.width * 0.86 },
       }
     ).setOrigin(0.5).setDepth(10);
 
     const body = this.add.text(
       centerX,
-      bounds.top + bounds.height * 0.42,
+      bounds.top + bounds.height * (compact ? 0.40 : 0.42),
       learningText,
       {
         fontFamily: '"Pixelify Sans", monospace',
         color: '#ffffff',
         align: 'center',
-        fontSize: `${pxToWorld(this, 23)}px`,
-        lineSpacing: 8,
-        wordWrap: { width: bounds.width * 0.78 },
+        fontSize: `${compact ? 15 : pxToWorld(this, 23)}px`,
+        lineSpacing: compact ? 4 : 8,
+        wordWrap: { width: bounds.width * 0.82 },
       }
     ).setOrigin(0.5).setDepth(10);
 
@@ -1292,8 +1355,8 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       const button = this.add.rectangle(
         centerX,
         y,
-        Math.min(bounds.width * 0.66, pxToWorld(this, 520)),
-        pxToWorld(this, 58),
+        Math.min(bounds.width * 0.66, compact ? 380 : pxToWorld(this, 520)),
+        compact ? 44 : pxToWorld(this, 58),
         fill,
         1
       )
@@ -1305,7 +1368,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         fontStyle: '700',
         color: '#ffffff',
         align: 'center',
-        fontSize: `${pxToWorld(this, 22)}px`,
+        fontSize: `${compact ? 16 : pxToWorld(this, 22)}px`,
       }).setOrigin(0.5).setDepth(11);
 
       button.on('pointerover', () => button.setAlpha(0.8));
@@ -1346,7 +1409,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     // Tombol kedua: tetap sediakan jalan ke episode berikutnya atau buka rapor 6 episode jika episode terakhir.
     makeButton(
-      bounds.top + bounds.height * 0.83,
+      bounds.top + bounds.height * (compact ? 0.85 : 0.83),
       this.isLastEpisode || this.episodeId === 6
         ? 'LIHAT RAPOR 6 EPISODE & SELESAI'
         : 'LANJUT KE EPISODE BERIKUTNYA',
