@@ -231,15 +231,15 @@ export default class DialogueBox {
     const bounds = getVisibleBounds(scene);
     const compact = isCompactLandscape(scene);
 
-    const baseCardWidth = this._customCardWidth || 640;
-    const cardWidth = Math.min(bounds.width * 0.92, baseCardWidth);
+    const baseCardWidth = this._customCardWidth || 670;
+    const cardWidth = Math.min(bounds.width * 0.94, baseCardWidth);
 
     const cardX = bounds.centerX;
 
-    // Pada compact mobile landscape (Pixel 9, iPhone landscape): geser lebih dekat ke atas agar ruang di bawah untuk pilihan & Kak Dara leluasa
+    // Turunkan sedikit posisi dialog agar tidak menempel di tepi atas layar pada tampilan mobile
     const cardTop = compact
-      ? bounds.top + 8
-      : bounds.top + bounds.height * 0.08;
+      ? bounds.top + Math.max(22, Math.round(bounds.height * 0.055))
+      : bounds.top + Math.max(36, Math.round(bounds.height * 0.08));
 
     this._container = scene.add
       .container(0, 0)
@@ -250,8 +250,8 @@ export default class DialogueBox {
     // NAME TAG
     // ============================================================
 
-    const nameFont = compact ? 17 : pxToWorld(scene, 21);
-    const nameTagH = nameFont + (compact ? 8 : 14);
+    const nameFont = compact ? 19 : pxToWorld(scene, 21);
+    const nameTagH = nameFont + (compact ? 10 : 14);
 
     this._nameTagBg = scene.add
       .rectangle(
@@ -280,7 +280,7 @@ export default class DialogueBox {
     // ============================================================
     // HIDE / SHOW UI BUTTON (Untuk menikmati CG cutscene layar penuh)
     // ============================================================
-    const hideBtnFont = compact ? 12 : pxToWorld(scene, 14);
+    const hideBtnFont = compact ? 13 : pxToWorld(scene, 14);
     const hideBtnRight = cardX + cardWidth / 2 - 4;
     const hideBtnY = cardTop + nameTagH / 2;
 
@@ -328,7 +328,7 @@ export default class DialogueBox {
     // ============================================================
 
     const textBoxTop = cardTop + nameTagH + (compact ? 3 : 4);
-    const defaultBoxHeight = compact ? 84 : Math.min(bounds.height * 0.22, 140);
+    const defaultBoxHeight = compact ? 92 : Math.min(bounds.height * 0.22, 140);
 
     this._textBoxTop = textBoxTop;
     this._textBoxHeight = defaultBoxHeight;
@@ -359,7 +359,7 @@ export default class DialogueBox {
     // DIALOGUE TEXT
     // ============================================================
 
-    const dialogueFont = compact ? 18 : pxToWorld(scene, 20);
+    const dialogueFont = compact ? 19.5 : pxToWorld(scene, 20);
 
     this._dialogueText = scene.add
       .text(cardX - cardWidth / 2 + 16, textBoxTop + (compact ? 10 : 14), '', {
@@ -369,7 +369,7 @@ export default class DialogueBox {
         wordWrap: {
           width: cardWidth - 32,
         },
-        lineSpacing: compact ? 3 : 5,
+        lineSpacing: compact ? 3.5 : 5,
       })
       .setOrigin(0, 0);
 
@@ -379,7 +379,7 @@ export default class DialogueBox {
     // ADVANCE HINT
     // ============================================================
 
-    const hintFont = compact ? 12 : pxToWorld(scene, 14);
+    const hintFont = compact ? 13 : pxToWorld(scene, 14);
 
     this._advanceHint = scene.add
       .text(
@@ -418,16 +418,16 @@ export default class DialogueBox {
     const compact = isCompactLandscape(scene);
     const bounds = getVisibleBounds(scene);
 
-    const padTop = compact ? 10 : 14;
+    const padTop = compact ? 11 : 14;
     // Jika ada choices, kotak dialog tidak butuh advance hint sehingga padBottom lebih ringkas
     const padBottom = hasChoices
-      ? (compact ? 10 : 14)
+      ? (compact ? 11 : 14)
       : (compact ? 24 : 32);
 
     const textHeight = this._dialogueText.height;
     const minHeight = hasChoices
-      ? (compact ? 62 : 90)
-      : (compact ? 84 : Math.min(bounds.height * 0.22, 140));
+      ? (compact ? 72 : 90)
+      : (compact ? 92 : Math.min(bounds.height * 0.22, 140));
 
     const neededHeight = Math.ceil(textHeight + padTop + padBottom);
     const finalHeight = Math.max(minHeight, neededHeight);
@@ -440,7 +440,7 @@ export default class DialogueBox {
       this._advanceHint.setY(this._textBoxTop + finalHeight - (compact ? 6 : 10));
     }
 
-    this._choicesStartY = this._textBoxTop + finalHeight + (compact ? 6 : 12);
+    this._choicesStartY = this._textBoxTop + finalHeight + (compact ? 8 : 12);
   }
 
   // ==============================================================
@@ -598,11 +598,11 @@ export default class DialogueBox {
     const isGuide = node.isGuide || node.speaker === 'dara_guide';
     const hasChoices = Array.isArray(node.choices) && node.choices.length > 0;
     const compact = isCompactLandscape(this.scene);
-    const nameTagH = (compact ? 17 : pxToWorld(this.scene, 21)) + (compact ? 8 : 14);
+    const nameTagH = (compact ? 19 : pxToWorld(this.scene, 21)) + (compact ? 10 : 14);
 
     if (compact) {
-      this._dialogueText.setFontSize(hasChoices ? 16 : 18);
-      this._dialogueText.setLineSpacing(hasChoices ? 2 : 3);
+      this._dialogueText.setFontSize(hasChoices ? 18.5 : 20);
+      this._dialogueText.setLineSpacing(hasChoices ? 3 : 4);
     } else {
       this._dialogueText.setFontSize(pxToWorld(this.scene, 20));
       this._dialogueText.setLineSpacing(5);
@@ -965,24 +965,24 @@ export default class DialogueBox {
     guideBox.setAlpha(isResize ? 1 : 0);
     guideBox.setScale(isResize ? 1 : 0.95);
 
-    const badgeWidth = compact ? 136 : pxToWorld(scene, 174);
-    const badgeHeight = compact ? 20 : pxToWorld(scene, 24);
+    const badgeWidth = compact ? 154 : pxToWorld(scene, 174);
+    const badgeHeight = compact ? 24 : pxToWorld(scene, 24);
     const badgeX = -this._cardWidth / 2 + badgeWidth / 2 + (compact ? 8 : 12);
 
-    const guideTextFont = compact ? 13.5 : pxToWorld(scene, 17);
+    const guideTextFont = compact ? 16 : pxToWorld(scene, 17);
     const guideText = scene.add
       .text(-this._cardWidth / 2 + (compact ? 12 : 16), compact ? 18 : pxToWorld(scene, 26), promptText, {
         fontFamily: '"Pixelify Sans", monospace',
         fontSize: `${guideTextFont}px`,
         color: '#f8fafc',
         wordWrap: { width: this._cardWidth - (compact ? 24 : 32) },
-        lineSpacing: compact ? 2 : 3,
+        lineSpacing: compact ? 2.5 : 3,
       })
       .setOrigin(0, 0);
 
     const guideBoxHeight = Math.max(
-      compact ? 40 : pxToWorld(scene, 56),
-      guideText.y + guideText.height + (compact ? 8 : pxToWorld(scene, 12)),
+      compact ? 48 : pxToWorld(scene, 56),
+      guideText.y + guideText.height + (compact ? 10 : pxToWorld(scene, 12)),
     );
 
     const guideGlow = scene.add
@@ -1006,7 +1006,7 @@ export default class DialogueBox {
     const guideTag = scene.add
       .text(badgeX, 0, '✦ PANDUAN KAK DARA', {
         fontFamily: '"Jersey 15", monospace',
-        fontSize: `${compact ? 13 : pxToWorld(scene, 17)}px`,
+        fontSize: `${compact ? 15 : pxToWorld(scene, 17)}px`,
         color: '#14122a',
       })
       .setOrigin(0.5, 0.5);
@@ -1076,10 +1076,10 @@ export default class DialogueBox {
     // Pre-fetch dialog dinamis NPC untuk setiap cabang pilihan selagi pemain membaca opsi
     this._prefetchChoiceDynamicNodes(choices);
 
-    const btnFont = compact ? 15.5 : pxToWorld(scene, 19);
-    const minBtnHeight = compact ? 26 : pxToWorld(scene, 38);
-    const padY = compact ? 3 : pxToWorld(scene, 6);
-    const gap = compact ? 5 : 8;
+    const btnFont = compact ? 17.5 : pxToWorld(scene, 19);
+    const minBtnHeight = compact ? 38 : pxToWorld(scene, 40);
+    const padY = compact ? 6 : pxToWorld(scene, 6);
+    const gap = compact ? 7 : 8;
 
     let currentY = this._choicesStartY;
 
@@ -1087,17 +1087,18 @@ export default class DialogueBox {
     choices.forEach((choice, i) => {
       const label = scene.add
         .text(
-          this._cardX - this._cardWidth / 2 + (compact ? 10 : 14),
+          this._cardX - this._cardWidth / 2 + (compact ? 12 : 14),
           0,
           `${i + 1}. ${this._substitute(choice.label)}`,
           {
             fontFamily: '"Pixelify Sans", monospace',
             fontSize: `${btnFont}px`,
+            fontStyle: '600',
             color: '#ffffff',
             wordWrap: {
-              width: this._cardWidth - (compact ? 20 : 28),
+              width: this._cardWidth - (compact ? 24 : 28),
             },
-            lineSpacing: compact ? 1 : 2,
+            lineSpacing: compact ? 2 : 2,
           },
         );
 
@@ -1167,7 +1168,7 @@ export default class DialogueBox {
     // supaya tidak berada di antara dialog dan jawaban yang menutupi karakter.
     const promptText =
       guidePrompt || 'Pilih salah satu jawaban di atas yang paling sesuai dengan langkahmu.';
-    const guideStartY = currentY + (compact ? 6 : pxToWorld(scene, 14));
+    const guideStartY = currentY + (compact ? 8 : pxToWorld(scene, 14));
     this._renderGuideMotionBanner(promptText, guideStartY, { isResize });
 
     // Pastikan seluruh elemen baru di dalam container punya scrollFactor(0)
