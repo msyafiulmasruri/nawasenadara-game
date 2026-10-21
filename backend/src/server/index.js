@@ -127,6 +127,20 @@ app.get('/', (req, res) => {
   );
 });
 
+app.use((req, res, next) => {
+  const matchedPath =
+    req.headers['x-matched-path'] || req.headers['x-forwarded-url'];
+  if (
+    matchedPath &&
+    typeof matchedPath === 'string' &&
+    matchedPath.startsWith('/') &&
+    req.url !== matchedPath
+  ) {
+    req.url = matchedPath;
+  }
+  next();
+});
+
 app.use('/api/api', routes);
 app.use('/api', routes);
 app.use(routes);
