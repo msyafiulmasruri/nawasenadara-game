@@ -56,4 +56,15 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-start();
+import { fileURLToPath } from 'url';
+
+const isMainModule =
+  process.argv[1] &&
+  (fileURLToPath(import.meta.url) === process.argv[1] ||
+    process.argv[1].endsWith('server.js'));
+
+if (isMainModule) {
+  start();
+}
+
+export { start, connectWithRetry };

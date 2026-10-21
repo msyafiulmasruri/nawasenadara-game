@@ -2,9 +2,10 @@
   "name": "nawasenadara-backend",
   "version": "1.0.0",
   "description": "Nawasena Dara REST API Backend - Sistem Autentikasi (JWT + Refresh Token + Google OAuth + Reset Password)",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
+    "build": "echo 'build ok'",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node-pg-migrate",
