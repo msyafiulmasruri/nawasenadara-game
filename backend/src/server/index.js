@@ -127,6 +127,14 @@ app.get('/', (req, res) => {
   );
 });
 
+app.get('/debug-headers', (req, res) => {
+  res.json({
+    url: req.url,
+    originalUrl: req.originalUrl,
+    headers: req.headers,
+  });
+});
+
 app.use((req, res, next) => {
   const matchedPath =
     req.headers['x-matched-path'] || req.headers['x-forwarded-url'];
