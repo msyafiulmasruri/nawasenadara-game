@@ -17,5 +17,16 @@ export default function Providers({ children }) {
     return cleanup;
   }, []);
 
+  // Registrasi Service Worker PWA (aktif di browser HP & desktop)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.debug('[PWA] ServiceWorker info:', err);
+        });
+      });
+    }
+  }, []);
+
   return <AuthProvider>{children}</AuthProvider>;
 }
