@@ -819,7 +819,7 @@ export default class RunnerScene extends Phaser.Scene {
     }
 
     // Audio cue: Chilling psychological harassment chime (dissonant tritone drop)
-    this.audioManager?.playMessageReceived(true);
+    this.audioManager?.playMessageReceived?.(true);
 
     const bx = this.bossSprite.x;
     const by = this.bossSprite.y;
@@ -957,7 +957,7 @@ export default class RunnerScene extends Phaser.Scene {
       ? 'boss-shadow-roar'
       : (this.textures.exists('boss-shadow-attack') ? 'boss-shadow-attack' : 'boss-shadow');
     this.bossSprite.setTexture(roarTex);
-    this.audioManager?.playBossRoar();
+    this.audioManager?.playBossRoar?.();
 
     if (isEnraged) {
       this.bossNameTagText?.setText('🔥 ENRAGED BOSS 🔥');
@@ -1188,7 +1188,7 @@ export default class RunnerScene extends Phaser.Scene {
       this.isJumping = true;
       this.player.setVelocityY(-640);
       this.player.play('jump', true);
-      this.audioManager?.playJump();
+      this.audioManager?.playJump?.();
 
       if (this.isShrunk) {
         this._handleShrinkEnd();
@@ -1218,7 +1218,7 @@ export default class RunnerScene extends Phaser.Scene {
     });
 
     this._spawnShrinkSpark();
-    this.audioManager?.playTypewriterBlip();
+    this.audioManager?.playTypewriterBlip?.();
   }
 
   /**
@@ -1455,7 +1455,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.playerCourage = Math.max(0, this.playerCourage - 1);
     this._isInvulnerable = true;
 
-    this.audioManager?.playPlayerHurt();
+    this.audioManager?.playPlayerHurt?.();
     this.cameras.main.shake(240, 0.016);
 
     // Floating text "-1 NYAWA" di atas kepala Dara
@@ -1549,7 +1549,7 @@ export default class RunnerScene extends Phaser.Scene {
   _triggerQuizModal() {
     this._isResolvingAnswer = false;
     this.gameState = 'QUIZ';
-    this.audioManager?.playOrbCollect();
+    this.audioManager?.playOrbCollect?.();
 
     // Hapus balon kata intimidasi jika sedang aktif agar tidak menghalangi pertanyaan
     if (this.bossSpeechBubble) {
@@ -1655,7 +1655,7 @@ export default class RunnerScene extends Phaser.Scene {
     if (selectedOption.isCorrect) {
       // JAWABAN BENAR
       btnBg.setFillStyle(0x065f46, 1).setStrokeStyle(2, 0x10b981);
-      this.audioManager?.playOrbCollect();
+      this.audioManager?.playOrbCollect?.();
 
       const feedback = this.add.text(0, 146, `✓ BENAR! ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
@@ -1674,7 +1674,7 @@ export default class RunnerScene extends Phaser.Scene {
     } else {
       // JAWABAN SALAH
       btnBg.setFillStyle(0x881337, 1).setStrokeStyle(2, 0xef4444);
-      this.audioManager?.playPlayerHurt();
+      this.audioManager?.playPlayerHurt?.();
 
       const feedback = this.add.text(0, 146, `✗ KURANG TEPAT! Pelajaran: ${questionData.explanation}`, {
         fontFamily: '"Pixelify Sans", monospace',
@@ -1702,7 +1702,7 @@ export default class RunnerScene extends Phaser.Scene {
     // pilar cahaya fajar menyembur, rune keberanian berputar ganda,
     // dan kilatan petir surya mengelilingi tubuhnya.
     // -------------------------------------------------------------
-    this.audioManager?.playAssertiveBeam();
+    this.audioManager?.playAssertiveBeam?.();
 
     // Hentikan animasi lari & ganti instan ke pose charging martial stance
     this.player.stop();
@@ -2126,7 +2126,7 @@ export default class RunnerScene extends Phaser.Scene {
   }
 
   _createAttackImpactVisual(x, y) {
-    this.audioManager?.playBossHit();
+    this.audioManager?.playBossHit?.();
 
     // 1. Hit-Stop Micro Freeze Frame: Jeda 90ms sensasi bobot pukulan anime
     const originalTimeScale = this.time.timeScale;
@@ -2235,7 +2235,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.bossState = 'HURT';
     const hurtTex = this.textures.exists('boss-shadow-hurt') ? 'boss-shadow-hurt' : 'boss-shadow';
     this.bossSprite.setTexture(hurtTex);
-    this.audioManager?.playBossRoar();
+    this.audioManager?.playBossRoar?.();
 
     // Kilatan sakit multi-fase (Putih -> Emas -> Merah)
     this.bossSprite.setTint(0xffffff);
@@ -2340,7 +2340,7 @@ export default class RunnerScene extends Phaser.Scene {
     const castTex = this.textures.exists('boss-shadow-cast') ? 'boss-shadow-cast' : 'boss-shadow-attack';
     this.bossSprite.setTexture(castTex);
     this.bossSprite.setTint(isEnraged ? 0xf87171 : 0xc084fc);
-    this.audioManager?.playBossRoar();
+    this.audioManager?.playBossRoar?.();
 
     // Kamera bergetar halus menunjukkan konsentrasi kekuatan gelap
     this.cameras.main.shake(700, isEnraged ? 0.008 : 0.005);
@@ -2538,7 +2538,7 @@ export default class RunnerScene extends Phaser.Scene {
           // -------------------------------------------------------------
           // FASE 4: DAMPAK LEDAKAN KE DARA (Dark Impact Blast)
           // -------------------------------------------------------------
-          this.audioManager?.playPlayerHurt();
+          this.audioManager?.playPlayerHurt?.();
           this.cameras.main.shake(320, 0.022);
 
           // Efek benturan ledakan miasma gelap
@@ -2632,7 +2632,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.playerCourage = this.maxCourage;
     this._updateHeartsUI();
 
-    this.audioManager?.playOrbCollect();
+    this.audioManager?.playOrbCollect?.();
     this.cameras.main.shake(160, 0.009);
 
     const bounds = getVisibleBounds(this);
@@ -2739,7 +2739,7 @@ export default class RunnerScene extends Phaser.Scene {
     respawnBtn.on('pointerout', () => respawnBtn.setFillStyle(0x0c1626, 0.95));
 
     epSelectBtn.on('pointerdown', () => {
-      this.audioManager?.stopBGM();
+      this.audioManager?.stopBGM?.();
       this.scene.start('EpisodeSelectScene');
     });
     epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
@@ -2808,7 +2808,7 @@ export default class RunnerScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(52);
 
       evalBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
+        this.audioManager?.stopBGM?.();
         this.scene.start('EpisodeEndingScene', {
           episodeId: this.episodeId || 6,
           isLastEpisode: true,
@@ -2843,7 +2843,7 @@ export default class RunnerScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(52);
 
       epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
+        this.audioManager?.stopBGM?.();
         this.scene.start('EpisodeSelectScene');
       });
       epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
@@ -2869,7 +2869,7 @@ export default class RunnerScene extends Phaser.Scene {
         color: '#c084fc',
       }).setOrigin(0.5).setDepth(52);
       epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
+        this.audioManager?.stopBGM?.();
         this.scene.start('EpisodeSelectScene');
       });
     }

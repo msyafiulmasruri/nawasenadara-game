@@ -1463,6 +1463,177 @@ export default class AudioManager {
     }, cycleDuration * 1000 - 100);
   }
 
+  // ─── FINAL BOSS: SFX & BGM LOOP ─────────────────────────────────────
+
+  playBossRoar() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Deep sub bass growl / earthquake
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, t);
+    osc.frequency.exponentialRampToValueAtTime(32, t + 0.8);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, t);
+    filter.frequency.exponentialRampToValueAtTime(120, t + 0.8);
+    filter.Q.value = 4.0;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    osc.stop(t + 0.9);
+  }
+
+  playBossProjectile() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(540, t);
+    osc.frequency.exponentialRampToValueAtTime(140, t + 0.25);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    osc.stop(t + 0.26);
+  }
+
+  playBossDash() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Heavy wind gust + sub punch
+    const noiseBuffer = this._createNoiseBuffer(0.45);
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(180, t);
+    filter.frequency.exponentialRampToValueAtTime(650, t + 0.15);
+    filter.frequency.exponentialRampToValueAtTime(120, t + 0.45);
+    filter.Q.value = 1.8;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+    noiseSrc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noiseSrc.start(t);
+    noiseSrc.stop(t + 0.46);
+  }
+
+  playPlayerHurt() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(260, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.18);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.32, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
+  playOrbCollect() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Sparkling 3-note chime (C6 -> E6 -> G6)
+    [1046.5, 1318.51, 1567.98].forEach((freq, i) => {
+      const noteT = t + i * 0.06;
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, noteT);
+      gain.gain.linearRampToValueAtTime(0.2, noteT + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteT + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(noteT);
+      osc.stop(noteT + 0.36);
+    });
+  }
+
+  playAssertiveBeam() {
+    if (!this._initialized) return;
+    this.resume();
+    const t = this._now();
+    const ctx = this.ctx;
+
+    // Golden power-up riser
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 0.35);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, t);
+    filter.frequency.exponentialRampToValueAtTime(3200, t + 0.35);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.38, t + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    osc.stop(t + 0.46);
+  }
+
   // SFX: Tembakan Meriam Energi Keberanian Dara (Sub-bass thump + laser whoosh)
   playCourageBlastFire() {
     if (!this._initialized) return;
