@@ -6,10 +6,8 @@ import { getAllProgress, resetProgress, updateProgress } from '../controllers/pr
 
 const router = Router();
 
-// Sama seperti /api/nlp/*, ini murni interaksi PEMAIN (progres main
-// sendiri) — dibatasi role 'siswa'. Guru BK melihat progres siswa lewat
-// /api/bk/students/:id (episode_progress), bukan lewat endpoint ini.
-router.use(authenticate, authorize('siswa'));
+// Dibuka untuk role 'siswa' dan 'guru_bk' supaya guru BK juga dapat mencoba game.
+router.use(authenticate, authorize('siswa', 'guru_bk'));
 
 router.get('/', getAllProgress);
 router.delete('/', resetProgress);

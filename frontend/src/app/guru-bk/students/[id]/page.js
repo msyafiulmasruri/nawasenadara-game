@@ -283,14 +283,22 @@ function DetailContent({ studentId }) {
           <div style={styles.reflectionCard}>
             <div style={styles.reflectionItem}>
               <strong style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>✓</span> Kekuatan Sikap Siswa:
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Kekuatan Sikap Siswa:
               </strong>
               <p style={styles.reflectionText}>{accumulated.plus_text}</p>
             </div>
             {accumulated.minus_text && (
               <div style={{ ...styles.reflectionItem, borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 12 }}>
                 <strong style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>⚠</span> Aspek yang Masih Membutuhkan Pendampingan:
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Aspek yang Masih Membutuhkan Pendampingan:
                 </strong>
                 <p style={styles.reflectionText}>{accumulated.minus_text}</p>
               </div>
@@ -371,10 +379,7 @@ function DetailContent({ studentId }) {
             return (
               <div
                 key={ep.episode_id}
-                style={{
-                  ...styles.raporCard,
-                  borderColor: !isCompleted ? '#e2e8f0' : evalData.endingKey === 'bad' ? '#fca5a5' : '#cbd5e1',
-                }}
+                style={styles.raporCard}
               >
                 <div style={styles.raporCardHeader}>
                   <div>
@@ -405,24 +410,38 @@ function DetailContent({ studentId }) {
                       {aspects.map((aspect) => (
                         <div
                           key={aspect.id}
-                          style={{
-                            ...styles.aspectItem,
-                            background: aspect.fulfilled ? '#f0fdf4' : '#fff1f2',
-                            border: `1px solid ${aspect.fulfilled ? '#bbf7d0' : '#fecdd3'}`,
-                          }}
+                          style={styles.aspectItem}
                         >
                           <div style={styles.aspectStatusRow}>
                             <span
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4,
+                                gap: 5,
                                 fontSize: 12,
                                 fontWeight: 700,
                                 color: aspect.fulfilled ? '#15803d' : '#b91c1c',
+                                background: aspect.fulfilled ? '#dcfce7' : '#fee2e2',
+                                padding: '2px 8px',
+                                borderRadius: 4,
                               }}
                             >
-                              {aspect.fulfilled ? '✓ Terpenuhi' : '✗ Belum Terpenuhi'}
+                              {aspect.fulfilled ? (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  Terpenuhi
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                  </svg>
+                                  Belum Terpenuhi
+                                </>
+                              )}
                             </span>
                             <span style={styles.aspectIdText}>Langkah {aspect.id}</span>
                           </div>
@@ -459,7 +478,9 @@ function DetailContent({ studentId }) {
 
         {riskAlerts.length === 0 ? (
           <div style={styles.emptyAlertsBox}>
-            <span style={{ fontSize: 20 }}>🛡️</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
             <span>Tidak ada riwayat notifikasi risiko darurat untuk siswa ini. Seluruh percakapan dalam batas aman.</span>
           </div>
         ) : (
@@ -467,11 +488,7 @@ function DetailContent({ studentId }) {
             {riskAlerts.map((alert) => (
               <div
                 key={alert.id}
-                style={{
-                  ...styles.alertCard,
-                  background: !alert.acknowledged_at ? '#fff8f0' : '#ffffff',
-                  borderColor: !alert.acknowledged_at ? '#fed7aa' : '#e2e8f0',
-                }}
+                style={styles.alertCard}
               >
                 <div style={{ flex: 1 }}>
                   <div style={styles.alertMeta}>
@@ -480,9 +497,19 @@ function DetailContent({ studentId }) {
                       {new Date(alert.created_at).toLocaleString('id-ID')}
                     </span>
                     {alert.acknowledged_at ? (
-                      <span style={styles.alertAckYes}>✓ Sudah ditinjau</span>
+                      <span style={styles.alertAckYes}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Sudah ditinjau
+                      </span>
                     ) : (
-                      <span style={styles.alertAckNo}>● Belum ditinjau</span>
+                      <span style={styles.alertAckNo}>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                        </svg>
+                        Belum ditinjau
+                      </span>
                     )}
                   </div>
                   <p style={styles.alertSnippet}>&ldquo;{alert.snippet}&rdquo;</p>
@@ -516,7 +543,11 @@ export default function StudentDetailPage() {
         <div style={styles.inner}>
           <div style={{ marginBottom: 20 }}>
             <Link href="/guru-bk/dashboard" style={styles.backLink}>
-              ← Kembali ke Dashboard Guru BK
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Kembali ke Dashboard Guru BK
             </Link>
           </div>
           <DetailContent studentId={params.id} />
@@ -539,7 +570,7 @@ const styles = {
     width: '100%',
     maxWidth: 1240,
     margin: '0 auto',
-    padding: '32px 28px 60px',
+    padding: '32px 28px 80px',
     boxSizing: 'border-box',
   },
   backLink: {
@@ -817,11 +848,11 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    padding: '18px 20px',
-    background: '#f0fdf4',
-    border: '1px solid #bbf7d0',
+    padding: '16px 20px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
     borderRadius: 8,
-    color: '#166534',
+    color: '#334155',
     fontSize: 13.5,
   },
   alertList: {
@@ -838,6 +869,7 @@ const styles = {
     gap: 16,
     justifyContent: 'space-between',
     flexWrap: 'wrap',
+    background: '#ffffff',
   },
   alertMeta: {
     display: 'flex',
@@ -851,6 +883,9 @@ const styles = {
     color: '#64748b',
   },
   alertAckYes: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
     fontSize: 12,
     fontWeight: 600,
     color: '#15803d',
@@ -859,6 +894,9 @@ const styles = {
     borderRadius: 4,
   },
   alertAckNo: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
     fontSize: 12,
     fontWeight: 700,
     color: '#dc2626',

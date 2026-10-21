@@ -19,10 +19,8 @@ import {
 
 const router = Router();
 
-// Semua endpoint di sini murni interaksi PEMAIN dengan cerita
-// (jurnal refleksi & chatbot konseling) — dibatasi role 'siswa' saja.
-// Guru BK melihat HASILNYA lewat /api/bk/*, bukan lewat endpoint ini.
-router.use(authenticate, authorize('siswa'));
+// Dibuka untuk role 'siswa' dan 'guru_bk' supaya interaksi game dapat dijalankan
+router.use(authenticate, authorize('siswa', 'guru_bk'));
 
 router.post('/analyze', validate(analyzeReflectionPayloadSchema), analyzeReflection);
 router.post(

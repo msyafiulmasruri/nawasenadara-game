@@ -6,21 +6,42 @@ import RequireRole from '@/features/auth/components/RequireRole';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import apiClient from '@/lib/apiClient';
 
+const ICONS = {
+  search: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  ),
+  clear: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
+  arrowRight: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  ),
+};
+
 const RISK_LABEL = { rendah: 'Rendah', sedang: 'Sedang', tinggi: 'Tinggi' };
-const RISK_COLOR = { rendah: '#22c55e', sedang: '#eab308', tinggi: '#ef4444' };
-const RISK_BG = { rendah: '#dcfce7', sedang: '#fef9c3', tinggi: '#fee2e2' };
+const RISK_COLOR = { rendah: '#15803d', sedang: '#b45309', tinggi: '#b91c1c' };
+const RISK_BG = { rendah: '#f0fdf4', sedang: '#fefce8', tinggi: '#fef2f2' };
 
 const ENDING_META = {
-  true: { label: 'Ending Sejati', bg: '#dcfce7', text: '#15803d', border: '#86efac' },
-  good: { label: 'Ending Baik', bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' },
-  bad: { label: 'Ending Buruk', bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5' },
+  true: { label: 'Ending Sejati', bg: '#f0fdf4', text: '#15803d' },
+  good: { label: 'Ending Baik', bg: '#f8fafc', text: '#334155' },
+  bad: { label: 'Ending Buruk', bg: '#fef2f2', text: '#b91c1c' },
 };
 
 function EndingBadge({ endingKey, hasData }) {
   if (!endingKey || hasData === false) {
     return <span style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic' }}>Belum Ada Data</span>;
   }
-  const meta = ENDING_META[endingKey] || { label: endingKey, bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' };
+  const meta = ENDING_META[endingKey] || { label: endingKey, bg: '#f8fafc', text: '#475569' };
   return (
     <span
       style={{
@@ -32,8 +53,7 @@ function EndingBadge({ endingKey, hasData }) {
         fontWeight: 600,
         color: meta.text,
         background: meta.bg,
-        border: `1px solid ${meta.border}`,
-        letterSpacing: '0.02em',
+        border: '1px solid #e2e8f0',
       }}
     >
       {meta.label}
@@ -47,9 +67,8 @@ function AspectBadge({ fulfilled, total, completedCount }) {
   }
   const isPerfect = fulfilled === total;
   const isGood = fulfilled >= total * 0.5;
-  const bg = isPerfect ? '#dcfce7' : isGood ? '#fef9c3' : '#fee2e2';
+  const bg = isPerfect ? '#f0fdf4' : isGood ? '#fefce8' : '#fef2f2';
   const text = isPerfect ? '#15803d' : isGood ? '#854d0e' : '#b91c1c';
-  const border = isPerfect ? '#86efac' : isGood ? '#fde047' : '#fca5a5';
 
   return (
     <span
@@ -63,7 +82,7 @@ function AspectBadge({ fulfilled, total, completedCount }) {
         fontWeight: 600,
         color: text,
         background: bg,
-        border: `1px solid ${border}`,
+        border: '1px solid #e2e8f0',
       }}
     >
       <span>{fulfilled} / {total}</span>
@@ -83,8 +102,8 @@ function RiskBadge({ level }) {
         fontSize: 12,
         fontWeight: 600,
         color: RISK_COLOR[level] || '#475569',
-        background: RISK_BG[level] || '#f1f5f9',
-        border: `1px solid ${RISK_COLOR[level]}40`,
+        background: RISK_BG[level] || '#f8fafc',
+        border: '1px solid #e2e8f0',
       }}
     >
       {RISK_LABEL[level] || level}
@@ -123,7 +142,6 @@ function DashboardContent() {
     return students.filter((s) => s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q));
   }, [students, search]);
 
-  // Statistik Ringkas
   const totalStudents = students.length;
   const completedAllCount = students.filter((s) => s.episodes_completed >= 6).length;
   const needAttentionCount = students.filter(
@@ -133,7 +151,7 @@ function DashboardContent() {
   return (
     <div style={styles.page}>
       <div style={styles.inner}>
-        {/* Header Bersih & Profesional */}
+        {/* Header */}
         <header style={styles.header}>
           <div>
             <div style={styles.badgePortal}>Portal Konseling & Bimbingan</div>
@@ -149,7 +167,7 @@ function DashboardContent() {
 
         {error ? <div style={styles.errorBox}>{error}</div> : null}
 
-        {/* Kartu Ringkasan Cepat */}
+        {/* Kartu Ringkasan Cepat — Tanpa Border Warna-Warni Tambahan */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <span style={styles.statLabel}>Total Siswa Terdaftar</span>
@@ -161,7 +179,7 @@ function DashboardContent() {
             <span style={{ ...styles.statValue, color: '#16a34a' }}>{completedAllCount}</span>
             <span style={styles.statSub}>Menyelesaikan Episode 1 — 6</span>
           </div>
-          <div style={{ ...styles.statCard, borderLeft: needAttentionCount > 0 ? '4px solid #ef4444' : '1px solid #e2e8f0' }}>
+          <div style={styles.statCard}>
             <span style={styles.statLabel}>Perlu Perhatian Khusus</span>
             <span style={{ ...styles.statValue, color: needAttentionCount > 0 ? '#dc2626' : '#64748b' }}>
               {needAttentionCount}
@@ -172,7 +190,7 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Bagian Utama: Daftar & Rapor Siswa */}
+        {/* Bagian Utama: Daftar Siswa */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
             <div>
@@ -182,9 +200,9 @@ function DashboardContent() {
               </p>
             </div>
 
-            {/* Kotak Pencarian Nama */}
+            {/* Kotak Pencarian Nama — Menggunakan SVG Icon Web */}
             <div style={styles.searchWrapper}>
-              <span style={styles.searchIcon}>🔍</span>
+              <span style={styles.searchIcon}>{ICONS.search}</span>
               <input
                 type="text"
                 placeholder="Cari berdasarkan nama siswa..."
@@ -193,8 +211,8 @@ function DashboardContent() {
                 style={styles.searchInput}
               />
               {search && (
-                <button type="button" onClick={() => setSearch('')} style={styles.searchClearBtn}>
-                  ×
+                <button type="button" onClick={() => setSearch('')} style={styles.searchClearBtn} aria-label="Hapus pencarian">
+                  {ICONS.clear}
                 </button>
               )}
             </div>
@@ -256,7 +274,7 @@ function DashboardContent() {
                       <td style={styles.td}>
                         {s.unacknowledged_count > 0 ? (
                           <span style={styles.alertCountBadge}>
-                            {s.unacknowledged_count} Baru
+                            {s.unacknowledged_count} Belum Ditinjau
                           </span>
                         ) : (
                           <span style={{ color: '#94a3b8', fontSize: 13 }}>—</span>
@@ -264,7 +282,8 @@ function DashboardContent() {
                       </td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>
                         <Link href={`/guru-bk/students/${s.id}`} style={styles.detailButton}>
-                          Lihat Detail Rapor →
+                          <span>Lihat Detail Rapor</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center' }}>{ICONS.arrowRight}</span>
                         </Link>
                       </td>
                     </tr>
@@ -289,28 +308,30 @@ export default function GuruBkDashboardPage() {
 
 const styles = {
   page: {
-    minHeight: '100dvh',
     width: '100%',
+    minHeight: '100%',
     background: '#f8fafc',
     color: '#0f172a',
     fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     lineHeight: 1.5,
+    paddingBottom: 80,
   },
   inner: {
     width: '100%',
     maxWidth: 1320,
     margin: '0 auto',
-    padding: '36px 28px 60px',
+    padding: '36px 28px 0',
     boxSizing: 'border-box',
   },
   badgePortal: {
     display: 'inline-block',
     fontSize: 12,
     fontWeight: 700,
-    color: '#6366f1',
-    background: '#e0e7ff',
+    color: '#475569',
+    background: '#f1f5f9',
+    border: '1px solid #e2e8f0',
     padding: '3px 10px',
-    borderRadius: 999,
+    borderRadius: 6,
     marginBottom: 8,
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
@@ -345,11 +366,10 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     transition: 'all 0.15s ease',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   },
   errorBox: {
-    background: '#fee2e2',
-    border: '1px solid #fca5a5',
+    background: '#fef2f2',
+    border: '1px solid #e2e8f0',
     color: '#991b1b',
     padding: '12px 16px',
     borderRadius: 8,
@@ -366,9 +386,9 @@ const styles = {
   statCard: {
     background: '#ffffff',
     border: '1px solid #e2e8f0',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: '20px 22px',
-    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
@@ -392,9 +412,9 @@ const styles = {
   section: {
     background: '#ffffff',
     border: '1px solid #e2e8f0',
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 24,
-    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
+    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)',
   },
   sectionHeader: {
     display: 'flex',
@@ -424,8 +444,9 @@ const styles = {
   searchIcon: {
     position: 'absolute',
     left: 12,
-    fontSize: 14,
     color: '#94a3b8',
+    display: 'inline-flex',
+    alignItems: 'center',
     pointerEvents: 'none',
   },
   searchInput: {
@@ -438,17 +459,18 @@ const styles = {
     color: '#0f172a',
     outline: 'none',
     transition: 'border-color 0.2s',
+    background: '#ffffff',
   },
   searchClearBtn: {
     position: 'absolute',
     right: 10,
     background: 'none',
     border: 'none',
-    fontSize: 18,
     color: '#94a3b8',
     cursor: 'pointer',
-    padding: 0,
-    lineHeight: 1,
+    padding: 4,
+    display: 'inline-flex',
+    alignItems: 'center',
   },
   table: {
     width: '100%',
@@ -495,19 +517,21 @@ const styles = {
   alertCountBadge: {
     display: 'inline-flex',
     alignItems: 'center',
-    background: '#fee2e2',
-    color: '#dc2626',
-    border: '1px solid #fca5a5',
+    background: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #e2e8f0',
     padding: '2px 8px',
-    borderRadius: 999,
+    borderRadius: 6,
     fontSize: 12,
     fontWeight: 700,
   },
   detailButton: {
     display: 'inline-flex',
     alignItems: 'center',
-    color: '#4f46e5',
-    background: '#eef2ff',
+    gap: 6,
+    color: '#334155',
+    background: '#f1f5f9',
+    border: '1px solid #e2e8f0',
     padding: '6px 12px',
     borderRadius: 6,
     textDecoration: 'none',
@@ -528,5 +552,6 @@ const styles = {
     fontSize: 14,
     background: '#f8fafc',
     borderRadius: 8,
+    border: '1px solid #e2e8f0',
   },
 };

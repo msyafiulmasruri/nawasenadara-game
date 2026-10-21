@@ -24,6 +24,15 @@ body {
   height: 100dvh;
 }
 
+/* Izinkan scroll alami untuk halaman web portal Guru BK */
+body:has(#guru-bk-root) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100% !important;
+  background: #f8fafc !important;
+}
+
 /* Container canvas Phaser: selalu menutupi seluruh viewport.
    Background hitam mengisi area yang mungkin terlihat sesaat
    sebelum Phaser canvas selesai di-render. overflow:hidden

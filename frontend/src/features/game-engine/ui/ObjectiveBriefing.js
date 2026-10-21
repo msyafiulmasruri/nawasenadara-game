@@ -482,11 +482,11 @@ export default class ObjectiveBriefing {
     const aspects = Array.isArray(epData?.aspects) ? epData.aspects : [];
     const stepsLines =
       aspects.length > 0
-        ? aspects.map((a, idx) => `${idx + 1}. ${a.title} — ${a.desc || ''}`)
+        ? aspects.map((a, idx) => `${idx + 1}. ${a.desc || a.title}`)
         : [
-            '1. Kenali situasi yang membuatmu atau temanmu tidak nyaman.',
+            '1. Sadari situasi yang membuatmu atau temanmu tidak nyaman.',
             '2. Sampaikan batasan dengan tenang dan tegas tanpa membalas kasar.',
-            '3. Cari tempat aman dan lapor ke Guru BK atau orang dewasa tepercaya.',
+            '3. Cari tempat aman dan segera lapor ke orang dewasa tepercaya.',
           ];
 
     const finalBtnLabel =

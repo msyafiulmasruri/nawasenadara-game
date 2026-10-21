@@ -6,7 +6,7 @@ import { createFeedbackPayloadSchema } from '../validator/schema.js';
 
 const router = Router();
 
-router.use(authenticate, authorize('siswa'));
+router.use(authenticate, authorize('siswa', 'guru_bk'));
 router.post('/', validate(createFeedbackPayloadSchema), createFeedback);
 
 export default router;
