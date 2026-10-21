@@ -55,8 +55,10 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     // terlihat di layar portrait sempit (di-debounce ringan supaya
     // tidak dihitung ulang berkali-kali di tengah animasi resize).
     this._resizeDebounceTimer = null;
+    this._fsTimeout1 = null;
+    this._fsTimeout2 = null;
     const applySelectReflow = () => {
-      if (!this.scene?.isActive()) return;
+      if (!this.sys || !this.sys.settings?.active || !this.scene) return;
       const { width: w, height: h } = syncGameSizeToOrientation(this);
       this.bgRect?.setPosition(0, 0).setSize(w, h).setDisplaySize(w, h).updateDisplayOrigin();
 
@@ -70,8 +72,10 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     };
     this._onFullscreenChange = () => {
       applySelectReflow();
-      setTimeout(applySelectReflow, 120);
-      setTimeout(applySelectReflow, 300);
+      if (this._fsTimeout1) clearTimeout(this._fsTimeout1);
+      if (this._fsTimeout2) clearTimeout(this._fsTimeout2);
+      this._fsTimeout1 = setTimeout(applySelectReflow, 120);
+      this._fsTimeout2 = setTimeout(applySelectReflow, 300);
     };
     this.scale.on('resize', this._onResize);
     window.addEventListener('resize', this._onResize);
@@ -79,6 +83,8 @@ export default class EpisodeSelectScene extends Phaser.Scene {
     document.addEventListener('webkitfullscreenchange', this._onFullscreenChange);
     this.events.once('shutdown', () => {
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
+      if (this._fsTimeout1) clearTimeout(this._fsTimeout1);
+      if (this._fsTimeout2) clearTimeout(this._fsTimeout2);
       this.scale.off('resize', this._onResize);
       window.removeEventListener('resize', this._onResize);
       document.removeEventListener('fullscreenchange', this._onFullscreenChange);
@@ -365,17 +371,16 @@ export default class EpisodeSelectScene extends Phaser.Scene {
       .setDepth(2);
     mbItems.push(thumbBoxBg);
 
-    if (this.textures.exists('boss-shadow')) {
-      const bossIcon = this.add.image(thumbBoxX, miniBossY, 'boss-shadow').setDepth(2.5);
-      const iconScale = (thumbBoxSize * 0.82) / Math.max(bossIcon.width, bossIcon.height);
-      bossIcon.setScale(iconScale);
-      if (isBossUnlocked) {
-        bossIcon.setAlpha(0.95);
-      } else {
-        bossIcon.setAlpha(0.3).setTint(0x64748b);
-      }
-      mbItems.push(bossIcon);
-    }
+    const questionIcon = this.add
+      .text(thumbBoxX, miniBossY, '?', {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: `${Math.round(thumbBoxSize * 0.58)}px`,
+        fontStyle: '700',
+        color: isBossUnlocked ? '#f8fafc' : '#64748b',
+      })
+      .setOrigin(0.5)
+      .setDepth(2.5);
+    mbItems.push(questionIcon);
 
     // Text Content (Tengah)
     const textLeft = thumbBoxX + thumbBoxSize / 2 + 16;

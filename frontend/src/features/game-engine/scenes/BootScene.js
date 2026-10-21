@@ -155,13 +155,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('ep6-safety-haven-cg', '/scenes/ep6-safety-haven-cg.jpg?v=3');
     this.load.image('ep6-teman-aman-cg', '/scenes/ep6-teman-aman-cg.jpg?v=3');
 
-    // Aset Final Boss Battle Episode 6 & Standalone Runner
-    this.load.image('boss-shadow', '/sprites/boss-shadow.png?v=5');
-    this.load.image('boss-shadow-attack', '/sprites/boss-shadow-attack.png?v=2');
-    this.load.image('boss-shadow-hurt', '/sprites/boss-shadow-hurt.png?v=2');
-    this.load.image('boss-shadow-roar', '/sprites/boss-shadow-roar.png?v=4');
-    this.load.image('boss-shadow-cast', '/sprites/boss-shadow-cast.png?v=4');
-    this.load.image('boss-projectile', '/sprites/boss-projectile.png?v=2');
+    // Aset Pertarungan Spesial Mini Boss & Runner Opsional
     this.load.image('shadow-spikes', '/sprites/shadow-spikes.png?v=2');
     this.load.image('shadow-meteor', '/sprites/shadow-meteor.png?v=2');
     this.load.image('courage-blast-surge', '/sprites/courage-blast-surge.png?v=1');
