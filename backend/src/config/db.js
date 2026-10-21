@@ -1,10 +1,15 @@
 import { Pool } from 'pg';
 
+const isSslRequired =
+  process.env.NODE_ENV === 'production' ||
+  Boolean(
+    process.env.DATABASE_URL &&
+      (process.env.DATABASE_URL.includes('sslmode=require') ||
+        process.env.DATABASE_URL.includes('neon.tech')),
+  );
+
 const poolConfig = {
-  ssl:
-    process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: isSslRequired ? { rejectUnauthorized: false } : false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
