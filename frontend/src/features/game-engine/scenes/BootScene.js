@@ -245,8 +245,12 @@ export default class BootScene extends Phaser.Scene {
       console.warn('Pixel font gagal dimuat, pakai fallback.', e);
     }
 
-    const targetScene = this.game.registry.get('initialScene') || 'TitleScene';
-    const targetData = this.game.registry.get('initialData') || {};
+    let targetScene = this.game.registry.get('initialScene') || 'TitleScene';
+    let targetData = this.game.registry.get('initialData') || {};
+    if (targetScene === 'MiniBossScene' || targetScene === 'FinalBossScene') {
+      targetScene = 'RunnerScene';
+      targetData = { episodeId: 6, isLastEpisode: true, mode: 'runner', ...targetData };
+    }
     this.scene.start(targetScene, targetData);
   }
 }

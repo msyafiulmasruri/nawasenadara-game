@@ -465,12 +465,20 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     window.__nawasenadaraInput = {
       disableGameKeyboard: () => {
-        this.input.keyboard.enabled = false;
-        this.input.keyboard.disableGlobalCapture();
+        if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+          try {
+            this.input.keyboard.enabled = false;
+            this.input.keyboard.disableGlobalCapture();
+          } catch (_) {}
+        }
       },
       enableGameKeyboard: () => {
-        this.input.keyboard.enabled = true;
-        this.input.keyboard.enableGlobalCapture();
+        if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+          try {
+            this.input.keyboard.enabled = true;
+            this.input.keyboard.enableGlobalCapture();
+          } catch (_) {}
+        }
       },
       lockGameButtons: () => {},
       unlockGameButtons: () => {},
@@ -544,8 +552,12 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       document.removeEventListener('fullscreenchange', this._onFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange);
       this.audioManager?.destroy();
-      this.input.keyboard.enabled = true;
-      this.input.keyboard.enableGlobalCapture();
+      if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+        try {
+          this.input.keyboard.enabled = true;
+          this.input.keyboard.enableGlobalCapture();
+        } catch (_) {}
+      }
       delete window.__nawasenadaraInput;
     });
   }

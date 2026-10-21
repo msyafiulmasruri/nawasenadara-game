@@ -203,9 +203,14 @@ export default function PhaserGame({ initialScene, initialData }) {
       destroyed = true;
       cleanupFS();
       if (phaserInstance.current) {
-        phaserInstance.current.__cleanupResizeListeners?.();
-        phaserInstance.current.destroy(true);
-        phaserInstance.current = null;
+        try {
+          phaserInstance.current.__cleanupResizeListeners?.();
+          phaserInstance.current.destroy(true);
+        } catch (e) {
+          console.warn('[PhaserGame] Error destroying Phaser instance:', e);
+        } finally {
+          phaserInstance.current = null;
+        }
       }
     };
   }, []);

@@ -285,9 +285,11 @@ export default class BasePlayerScene extends Phaser.Scene {
       // Pastikan keyboard game tidak "nyangkut" mati kalau scene ini
       // hancur persis saat overlay masih terbuka (edge case), dan hapus
       // bridge-nya supaya scene berikutnya yang bikin ulang dari nol.
-      if (this.input?.keyboard) {
-        this.input.keyboard.enabled = true;
-        this.input.keyboard.enableGlobalCapture();
+      if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+        try {
+          this.input.keyboard.enabled = true;
+          this.input.keyboard.enableGlobalCapture();
+        } catch (_) {}
       }
       if (window.__nawasenadaraInput?.disableGameKeyboard) {
         delete window.__nawasenadaraInput;
@@ -318,16 +320,12 @@ export default class BasePlayerScene extends Phaser.Scene {
     // karakter), jadi tidak pernah benar-benar masuk ke kotak teksnya.
     window.__nawasenadaraInput = {
       disableGameKeyboard: () => {
-        this.input.keyboard.enabled = false;
-        // FIX: enabled=false SAJA tidak cukup. Phaser tetap melakukan
-        // preventDefault() di level global untuk tombol yang sudah
-        // di-capture (W/A/S/D/panah/Space) TERLEPAS dari flag enabled
-        // scene ini — itu sebabnya huruf W/A/S/D yang diketik ke
-        // textarea overlay React (jurnal/chatbot) tidak pernah benar-
-        // benar sampai ke elemen HTML-nya. disableGlobalCapture()
-        // mematikan preventDefault itu sepenuhnya selama overlay
-        // terbuka.
-        this.input.keyboard.disableGlobalCapture();
+        if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+          try {
+            this.input.keyboard.enabled = false;
+            this.input.keyboard.disableGlobalCapture();
+          } catch (_) {}
+        }
         // FIX kedua: kalau pemain sedang menekan tombol gerak PERSIS
         // saat overlay dibuka, key.isDown bisa "nyangkut" true (event
         // keyup-nya tidak pernah diproses karena keyboard plugin sudah
@@ -339,8 +337,12 @@ export default class BasePlayerScene extends Phaser.Scene {
         this.player?.setVelocityX(0);
       },
       enableGameKeyboard: () => {
-        this.input.keyboard.enabled = true;
-        this.input.keyboard.enableGlobalCapture();
+        if (this.input?.keyboard?.manager && !this.game?.isDestroyed) {
+          try {
+            this.input.keyboard.enabled = true;
+            this.input.keyboard.enableGlobalCapture();
+          } catch (_) {}
+        }
         this.uiInputLocked = false;
       },
       // FIX: overlay React (jurnal/chatbot/prompt nama/tawaran
