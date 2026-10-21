@@ -91,7 +91,7 @@ export default function GuruBkLoginPage() {
           label="Email"
           type="email"
           autoComplete="email"
-          placeholder="guru.bk@sekolah.sch.id"
+          placeholder="email@example.com"
           required
           value={form.email}
           onChange={update('email')}

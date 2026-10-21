@@ -98,7 +98,7 @@ export default function GuruBkRegisterPage() {
           label="Email Sekolah"
           type="email"
           autoComplete="email"
-          placeholder="guru.bk@sekolah.sch.id"
+          placeholder="email@example.com"
           required
           value={form.email}
           onChange={update('email')}
