@@ -53,11 +53,14 @@ const CSS = `
 }
 
 .nd-mission__skip {
-  position: absolute; top: 22px; left: 28px; z-index: 2;
+  position: absolute; top: 22px; left: 28px; z-index: 100 !important;
   font-size: 18px; font-weight: 600; color: #cbd5e1 !important; letter-spacing: .04em;
-  padding: 6px 12px; border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.18) !important;
-  background: rgba(255,255,255,0.04) !important;
+  padding: 6px 14px; border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.22) !important;
+  background: rgba(20,18,38,0.92) !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  touch-action: manipulation;
   transition: color 200ms ease, border-color 200ms ease, transform 200ms ease;
 }
 .nd-mission__skip:hover {
@@ -129,26 +132,8 @@ const CSS = `
   padding: 36px clamp(24px, 3.2vw, 46px) 32px;
   animation: ndMissionRise 520ms ease-out 180ms both;
   cursor: pointer;
-  max-height: 85vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,221,87,0.4) transparent;
-}
-.nd-mission__box::-webkit-scrollbar {
-  width: 5px;
-}
-.nd-mission__box::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-.nd-mission__box::-webkit-scrollbar-thumb {
-  background: rgba(255, 221, 87, 0.4);
-  border-radius: 4px;
-}
-.nd-mission__box::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 221, 87, 0.7);
+  margin-top: 16px;
+  overflow: visible;
 }
 
 .nd-mission__speaker {
@@ -162,6 +147,7 @@ const CSS = `
   padding: 3px 14px;
   border-radius: 4px;
   letter-spacing: .03em;
+  z-index: 5;
 }
 
 /* Isian Penjelasan Teks Putih — Ukuran Sama Besar di Semua Slide */
@@ -174,6 +160,26 @@ const CSS = `
   color: #ffffff;
   text-align: center;
   min-height: 3.2em;
+  max-height: 52vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,221,87,0.4) transparent;
+}
+.nd-mission__body::-webkit-scrollbar {
+  width: 5px;
+}
+.nd-mission__body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.nd-mission__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 221, 87, 0.4);
+  border-radius: 4px;
+}
+.nd-mission__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 221, 87, 0.7);
 }
 .nd-mission__body.is-steps {
   text-align: left;
@@ -323,27 +329,30 @@ const CSS = `
     text-shadow: 0 1px 8px rgba(255,221,87,0.25);
   }
   .nd-mission__box {
-    padding: 12px 16px 8px;
+    margin-top: 14px;
+    padding: 14px 16px 8px;
     border-width: 2px;
     border-radius: 6px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-    max-height: calc(100vh - 76px);
+    overflow: visible;
   }
   .nd-mission__speaker {
-    top: -9px;
-    left: 12px;
+    top: -11px;
+    left: 14px;
     font-size: 11px;
-    padding: 1px 7px;
+    padding: 1px 8px;
     border-radius: 3px;
     max-width: calc(100% - 24px);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    z-index: 5;
   }
   .nd-mission__body {
     font-size: 13px;
     line-height: 1.36;
     min-height: auto;
+    max-height: 48vh;
+    overflow-y: auto;
   }
   .nd-mission__body.is-steps {
     gap: 5px;
@@ -553,10 +562,16 @@ export default class ObjectiveBriefing {
     this._prevBtn = root.querySelector('#nd-mission-prev');
     this._dots = Array.from(root.querySelectorAll('.nd-mission__dot'));
 
-    root.querySelector('#nd-mission-skip')?.addEventListener('click', (e) => {
-      e.stopPropagation();
+    const missionSkipBtn = root.querySelector('#nd-mission-skip');
+    const onMissionSkip = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       this.close();
-    });
+    };
+    missionSkipBtn?.addEventListener('click', onMissionSkip);
+    missionSkipBtn?.addEventListener('pointerdown', onMissionSkip);
 
     // Tombol Lanjut / Mulai di bagian kanan:
     // Langsung pindah ke slide berikutnya / mulai game tanpa pernah nyangkut!

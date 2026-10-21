@@ -70,7 +70,7 @@ export function isEpisodeUnlocked(episodeId) {
   return getCompletedEpisodes().includes(episodeId - 1);
 }
 
-export function completeEpisode(episodeId, choices) {
+export function completeEpisode(episodeId, choices, endingKey = null) {
   // 1) Update state LOKAL dulu (localStorage + cache in-memory) supaya
   //    UI (EpisodeSelectScene) langsung terasa responsif tanpa nunggu
   //    network.
@@ -86,11 +86,13 @@ export function completeEpisode(episodeId, choices) {
     if (existing) {
       existing.status = 'completed';
       existing.choices = Array.isArray(choices) ? choices : [];
+      if (endingKey) existing.ending_key = endingKey;
     } else {
       cache.push({
         episode_id: episodeId,
         status: 'completed',
         choices: Array.isArray(choices) ? choices : [],
+        ending_key: endingKey || null,
       });
     }
 
@@ -103,7 +105,7 @@ export function completeEpisode(episodeId, choices) {
   //    dipanggil sebelum GameProgressBridge sempat mount), diam-diam
   //    dilewati; progres tetap benar secara lokal.
   if (typeof window !== 'undefined') {
-    window.__nawasenadaraProgress?.updateStatus(episodeId, 'completed', choices || []);
+    window.__nawasenadaraProgress?.updateStatus(episodeId, 'completed', choices || [], endingKey);
   }
 }
 

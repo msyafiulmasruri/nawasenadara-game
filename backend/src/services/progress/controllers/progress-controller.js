@@ -75,7 +75,7 @@ export const updateProgress = async (req, res, next) => {
     if (status === 'completed') {
       const result = computeEmotionTallyAndEnding(episodeId, choices);
       emotionTally = result.emotionTally;
-      endingKey = result.endingKey;
+      endingKey = req.validated.ending_key || result.endingKey;
     }
 
     const row = await ProgressRepositories.upsertStatus({

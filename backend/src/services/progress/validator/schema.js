@@ -17,4 +17,5 @@ export const updateProgressPayloadSchema = Joi.object({
   // frontend, backend tidak perlu tahu skema persisnya) — cukup
   // divalidasi sebagai array objek generik.
   choices: Joi.array().items(Joi.object().unknown(true)).default([]),
+  ending_key: Joi.string().valid('true', 'good', 'bad').optional(),
 });

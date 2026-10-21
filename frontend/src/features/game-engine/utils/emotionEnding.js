@@ -246,11 +246,17 @@ const DEFAULT_ENDINGS = {
   },
 };
 
+export function getEndingDefinition(episodeId, endingKey) {
+  const episodeDefs = ENDING_DEFINITIONS[episodeId] || {};
+  return episodeDefs[endingKey] || DEFAULT_ENDINGS[endingKey] || DEFAULT_ENDINGS.good;
+}
+
 /**
  * @param {Array<{emotion?: string}>} choices - hasil collectedChoices dari DialogueBox.
+ * @param {string} [overrideEndingKey] - opsional, jika sudah ditentukan dari evaluasi aspek (true/good/bad).
  * @returns {{tally: Record<string, number>, dominant: string, avgScore: number, endingKey: 'true'|'good'|'bad', ending: object}}
  */
-export function computeEnding(episodeId, choices = []) {
+export function computeEnding(episodeId, choices = [], overrideEndingKey = null) {
   const tally = { aman: 0, netral: 0, sedih: 0, takut: 0, marah: 0, menyinggung: 0 };
   choices.forEach((c) => {
     const key = c?.emotion;
@@ -269,10 +275,10 @@ export function computeEnding(episodeId, choices = []) {
   });
 
   const { avgScore, totalResponses } = computeScore(tally);
-  const endingKey = classifyEndingKey(avgScore, totalResponses);
+  const calculatedKey = classifyEndingKey(avgScore, totalResponses);
+  const endingKey = overrideEndingKey || calculatedKey;
 
-  const episodeDefs = ENDING_DEFINITIONS[episodeId] || {};
-  const ending = episodeDefs[endingKey] || DEFAULT_ENDINGS[endingKey];
+  const ending = getEndingDefinition(episodeId, endingKey);
 
   return { tally, dominant, avgScore, endingKey, ending };
 }

@@ -113,6 +113,62 @@ export function getEndingLabel(episodeId, endingKey) {
   );
 }
 
+export function evaluateEpisodeAspectsCount(episodeId, choices = []) {
+  const safeChoices = Array.isArray(choices) ? choices : [];
+  if (episodeId === 1) {
+    const choiceN3 = safeChoices.find((c) => c.nodeId === 'n3')?.choiceId;
+    const choiceN5 = safeChoices.find((c) => c.nodeId === 'n5')?.choiceId;
+    const a1 = choiceN3 === 'b' || choiceN5 === 'a' || choiceN5 === 'b';
+    const a2 = choiceN3 === 'b' || choiceN5 === 'a';
+    const a3 = choiceN5 === 'a' && choiceN3 !== 'c' && choiceN5 !== 'c';
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  if (episodeId === 2) {
+    const choiceN3 = safeChoices.find((c) => c.nodeId === 'n3')?.choiceId;
+    const choiceN6 = safeChoices.find((c) => c.nodeId === 'n6')?.choiceId;
+    const a1 = choiceN3 === 'a' || (choiceN3 === 'b' && choiceN6 !== 'c');
+    const a2 = choiceN3 === 'a' || choiceN6 === 'a';
+    const a3 = choiceN3 === 'a' && choiceN6 === 'a';
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  if (episodeId === 3) {
+    const cb1 = safeChoices.find((c) => c.nodeId === 'n_cb1')?.choiceId;
+    const cb2 = safeChoices.find((c) => c.nodeId === 'n_cb2')?.choiceId;
+    const cb3 = safeChoices.find((c) => c.nodeId === 'n_cb3_choice' || c.nodeId === 'n_cb3')?.choiceId;
+    const cb4 = safeChoices.find((c) => c.nodeId === 'n_cb4')?.choiceId;
+    const blockedEarly = cb1 === 'a' || cb2 === 'a';
+    const a1 = blockedEarly || cb3 === 'a' || cb3 === 'b';
+    const a2 = blockedEarly || cb3 === 'a' || cb3 === 'b' || cb4 === 'a';
+    const a3 = blockedEarly || cb3 === 'a' || (cb3 === 'b' && cb4 === 'a');
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  if (episodeId === 4) {
+    const choiceN3 = safeChoices.find((c) => c.nodeId === 'n3')?.choiceId;
+    const choiceN6 = safeChoices.find((c) => c.nodeId === 'n6')?.choiceId;
+    const a1 = choiceN3 === 'a' || (choiceN3 === 'b' && choiceN6 !== 'c');
+    const a2 = choiceN3 === 'a' || choiceN6 === 'a';
+    const a3 = choiceN6 === 'a' && choiceN3 !== 'c';
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  if (episodeId === 5) {
+    const ice = safeChoices.find((c) => c.nodeId === 'n_icebreak' || c.nodeId === 'n3')?.choiceId;
+    const act = safeChoices.find((c) => c.nodeId === 'n_action' || c.nodeId === 'n6')?.choiceId;
+    const a1 = ice === 'a' || ice === 'b';
+    const a2 = ice !== 'c' && act !== 'c';
+    const a3 = act === 'a';
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  if (episodeId === 6) {
+    const choiceN3 = safeChoices.find((c) => c.nodeId === 'n3')?.choiceId;
+    const choiceN6 = safeChoices.find((c) => c.nodeId === 'n6')?.choiceId;
+    const a1 = choiceN3 === 'a' || choiceN3 === 'b';
+    const a2 = choiceN3 === 'a' || choiceN6 === 'a' || choiceN6 === 'b';
+    const a3 = choiceN6 === 'a' && choiceN3 !== 'c';
+    return [a1, a2, a3].filter(Boolean).length;
+  }
+  return 3;
+}
+
 /**
  * @param {number} episodeId
  * @param {Array<{emotion?: string}>} choices
@@ -137,9 +193,22 @@ export function computeEmotionTallyAndEnding(episodeId, choices = []) {
   });
 
   const { avgScore, totalResponses } = computeScore(tally);
-  const endingKey = classifyEndingKey(avgScore, totalResponses);
 
-  return { emotionTally: tally, dominant, avgScore, endingKey };
+  // Klasifikasi ending berdasarkan pemenuhan 3 aspek:
+  // - 3 aspek: true (Ending Sejati)
+  // - 1 atau 2 aspek: good (Ending Baik)
+  // - 0 aspek: bad (Ending Buruk)
+  const aspectCount = evaluateEpisodeAspectsCount(episodeId, choices);
+  let endingKey = 'good';
+  if (aspectCount === 3) {
+    endingKey = 'true';
+  } else if (aspectCount === 0) {
+    endingKey = 'bad';
+  } else {
+    endingKey = 'good';
+  }
+
+  return { emotionTally: tally, dominant, avgScore, endingKey, aspectCount };
 }
 
 // Judul + konklusi plus/minus untuk ENDING AKUMULASI (gabungan seluruh

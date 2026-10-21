@@ -20,7 +20,8 @@ class BkRepositories {
         recent_alert.risk_level AS latest_risk_level,
         recent_alert.created_at AS latest_risk_at,
         unacknowledged.unacknowledged_count,
-        COALESCE(tallies.completed_tallies, '{}') AS completed_tallies
+        COALESCE(tallies.completed_tallies, '{}') AS completed_tallies,
+        COALESCE(ep_data.completed_episodes, '[]'::jsonb) AS completed_episodes
       FROM users u
       LEFT JOIN LATERAL (
         SELECT
@@ -56,6 +57,20 @@ class BkRepositories {
           AND status = 'completed'
           AND emotion_tally IS NOT NULL
       ) tallies ON true
+      LEFT JOIN LATERAL (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'episode_id', episode_id,
+            'ending_key', ending_key,
+            'choices', choices,
+            'emotion_tally', emotion_tally
+          )
+        ) AS completed_episodes
+        FROM user_episode_progress
+        WHERE user_id = u.id
+          AND episode_id BETWEEN 1 AND 6
+          AND status = 'completed'
+      ) ep_data ON true
       WHERE u.role = 'siswa'
       ORDER BY
         (unacknowledged.unacknowledged_count > 0) DESC,

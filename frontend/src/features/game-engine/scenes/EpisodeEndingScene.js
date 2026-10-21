@@ -397,12 +397,19 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       this.episodeId === 6 &&
       shouldShowEpisode6Learning(this.choices);
 
+    this.aspectEvaluation = evaluateEpisodeAspects(this.episodeId, this.choices);
+    this.needsAspectRetry = Boolean(this.aspectEvaluation.needsRetry);
+
     const endingChoices = this.isLastEpisode
       ? getStoryChoices(this.episodeId, this.choices)
       : this.choices;
-    const endingResult = computeEnding(this.episodeId, endingChoices);
+    const endingResult = computeEnding(
+      this.episodeId,
+      endingChoices,
+      this.aspectEvaluation.endingKey,
+    );
 
-    this.endingKey = endingResult.endingKey;
+    this.endingKey = this.aspectEvaluation.endingKey || endingResult.endingKey;
     this.ending = endingResult.ending;
     this.isBadEnding = this.endingKey === 'bad';
 
@@ -420,15 +427,12 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     // Fallback hanya dipakai ketika layanan NLP benar-benar tidak dapat
     // dihubungi. Jalur normal akan menimpa nilai ini dengan hasil model.
-    const fallback = computeEnding(this.episodeId, this.choices);
+    const fallback = computeEnding(this.episodeId, this.choices, this.endingKey);
     const totalResponses = Object.values(fallback.tally).reduce(
       (total, count) => total + count,
       0,
     );
     const fallbackCount = fallback.tally[fallback.dominant] || 0;
-
-    this.aspectEvaluation = evaluateEpisodeAspects(this.episodeId, this.choices);
-    this.needsAspectRetry = Boolean(this.aspectEvaluation.needsRetry);
 
     this.responseTexts = getEpisodeChoiceTexts(this.episodeId, this.choices);
     this.dominantEmotion = fallback.dominant;
@@ -981,13 +985,19 @@ export default class EpisodeEndingScene extends Phaser.Scene {
 
     // Action Buttons
     if (evalData.needsRetry) {
-      // Must Retry Button (Blocked from continuing ONLY when 0 aspects met)
+      // Tombol 1: Ulangi Episode (merah)
+      // Tombol 2: Lanjutkan Saja (gelap bergaris, mencatat ending buruk di guru BK)
+      const dualBtnW = compact ? Math.min(cardWidth * 0.46, 260) : pxToWorld(this, 280);
+      const gap = compact ? 12 : pxToWorld(this, 20);
+      const retryX = centerX - (dualBtnW / 2 + gap / 2);
+      const contX = centerX + (dualBtnW / 2 + gap / 2);
+
       const retryBtn = this.add
-        .rectangle(centerX, btnY, btnW, btnH, 0xe11d48, 1)
+        .rectangle(retryX, btnY, dualBtnW, btnH, 0xe11d48, 1)
         .setStrokeStyle(2, 0xffa4b6, 0.9)
         .setInteractive({ useHandCursor: true });
       const retryText = this.add
-        .text(centerX, btnY, 'ULANGI EPISODE INI', {
+        .text(retryX, btnY, 'ULANGI EPISODE', {
           fontFamily: '"Pixelify Sans", monospace',
           fontSize: `${btnFont}px`,
           fontStyle: '700',
@@ -1011,6 +1021,30 @@ export default class EpisodeEndingScene extends Phaser.Scene {
       };
       retryBtn.on('pointerdown', doRetry);
       retryText.setInteractive({ useHandCursor: true }).on('pointerdown', doRetry);
+
+      // Tombol Lanjutkan Saja
+      const continueBtn = this.add
+        .rectangle(contX, btnY, dualBtnW, btnH, 0x334155, 1)
+        .setStrokeStyle(2, 0x94a3b8, 0.9)
+        .setInteractive({ useHandCursor: true });
+      const continueText = this.add
+        .text(contX, btnY, 'LANJUTKAN SAJA >', {
+          fontFamily: '"Pixelify Sans", monospace',
+          fontSize: `${btnFont}px`,
+          fontStyle: '700',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+      this._aspectContainer.add(continueBtn);
+      this._aspectContainer.add(continueText);
+
+      const doContinue = () => {
+        this._advancing = true;
+        this._teardownInput();
+        void this._goToJournal();
+      };
+      continueBtn.on('pointerdown', doContinue);
+      continueText.setInteractive({ useHandCursor: true }).on('pointerdown', doContinue);
     } else {
       // Pemain memenuhi minimal 1 aspek: Lanjut ke Jurnal Refleksi terlebih dahulu
       // (Jurnal Refleksi selalu muncul duluan; Rapor 6 Episode baru keluar setelah jurnal selesai diisi di Ep 6)
@@ -1264,7 +1298,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
     // Langsung lanjutkan ke episode berikutnya (atau Rapor 6 Episode di Ep 6)
     // tanpa memunculkan layar suruh mengulang lagi.
     if (this.isLastEpisode || this.episodeId === 6) {
-      completeEpisode(this.episodeId, this.choices);
+      completeEpisode(this.episodeId, this.choices, this.endingKey);
       // Jurnal refleksi telah selesai diisi; sekarang tampilkan Rapor 6 Episode Landscape!
       this._showFinalReportLandscape(() => {
         this.scene.start('EpisodeSelectScene');
@@ -1415,7 +1449,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
         : 'LANJUT KE EPISODE BERIKUTNYA',
       () => {
         if (this.isLastEpisode || this.episodeId === 6) {
-          completeEpisode(this.episodeId, this.choices);
+          completeEpisode(this.episodeId, this.choices, this.endingKey);
           this._showFinalReportLandscape(() => {
             this.scene.start('EpisodeSelectScene');
           });
@@ -1428,7 +1462,7 @@ export default class EpisodeEndingScene extends Phaser.Scene {
   }
 
   _completeAndContinue() {
-    completeEpisode(this.episodeId, this.choices);
+    completeEpisode(this.episodeId, this.choices, this.endingKey);
 
     if (this.isLastEpisode || this.episodeId === 6) {
       this._showFinalReportLandscape(() => {

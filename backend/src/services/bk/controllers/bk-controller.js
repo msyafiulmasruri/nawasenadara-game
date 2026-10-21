@@ -1,7 +1,11 @@
 import BkRepositories from '../repositories/bk-repositories.js';
 import { success } from '../../../utils/response.js';
 import NotFoundError from '../../../exceptions/not-found-error.js';
-import { sumEmotionTallies, computeOverallEnding } from '../../progress/utils/emotion-ending.js';
+import {
+  sumEmotionTallies,
+  computeOverallEnding,
+  evaluateEpisodeAspectsCount,
+} from '../../progress/utils/emotion-ending.js';
 
 // computeOverallEnding() (emotion-ending.js) mengembalikan properti
 // camelCase (dominant, endingKey, hasData, title, plusText, minusText)
@@ -24,9 +28,22 @@ export const listStudents = async (req, res, next) => {
     const data = students.map((s) => {
       const combinedTally = sumEmotionTallies(s.completed_tallies);
       const overallEnding = computeOverallEnding(combinedTally);
+
+      const completedEpisodes = Array.isArray(s.completed_episodes) ? s.completed_episodes : [];
+      let aspectsFulfilled = 0;
+      completedEpisodes.forEach((ep) => {
+        aspectsFulfilled += evaluateEpisodeAspectsCount(ep.episode_id, ep.choices);
+      });
+      const aspectsTotal = completedEpisodes.length * 3;
+
       const rest = { ...s };
       delete rest.completed_tallies;
-      return { ...rest, ending_trend: toSnakeEnding(overallEnding) };
+      return {
+        ...rest,
+        aspects_fulfilled: aspectsFulfilled,
+        aspects_total: aspectsTotal,
+        ending_trend: toSnakeEnding(overallEnding),
+      };
     });
     return success(res, data);
   } catch (err) {

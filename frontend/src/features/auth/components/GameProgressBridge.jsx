@@ -59,11 +59,13 @@ export default function GameProgressBridge() {
       // gameplay tidak pernah menunggu network — kalau gagal, progres
       // tetap benar secara LOKAL (cache + localStorage fallback), cuma
       // belum ke-sync ke server sampai request berikutnya berhasil.
-      updateStatus: async (episodeId, status, choices) => {
+      updateStatus: async (episodeId, status, choices, endingKey) => {
         try {
+          const payload = { status, choices: choices || [] };
+          if (endingKey) payload.ending_key = endingKey;
           await apiClient.put(
             `/api/progress/${episodeId}`,
-            { status, choices: choices || [] },
+            payload,
             { getAccessToken },
           );
         } catch (err) {

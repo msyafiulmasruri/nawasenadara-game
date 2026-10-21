@@ -142,11 +142,22 @@ const CSS = `
 #${ROOT_ID} button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 
 .nd-intro__skip {
-  position: absolute; top: 22px; left: 28px; z-index: 2;
-  font-size: 17px; color: #8b93a7 !important; letter-spacing: .04em;
-  padding: 6px 10px; transition: color 200ms ease, opacity 320ms ease, transform 320ms ease;
+  position: absolute; top: 22px; left: 28px; z-index: 100 !important;
+  font-size: 17px; font-weight: 600; color: #cbd5e1 !important; letter-spacing: .04em;
+  padding: 6px 14px; border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.22) !important;
+  background: rgba(20, 18, 38, 0.92) !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  touch-action: manipulation;
+  user-select: none;
+  transition: color 200ms ease, border-color 200ms ease, transform 200ms ease;
 }
-.nd-intro__skip:hover { color: #ffdd57 !important; }
+.nd-intro__skip:hover {
+  color: #ffdd57 !important;
+  border-color: #ffdd57 !important;
+  transform: translateY(-1px);
+}
 
 .nd-intro__main {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -271,12 +282,14 @@ const CSS = `
 @media (max-height: 520px) {
   .nd-intro__skip {
     top: 8px;
-    left: 16px;
+    left: 14px;
     font-size: 13px;
-    padding: 3px 8px;
-    background: rgba(15, 14, 28, 0.75);
+    padding: 4px 10px;
+    background: rgba(18, 16, 36, 0.92) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
     border-radius: 4px;
-    backdrop-filter: blur(2px);
+    z-index: 100 !important;
+    pointer-events: auto !important;
   }
   .nd-intro__main {
     padding: 10px 3vw 8px;
@@ -475,7 +488,16 @@ export default class GameIntroGuideScene extends Phaser.Scene {
     this._prevBtn = root.querySelector('#nd-intro-prev');
     this._dots = Array.from(root.querySelectorAll('.nd-intro__dot'));
 
-    root.querySelector('#nd-intro-skip').addEventListener('click', () => this._finishIntro());
+    const skipBtn = root.querySelector('#nd-intro-skip');
+    const onSkip = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this._finishIntro();
+    };
+    skipBtn?.addEventListener('click', onSkip);
+    skipBtn?.addEventListener('pointerdown', onSkip);
     this._nextBtn.addEventListener('click', () => this._handleNext());
     this._prevBtn.addEventListener('click', () => this._prevSlide());
 

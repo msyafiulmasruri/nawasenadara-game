@@ -233,23 +233,37 @@ export function evaluateEpisodeAspects(episodeId, choices = []) {
   const fulfilledCount = fulfilledAspects.length;
   const totalCount = aspectItems.length;
 
-  // Syarat lulus: jika 0 aspek terpenuhi, pemain WAJIB mengulangi episode!
-  const canAdvance = fulfilledCount > 0;
-  const needsRetry = fulfilledCount === 0;
+  // Klasifikasi Ending berdasarkan 3 Aspek:
+  // - 3/3 Terpenuhi -> Ending Sejati ('true')
+  // - 1/3 atau 2/3 Terpenuhi -> Ending Baik ('good')
+  // - 0/3 Terpenuhi -> Ending Buruk ('bad')
+  let endingKey = 'good';
+  if (fulfilledCount === totalCount) {
+    endingKey = 'true';
+  } else if (fulfilledCount === 0) {
+    endingKey = 'bad';
+  } else {
+    endingKey = 'good';
+  }
+
+  // Jika 0 aspek terpenuhi, siswa mendapatkan Ending Buruk tapi tetap
+  // diberikan opsi 'Lanjutkan Saja' supaya bisa tercatat di rekapan Guru BK.
+  const canAdvance = true;
+  const needsRetry = endingKey === 'bad';
 
   let endingTitle = '';
   let endingSummary = '';
   let feedbackSummary = '';
 
   if (fulfilledCount === totalCount) {
-    endingTitle = 'Misi Berhasil — Semua 3 Langkah Terpenuhi!';
+    endingTitle = 'Misi Berhasil — Semua 3 Langkah Terpenuhi (Ending Sejati)';
     endingSummary =
       'Hebat! Kamu sudah memenuhi ketiga langkah tujuan di episode ini:\n' +
       fulfilledAspects.map((a) => `${a.id}. ${a.title}`).join('\n');
     feedbackSummary =
-      'Luar biasa! Semua 3 langkah tujuan di episode ini sudah kamu penuhi dengan tepat. Pertahankan keberanian dan sikap tenangmu!';
+      'Luar biasa! Semua 3 langkah tujuan di episode ini sudah kamu penuhi dengan tepat. Kamu mendapatkan Ending Sejati!';
   } else if (fulfilledCount > 0) {
-    endingTitle = `Misi Cukup Baik — ${fulfilledCount} dari ${totalCount} Langkah Terpenuhi`;
+    endingTitle = `Misi Cukup Baik — ${fulfilledCount} dari ${totalCount} Langkah Terpenuhi (Ending Baik)`;
     endingSummary =
       `Kamu sudah memenuhi:\n` +
       fulfilledAspects.map((a) => `${a.id}. ${a.title}`).join('\n') +
@@ -257,15 +271,15 @@ export function evaluateEpisodeAspects(episodeId, choices = []) {
       pendingAspects.map((a) => `${a.id}. ${a.title}`).join('\n');
     feedbackSummary =
       `Kamu sudah memenuhi: ${fulfilledAspects.map((a) => `(${a.id}) ${a.title}`).join(', ')}.\n` +
-      `Sayang sekali kamu belum memenuhi: ${pendingAspects.map((a) => `(${a.id}) ${a.title}`).join(', ')}.`;
+      `Langkah belum terpenuhi: ${pendingAspects.map((a) => `(${a.id}) ${a.title}`).join(', ')}. Kamu mendapatkan Ending Baik.`;
   } else {
-    endingTitle = 'Misi Belum Berhasil — Perlu Diulang';
+    endingTitle = 'Misi Belum Berhasil — 0 Langkah Terpenuhi (Ending Buruk)';
     endingSummary =
       'Sayang sekali kamu belum memenuhi satu pun dari 3 langkah tujuan di episode ini:\n' +
       aspectItems.map((a) => `${a.id}. ${a.title}`).join('\n') +
-      '\n\nJangan menyerah, yuk ulangi episode ini dan pilih sikap yang lebih tepat!';
+      '\n\nKamu bisa mengulangi episode ini untuk memperbaikinya, atau memilih lanjutkan saja ke jurnal refleksi.';
     feedbackSummary =
-      'Belum ada langkah tujuan yang terpenuhi di episode ini. Kamu wajib mengulangi episode ini sebelum bisa lanjut ke cerita berikutnya.';
+      'Belum ada langkah tujuan yang terpenuhi di episode ini (Ending Buruk). Kamu bisa mengulang episode untuk mencoba pilihan yang lebih tepat, atau lanjutkan saja.';
   }
 
   const result = {
@@ -276,6 +290,7 @@ export function evaluateEpisodeAspects(episodeId, choices = []) {
     pendingAspects,
     fulfilledCount,
     totalCount,
+    endingKey,
     canAdvance,
     needsRetry,
     endingTitle,
