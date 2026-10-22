@@ -2787,6 +2787,7 @@ export default class RunnerScene extends Phaser.Scene {
     this.gameState = 'VICTORY';
     this.obstaclesGroup.getChildren().forEach((obs) => this._destroyObstacleVisuals(obs));
     this.obstaclesGroup.clear(true, true);
+    this.shardsGroup.clear(true, true);
 
     if (this.bossSpeechBubble) {
       this.bossSpeechBubble.destroy();
@@ -2798,7 +2799,22 @@ export default class RunnerScene extends Phaser.Scene {
     if (this.bossFloorShadow) {
       this.bossFloorShadow.destroy();
     }
+    if (this.enrageDarknessOverlay) {
+      this.tweens.add({
+        targets: this.enrageDarknessOverlay,
+        alpha: 0,
+        duration: 800,
+      });
+    }
 
+    // Audio kemenangan boss defeat
+    this.audioManager?.playBossDefeat();
+
+    // 1. Flash Layar Menyilaukan & Gempa Halus
+    this.cameras.main.flash(750, 255, 255, 255);
+    this.cameras.main.shake(800, 0.012);
+
+    // 2. Boss Larut Menjadi Sinar Keberanian
     const defeatTargets = [
       this.bossSprite,
       ...(this.bossAuraLayers || []),
@@ -2806,110 +2822,303 @@ export default class RunnerScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: defeatTargets,
-      scale: 2.2,
+      scale: 2.3,
       alpha: 0,
-      duration: 850,
+      duration: 1100,
       ease: 'Cubic.easeOut',
     });
 
+    // 3. Dara Melangkah Tenang ke Posisi Kemenangan
+    this.player.setVelocity(0, 0);
+    this.player.stop();
+    this.player.setTexture('player-idle');
+
     const bounds = getVisibleBounds(this);
+    this.tweens.add({
+      targets: this.player,
+      x: bounds.centerX - 130,
+      duration: 900,
+      ease: 'Quad.easeOut',
+    });
 
-    const modalH = this.isLastEpisode ? 260 : 230;
-    const modal = this.add.rectangle(bounds.centerX, bounds.centerY, Math.min(bounds.width * 0.88, 540), modalH, 0x07111a, 0.96)
-      .setStrokeStyle(1.5, 0x10b981).setDepth(50).setScrollFactor(0);
+    // 4. Buka Cutscene Dialog Monolog Kemenangan setelah jeda singkat
+    this.time.delayedCall(1150, () => {
+      this._showVictoryCutsceneDialogue(bounds);
+    });
+  }
 
-    const title = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 32), 'KEMENANGAN ASERTIF!', {
+  // ==============================================================
+  // G1. CUTSCENE MONOLOG KEMENANGAN DARA
+  // ==============================================================
+
+  _showVictoryCutsceneDialogue(bounds) {
+    const dialogContainer = this.add.container(0, 0).setDepth(60).setScrollFactor(0);
+
+    const boxW = Math.min(bounds.width * 0.94, 660);
+    const boxH = Math.min(bounds.height * 0.28, 140);
+    const boxX = bounds.centerX;
+    const boxY = bounds.bottom - boxH / 2 - 24;
+
+    // Dark cyber letterbox container
+    const boxBg = this.add.rectangle(boxX, boxY, boxW, boxH, 0x050e17, 0.95)
+      .setStrokeStyle(1.8, 0x10b981)
+      .setScrollFactor(0);
+
+    // Header Tag
+    const tagBg = this.add.rectangle(boxX - boxW / 2 + 75, boxY - boxH / 2, 130, 24, 0x064e3b, 1)
+      .setStrokeStyle(1.2, 0x34d399)
+      .setScrollFactor(0);
+
+    const tagText = this.add.text(boxX - boxW / 2 + 75, boxY - boxH / 2, 'DARA', {
       fontFamily: '"Pixelify Sans", monospace',
-      fontSize: '18px',
+      fontSize: '11px',
       fontStyle: '700',
-      color: '#34d399',
-    }).setOrigin(0.5).setDepth(51);
+      color: '#a7f3d0',
+    }).setOrigin(0.5).setScrollFactor(0);
 
-    const msg = this.add.text(bounds.centerX, bounds.centerY - (modalH / 2 - 76), `Luar biasa! Dara berhasil menembus 10 intimidasi dengan batasan yang kokoh!\nTotal Jarak: ${this.distance} Meter`, {
+    // Monologue Narration Text
+    const monologueMsg = '"Kabut intimidasi dan rasa takut itu... akhirnya sirna. Aku kini berani bersuara dan menjaga batasan diriku tanpa rasa bersalah. Tidak ada lagi yang bisa memaksaku melanggar hak dan batasan pribadiku."';
+    const msgText = this.add.text(boxX - boxW / 2 + 20, boxY - boxH * 0.22, monologueMsg, {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '13px',
+      color: '#f8fafc',
+      lineSpacing: 5,
+      wordWrap: { width: boxW - 160 },
+    }).setOrigin(0, 0).setScrollFactor(0);
+
+    // Tombol Lanjut ke Penganugerahan Lencana
+    const nextBtnW = 120;
+    const nextBtnH = 36;
+    const nextBtnX = boxX + boxW / 2 - nextBtnW / 2 - 16;
+    const nextBtnY = boxY;
+
+    const nextBtn = this.add.rectangle(nextBtnX, nextBtnY, nextBtnW, nextBtnH, 0x064e3b, 1)
+      .setStrokeStyle(1.4, 0x34d399)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true });
+
+    const nextBtnText = this.add.text(nextBtnX, nextBtnY, 'LANJUTKAN ›', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '12px',
-      color: '#f8fafc',
+      fontStyle: '700',
+      color: '#ffffff',
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    const proceedToBadge = () => {
+      dialogContainer.destroy();
+      this._showVictoryBadgeModal(bounds);
+    };
+
+    nextBtn.on('pointerdown', proceedToBadge);
+    nextBtn.on('pointerover', () => nextBtn.setFillStyle(0x047857));
+    nextBtn.on('pointerout', () => nextBtn.setFillStyle(0x064e3b));
+
+    dialogContainer.add([boxBg, tagBg, tagText, msgText, nextBtn, nextBtnText]);
+    dialogContainer.setAlpha(0);
+    this.tweens.add({ targets: dialogContainer, alpha: 1, duration: 250 });
+  }
+
+  // ==============================================================
+  // G2. MODAL PENGANUGERAHAN LENCANA KETEGASAN SEJATI
+  // ==============================================================
+
+  _showVictoryBadgeModal(bounds) {
+    // Mainkan fanfare keberhasilan
+    this.audioManager?.playOrbCollect();
+
+    // Catat pencapaian ke localStorage
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nawasenadara_miniboss_completed', 'true');
+        localStorage.setItem('nawasenadara_miniboss_badge', 'Lencana Ketegasan Sejati');
+      }
+    } catch (e) {}
+
+    const badgeContainer = this.add.container(0, 0).setDepth(65).setScrollFactor(0);
+
+    // 1. Dark Backdrop
+    const backdrop = this.add.rectangle(bounds.centerX, bounds.centerY, bounds.width, bounds.height, 0x000000, 0.86)
+      .setScrollFactor(0)
+      .setInteractive();
+    badgeContainer.add(backdrop);
+
+    // 2. Card Panel
+    const cardW = Math.min(bounds.width * 0.92, 560);
+    const cardH = Math.min(bounds.height * 0.90, 470);
+    const card = this.add.rectangle(bounds.centerX, bounds.centerY, cardW, cardH, 0x050e17, 0.98)
+      .setStrokeStyle(2, 0x10b981, 0.9)
+      .setScrollFactor(0);
+    badgeContainer.add(card);
+
+    // Top Glowing Accent Line
+    const accentLine = this.add.rectangle(bounds.centerX, bounds.centerY - cardH / 2 + 3, cardW - 6, 4, 0x34d399, 1)
+      .setScrollFactor(0);
+    badgeContainer.add(accentLine);
+
+    // 3. Ribbon Top Badge Pill
+    const pillY = bounds.centerY - cardH * 0.40;
+    const pillBg = this.add.rectangle(bounds.centerX, pillY, 230, 22, 0x064e3b, 1)
+      .setStrokeStyle(1.2, 0x34d399, 0.9)
+      .setScrollFactor(0);
+    const pillText = this.add.text(bounds.centerX, pillY, 'PENCAPAIAN TERTINGGI TERBUKA', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '10.5px',
+      fontStyle: '700',
+      color: '#a7f3d0',
+      letterSpacing: 1,
+    }).setOrigin(0.5).setScrollFactor(0);
+    badgeContainer.add([pillBg, pillText]);
+
+    // 4. Gambar Lencana / Badge Sprite
+    const badgeKey = this.textures.exists('badge-assertive') ? 'badge-assertive' : 'courage-crest';
+    const badgeImgY = bounds.centerY - cardH * 0.22;
+    const badgeImg = this.add.image(bounds.centerX, badgeImgY, badgeKey)
+      .setDisplaySize(96, 96)
+      .setScrollFactor(0);
+    badgeContainer.add(badgeImg);
+
+    // Shimmer pulse animation pada Lencana
+    this.tweens.add({
+      targets: badgeImg,
+      scale: badgeImg.scale * 1.06,
+      duration: 1300,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // 5. Judul Lencana & Gelar Kehormatan
+    const titleY = bounds.centerY - cardH * 0.05;
+    const title = this.add.text(bounds.centerX, titleY, 'LENCANA KETEGASAN SEJATI', {
+      fontFamily: '"Jersey 15", "Pixelify Sans", monospace',
+      fontSize: '24px',
+      color: '#fbbf24',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    const subTitle = this.add.text(bounds.centerX, titleY + 22, 'Gelar: Sang Penjaga Batasan Diri', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '12px',
+      fontStyle: '700',
+      color: '#34d399',
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    // 6. Deskripsi Naratif
+    const descText = 'Dianugerahkan atas keberanian luar biasa mematahkan 10 butir intimidasi verbal & cyber, serta teguh menegakkan batasan pribadi secara asertif.';
+    const desc = this.add.text(bounds.centerX, titleY + 54, descText, {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '11.5px',
+      color: '#cbd5e1',
       align: 'center',
-      lineSpacing: 5,
-    }).setOrigin(0.5).setDepth(51);
+      wordWrap: { width: cardW - 50 },
+      lineSpacing: 4,
+    }).setOrigin(0.5).setScrollFactor(0);
+    badgeContainer.add([title, subTitle, desc]);
 
-    if (this.isLastEpisode) {
-      // Tombol 1: Evaluasi & Rapor Akhir (Menuju EpisodeEndingScene)
-      const evalBtn = this.add.rectangle(bounds.centerX, bounds.centerY + 10, 280, 38, 0x064e3b, 1)
-        .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
-      const evalBtnText = this.add.text(bounds.centerX, bounds.centerY + 10, 'LIHAT EVALUASI & RAPOR', {
+    // 7. Mini Stats Row
+    const statsY = bounds.centerY + cardH * 0.17;
+    const statBoxW = (cardW - 48) / 3;
+    const statBoxH = 34;
+
+    const stats = [
+      { label: 'STATUS', val: 'MENANG MUTLAK', color: '#34d399' },
+      { label: 'KETAHANAN', val: `${this.playerCourage} / 3 NYAWA`, color: '#38bdf8' },
+      { label: 'TOTAL JARAK', val: `${this.distance} METER`, color: '#facc15' },
+    ];
+
+    stats.forEach((st, idx) => {
+      const sx = bounds.centerX - cardW / 2 + 24 + statBoxW / 2 + idx * (statBoxW + 4);
+      const sBg = this.add.rectangle(sx, statsY, statBoxW - 4, statBoxH, 0x0a1929, 0.9)
+        .setStrokeStyle(1, 0x334155)
+        .setScrollFactor(0);
+      const sLbl = this.add.text(sx, statsY - 7, st.label, {
         fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '12px',
+        fontSize: '9px',
+        color: '#94a3b8',
+      }).setOrigin(0.5).setScrollFactor(0);
+      const sVal = this.add.text(sx, statsY + 7, st.val, {
+        fontFamily: '"Pixelify Sans", monospace',
+        fontSize: '10.5px',
         fontStyle: '700',
-        color: '#ffffff',
-      }).setOrigin(0.5).setDepth(52);
+        color: st.color,
+      }).setOrigin(0.5).setScrollFactor(0);
+      badgeContainer.add([sBg, sLbl, sVal]);
+    });
 
-      evalBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
-        this.scene.start('EpisodeEndingScene', {
-          episodeId: this.episodeId || 6,
-          isLastEpisode: true,
-          choices: this.choices || [],
-        });
+    // 8. Tombol Navigasi
+    const btnW = cardW * 0.88;
+    const mainBtnH = 36;
+    const subBtnH = 30;
+    const mainBtnY = bounds.centerY + cardH * 0.30;
+    const subBtnY = bounds.centerY + cardH * 0.40;
+
+    // Tombol 1: Evaluasi & Rapor Akhir
+    const evalBtn = this.add.rectangle(bounds.centerX, mainBtnY, btnW, mainBtnH, 0x064e3b, 1)
+      .setStrokeStyle(1.6, 0x34d399).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const evalBtnText = this.add.text(bounds.centerX, mainBtnY, 'LIHAT EVALUASI & RAPOR AKHIR ›', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '13px',
+      fontStyle: '700',
+      color: '#ffffff',
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    evalBtn.on('pointerdown', () => {
+      badgeContainer.destroy();
+      this.audioManager?.stopBGM();
+      this.scene.start('EpisodeEndingScene', {
+        episodeId: this.episodeId || 6,
+        isLastEpisode: true,
+        choices: this.choices || [],
       });
-      evalBtn.on('pointerover', () => evalBtn.setFillStyle(0x047857, 1));
-      evalBtn.on('pointerout', () => evalBtn.setFillStyle(0x064e3b, 1));
+    });
+    evalBtn.on('pointerover', () => evalBtn.setFillStyle(0x047857));
+    evalBtn.on('pointerout', () => evalBtn.setFillStyle(0x064e3b));
+    badgeContainer.add([evalBtn, evalBtnText]);
 
-      // Tombol 2: Main Lagi (Kiri) & Tombol 3: Pilih Episode (Kanan)
-      const subBtnY = bounds.centerY + 62;
-      const replayBtn = this.add.rectangle(bounds.centerX - 110, subBtnY, 150, 36, 0x0f172a, 0.95)
-        .setStrokeStyle(1.2, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
-      const replayBtnText = this.add.text(bounds.centerX - 110, subBtnY, 'MAIN LAGI', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
-        fontStyle: '700',
-        color: '#38bdf8',
-      }).setOrigin(0.5).setDepth(52);
+    // Tombol 2: Main Lagi (Kiri) & Tombol 3: Pilih Episode (Kanan)
+    const halfBtnW = (btnW - 8) / 2;
+    const replayX = bounds.centerX - btnW / 4 - 2;
+    const epSelectX = bounds.centerX + btnW / 4 + 2;
 
-      replayBtn.on('pointerdown', () => this.restartMiniBoss());
-      replayBtn.on('pointerover', () => replayBtn.setFillStyle(0x1e293b, 1));
-      replayBtn.on('pointerout', () => replayBtn.setFillStyle(0x0f172a, 0.95));
+    const replayBtn = this.add.rectangle(replayX, subBtnY, halfBtnW, subBtnH, 0x0f172a, 0.95)
+      .setStrokeStyle(1.2, 0x38bdf8).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const replayText = this.add.text(replayX, subBtnY, 'TANTANG ULANG', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '11px',
+      fontStyle: '700',
+      color: '#38bdf8',
+    }).setOrigin(0.5).setScrollFactor(0);
 
-      const epSelectBtn = this.add.rectangle(bounds.centerX + 110, subBtnY, 150, 36, 0x0f172a, 0.95)
-        .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
-      const epSelectBtnText = this.add.text(bounds.centerX + 110, subBtnY, 'PILIH EPISODE', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '11px',
-        fontStyle: '700',
-        color: '#c084fc',
-      }).setOrigin(0.5).setDepth(52);
+    replayBtn.on('pointerdown', () => {
+      badgeContainer.destroy();
+      this.restartMiniBoss();
+    });
+    replayBtn.on('pointerover', () => replayBtn.setFillStyle(0x1e293b));
+    replayBtn.on('pointerout', () => replayBtn.setFillStyle(0x0f172a));
 
-      epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
-        this.scene.start('EpisodeSelectScene');
-      });
-      epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
-      epSelectBtn.on('pointerout', () => epSelectBtn.setFillStyle(0x0f172a, 0.95));
-    } else {
-      const subBtnY = bounds.centerY + 35;
-      const replayBtn = this.add.rectangle(bounds.centerX - 100, subBtnY, 160, 40, 0x064e3b, 1)
-        .setStrokeStyle(1.5, 0x10b981).setDepth(51).setInteractive({ useHandCursor: true });
-      const replayBtnText = this.add.text(bounds.centerX - 100, subBtnY, 'MAIN LAGI', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '12px',
-        fontStyle: '700',
-        color: '#ffffff',
-      }).setOrigin(0.5).setDepth(52);
-      replayBtn.on('pointerdown', () => this.restartMiniBoss());
+    const epBtn = this.add.rectangle(epSelectX, subBtnY, halfBtnW, subBtnH, 0x0f172a, 0.95)
+      .setStrokeStyle(1.2, 0xa855f7).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const epText = this.add.text(epSelectX, subBtnY, 'PILIH EPISODE', {
+      fontFamily: '"Pixelify Sans", monospace',
+      fontSize: '11px',
+      fontStyle: '700',
+      color: '#c084fc',
+    }).setOrigin(0.5).setScrollFactor(0);
 
-      const epSelectBtn = this.add.rectangle(bounds.centerX + 100, subBtnY, 160, 40, 0x0f172a, 0.95)
-        .setStrokeStyle(1.2, 0xa855f7).setDepth(51).setInteractive({ useHandCursor: true });
-      const epSelectBtnText = this.add.text(bounds.centerX + 100, subBtnY, 'PILIH EPISODE', {
-        fontFamily: '"Pixelify Sans", monospace',
-        fontSize: '12px',
-        fontStyle: '700',
-        color: '#c084fc',
-      }).setOrigin(0.5).setDepth(52);
-      epSelectBtn.on('pointerdown', () => {
-        this.audioManager?.stopBGM();
-        this.scene.start('EpisodeSelectScene');
-      });
-    }
+    epBtn.on('pointerdown', () => {
+      badgeContainer.destroy();
+      this.audioManager?.stopBGM();
+      this.scene.start('EpisodeSelectScene');
+    });
+    epBtn.on('pointerover', () => epBtn.setFillStyle(0x1e293b));
+    epBtn.on('pointerout', () => epBtn.setFillStyle(0x0f172a));
+
+    badgeContainer.add([replayBtn, replayText, epBtn, epText]);
+
+    // Fade-in animation
+    badgeContainer.setAlpha(0);
+    this.tweens.add({ targets: badgeContainer, alpha: 1, duration: 280 });
   }
 
   // ==============================================================

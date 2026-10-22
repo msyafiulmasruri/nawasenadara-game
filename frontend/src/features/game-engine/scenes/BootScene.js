@@ -167,6 +167,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('courage-blast-surge', '/sprites/courage-blast-surge.png?v=1');
     this.load.image('courage-impact-burst', '/sprites/courage-impact-burst.png?v=1');
     this.load.image('courage-crest', '/sprites/courage-crest.png?v=1');
+    this.load.image('badge-assertive', '/sprites/badge-assertive.png?v=1');
     this.load.image('runner-spikes', '/sprites/runner-spikes.png?v=2');
     this.load.image('runner-drone', '/sprites/runner-drone.png?v=2');
     this.load.image('runner-road', '/sprites/runner-road.jpg?v=2');
