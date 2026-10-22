@@ -258,6 +258,7 @@ export default class RunnerScene extends Phaser.Scene {
       if (this.audioManager) {
         this.audioManager.stopBGM();
         this.audioManager.destroy();
+        this.audioManager = null;
       }
       if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
       this.scale.off('resize', this._onResize);
@@ -2719,17 +2720,18 @@ export default class RunnerScene extends Phaser.Scene {
       color: '#fb7185',
     }).setOrigin(0.5).setDepth(51);
 
-    const msg = this.add.text(bounds.centerX, bounds.centerY - 10, 'Tarik napas dalam-dalam. Bangkit kembali dari checkpoint!', {
+    const msg = this.add.text(bounds.centerX, bounds.centerY - 10, 'Dara kehabisan energi ketegasan.\nBangkit dan ulangi pertarungan Mini Boss dari awal!', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '12px',
       color: '#f8fafc',
       align: 'center',
+      lineSpacing: 4,
     }).setOrigin(0.5).setDepth(51);
 
     const btnY = bounds.centerY + 45;
     const respawnBtn = this.add.rectangle(bounds.centerX - 100, btnY, 170, 40, 0x0c1626, 0.95)
       .setStrokeStyle(1.5, 0x38bdf8).setDepth(51).setInteractive({ useHandCursor: true });
-    const respawnText = this.add.text(bounds.centerX - 100, btnY, 'RESPAWN', {
+    const respawnText = this.add.text(bounds.centerX - 100, btnY, 'ULANGI (RESPAWN)', {
       fontFamily: '"Pixelify Sans", monospace',
       fontSize: '11px',
       fontStyle: '700',
@@ -2754,19 +2756,27 @@ export default class RunnerScene extends Phaser.Scene {
       epSelectBtn.destroy();
       epSelectText.destroy();
 
-      this.distance = this.currentCheckpointDistance;
-      this.playerCourage = this.maxCourage;
-      this._updateHeartsUI();
-
-      this.obstaclesGroup.getChildren().forEach((obs) => this._destroyObstacleVisuals(obs));
-      this.obstaclesGroup.clear(true, true);
-      this._resumeRunner();
+      // Reset total pertarungan Mini Boss dari awal:
+      // Darah Boss kembali 10/10 HP, Nyawa Dara 3/3, Soal 0/10, dan Jarak 0m
+      this.restartMiniBoss();
     });
     respawnBtn.on('pointerover', () => respawnBtn.setFillStyle(0x1e293b, 1));
     respawnBtn.on('pointerout', () => respawnBtn.setFillStyle(0x0c1626, 0.95));
 
     epSelectBtn.on('pointerdown', () => {
-      this.audioManager?.stopBGM();
+      modal.destroy();
+      title.destroy();
+      msg.destroy();
+      respawnBtn.destroy();
+      respawnText.destroy();
+      epSelectBtn.destroy();
+      epSelectText.destroy();
+
+      if (this.audioManager) {
+        this.audioManager.stopBGM();
+        this.audioManager.destroy();
+        this.audioManager = null;
+      }
       this.scene.start('EpisodeSelectScene');
     });
     epSelectBtn.on('pointerover', () => epSelectBtn.setFillStyle(0x1e293b, 1));
@@ -3520,6 +3530,7 @@ export default class RunnerScene extends Phaser.Scene {
     if (this.audioManager) {
       this.audioManager.stopBGM();
       this.audioManager.destroy();
+      this.audioManager = null;
     }
     this.scene.restart({
       episodeId: this.episodeId,
